@@ -15,8 +15,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardEventsRouteImport } from './routes/dashboard/events'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
-import { Route as DashboardListsRouteImport } from './routes/dashboard/lists'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as DashboardListsIndexRouteImport } from './routes/dashboard/lists.index'
+import { Route as DashboardListsIdRouteImport } from './routes/dashboard/lists.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,15 +49,20 @@ const DashboardGroupsRoute = DashboardGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardListsRoute = DashboardListsRouteImport.update({
-  id: '/lists',
-  path: '/lists',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardListsIndexRoute = DashboardListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardListsIdRoute = DashboardListsIdRouteImport.update({
+  id: '/lists/$id',
+  path: '/lists/$id',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -65,18 +71,20 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
-  '/dashboard/lists': typeof DashboardListsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
-  '/dashboard/lists': typeof DashboardListsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/lists': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,9 +93,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
-  '/dashboard/lists': typeof DashboardListsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,18 +106,20 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
-    | '/dashboard/lists'
     | '/dashboard/'
     | '/api/auth/$'
+    | '/dashboard/lists/$id'
+    | '/dashboard/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
-    | '/dashboard/lists'
     | '/dashboard'
     | '/api/auth/$'
+    | '/dashboard/lists/$id'
+    | '/dashboard/lists'
   id:
     | '__root__'
     | '/'
@@ -116,9 +127,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
-    | '/dashboard/lists'
     | '/dashboard/'
     | '/api/auth/$'
+    | '/dashboard/lists/$id'
+    | '/dashboard/lists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -172,13 +184,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardGroupsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/lists': {
-      id: '/dashboard/lists'
-      path: '/lists'
-      fullPath: '/dashboard/lists'
-      preLoaderRoute: typeof DashboardListsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -186,21 +191,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/lists/': {
+      id: '/dashboard/lists/'
+      path: '/lists'
+      fullPath: '/dashboard/lists/'
+      preLoaderRoute: typeof DashboardListsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/lists/$id': {
+      id: '/dashboard/lists/$id'
+      path: '/lists/$id'
+      fullPath: '/dashboard/lists/$id'
+      preLoaderRoute: typeof DashboardListsIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
 interface DashboardRouteRouteChildren {
   DashboardEventsRoute: typeof DashboardEventsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
-  DashboardListsRoute: typeof DashboardListsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardListsIdRoute: typeof DashboardListsIdRoute
+  DashboardListsIndexRoute: typeof DashboardListsIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardEventsRoute: DashboardEventsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
-  DashboardListsRoute: DashboardListsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardListsIdRoute: DashboardListsIdRoute,
+  DashboardListsIndexRoute: DashboardListsIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

@@ -12,6 +12,7 @@ import type { ConvexQueryClient } from '@convex-dev/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { authClient } from '../lib/auth-client';
 import { getToken } from '../lib/auth-server';
+import { NotFound } from '../components/not-found';
 import appCss from '../styles.css?url';
 
 // Runs on the server: read the Better Auth session token for this request.
@@ -41,6 +42,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return { token };
   },
   component: RootComponent,
+  notFoundComponent: NotFound,
 });
 
 function RootComponent() {

@@ -20,6 +20,9 @@ export default defineSchema({
   lists: defineTable({
     title: v.string(),
     notes: v.optional(v.string()),
+    // Denormalized count of `items` rows for this list, kept in sync by
+    // convex/items.ts mutations. Avoids reading every item just to count them.
+    itemCount: v.number(),
     // Better Auth user id of whoever added it.
     createdBy: v.string(),
   }).index('by_createdBy', ['createdBy']),

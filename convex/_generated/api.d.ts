@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as items from "../items.js";
 import type * as lists from "../lists.js";
 import type * as profiles from "../profiles.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  items: typeof items;
   lists: typeof lists;
   profiles: typeof profiles;
 }>;

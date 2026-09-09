@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ChevronDown, Settings, LogOut, User as UserIcon } from "lucide-react";
+import * as React from 'react';
+import { ChevronDown, Settings, LogOut, User as UserIcon } from 'lucide-react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -13,7 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { useRouter } from '@tanstack/react-router';
+import { authClient } from '@/lib/auth-client';
 
 export type AccountUser = {
   id: string;
@@ -43,31 +45,31 @@ export default function User({
   // onUserChange,
   onProfileClick,
   onSettingsClick,
-  onSignOut,
 }: {
   // users: AccountUser[];
   // currentUserId: string;
   // onUserChange: (id: string) => void;
   onProfileClick?: () => void;
   onSettingsClick?: () => void;
-  onSignOut?: () => void;
 }) {
   // const current = users.find((u) => u.id === currentUserId) ?? users[0];
-
+  const router = useRouter();
+  const handleSignout = () => {
+    authClient.signOut();
+    router.navigate({ to: '/login' });
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild className="fixed top-5 right-7 z-20">
         <button
           className={cn(
-            "group flex items-center gap-2 rounded-pill border border-white/45 bg-white/50",
-            "backdrop-blur-glass py-[5px] pl-[5px] pr-2.5 shadow-glass outline-none",
-            "data-[state=open]:bg-white/70",
+            'group flex items-center gap-2 rounded-pill border border-white/45 bg-white/50',
+            'backdrop-blur-glass py-[5px] pl-[5px] pr-2.5 shadow-glass outline-none',
+            'data-[state=open]:bg-white/70'
           )}
         >
           <Avatar />
-          <span className="font-body text-[13.5px] font-semibold text-ink">
-            Will Hawks
-          </span>
+          <span className="font-body text-[13.5px] font-semibold text-ink">Will Hawks</span>
           <ChevronDown className="h-3.5 w-3.5 text-slate transition-transform group-data-[state=open]:rotate-180" />
         </button>
       </DropdownMenuTrigger>
@@ -76,9 +78,7 @@ export default function User({
         <div className="flex items-center gap-2.5 px-2.5 pb-3 pt-2">
           <Avatar size={34} />
           <div>
-            <div className="font-display text-[15px] font-semibold text-ink">
-              Will Hawks
-            </div>
+            <div className="font-display text-[15px] font-semibold text-ink">Will Hawks</div>
             <div className="font-body text-xs text-slate">Signed in</div>
           </div>
         </div>
@@ -110,8 +110,8 @@ export default function User({
           ))}
         </DropdownMenuRadioGroup> */}
 
-        <DropdownMenuItem variant="destructive" onClick={onSignOut}>
-          <LogOut className="h-[15px] w-[15px]" />
+        <DropdownMenuItem variant="destructive" onClick={handleSignout}>
+          <LogOut className="size-3.75" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
