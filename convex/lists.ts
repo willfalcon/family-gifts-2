@@ -28,7 +28,16 @@ export const get = query({
     if (!list || list.createdBy !== user._id) {
       return null;
     }
-    return list;
+    // Owner display info for the list header. `createdBy` is a Better Auth user
+    // id, which lives in the betterAuth component's tables, not ours.
+    const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
+    return {
+      ...list,
+      owner: {
+        name: owner?.name ?? "Unknown",
+        image: owner?.image ?? null,
+      },
+    };
   },
 });
 

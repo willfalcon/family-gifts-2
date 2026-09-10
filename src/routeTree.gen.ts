@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardEventsRouteImport } from './routes/dashboard/events'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
+import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardListsIndexRouteImport } from './routes/dashboard/lists.index'
 import { Route as DashboardListsIdRouteImport } from './routes/dashboard/lists.$id'
@@ -49,6 +51,16 @@ const DashboardGroupsRoute = DashboardGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardProfileRoute = DashboardProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -71,6 +83,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
@@ -81,6 +95,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
@@ -93,6 +109,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/dashboard/events': typeof DashboardEventsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
@@ -106,6 +124,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
+    | '/dashboard/profile'
+    | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
     | '/dashboard/lists/$id'
@@ -116,6 +136,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
+    | '/dashboard/profile'
+    | '/dashboard/settings'
     | '/dashboard'
     | '/api/auth/$'
     | '/dashboard/lists/$id'
@@ -127,6 +149,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/events'
     | '/dashboard/groups'
+    | '/dashboard/profile'
+    | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
     | '/dashboard/lists/$id'
@@ -184,6 +208,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardGroupsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/profile': {
+      id: '/dashboard/profile'
+      path: '/profile'
+      fullPath: '/dashboard/profile'
+      preLoaderRoute: typeof DashboardProfileRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -211,6 +249,8 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteRouteChildren {
   DashboardEventsRoute: typeof DashboardEventsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
+  DashboardProfileRoute: typeof DashboardProfileRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardListsIdRoute: typeof DashboardListsIdRoute
   DashboardListsIndexRoute: typeof DashboardListsIndexRoute
@@ -219,6 +259,8 @@ interface DashboardRouteRouteChildren {
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardEventsRoute: DashboardEventsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
+  DashboardProfileRoute: DashboardProfileRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardListsIdRoute: DashboardListsIdRoute,
   DashboardListsIndexRoute: DashboardListsIndexRoute,

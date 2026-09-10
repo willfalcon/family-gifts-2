@@ -45,6 +45,35 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("items"),
+    name: v.string(),
+    link: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    priority: v.optional(priorityValidator),
+    price: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const item = await ctx.db.get(args.id);
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    const list = await ctx.db.get(item.listId);
+    if (!list || list.createdBy !== user._id) {
+      throw new Error("Item not found");
+    }
+
+    const { id, ...fields } = args;
+    // Optional fields left off by the client come through as `undefined`, and
+    // patching a field to `undefined` clears it - so this both updates and
+    // unsets (e.g. a link the user deleted).
+    await ctx.db.patch(id, fields);
+  },
+});
+
 export const remove = mutation({
   args: { id: v.id("items") },
   handler: async (ctx, args) => {
