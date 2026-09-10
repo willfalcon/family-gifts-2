@@ -5,5 +5,5 @@ export const Route = createFileRoute('/dashboard/profile')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/profile"!</div>;
+  return <p className="mb-4">Hello "/dashboard/profile"!</p>;
 }
