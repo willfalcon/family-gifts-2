@@ -27,6 +27,17 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           .withIndex("by_userId", (q) => q.eq("userId", authUser._id))
           .unique();
         if (profile) await ctx.db.delete(profile._id);
+
+        for await (const favorite of ctx.db
+          .query("favorites")
+          .withIndex("by_user", (q) => q.eq("userId", authUser._id))) {
+          await ctx.db.delete(favorite._id);
+        }
+        for await (const favorite of ctx.db
+          .query("favorites")
+          .withIndex("by_favoritedUserId", (q) => q.eq("favoritedUserId", authUser._id))) {
+          await ctx.db.delete(favorite._id);
+        }
       },
     },
   },

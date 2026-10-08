@@ -2,18 +2,19 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { priorityValidator } from "./schema";
+import { hasListAccess } from "./listShares";
 
 // Items in a list, oldest first. `listId` comes from a URL param, so it's
 // untrusted - normalize it rather than v.id("lists") (which would throw on
 // anything the user edits in the address bar) and return [] when the list is
-// missing or not owned by the current user, matching lists.get.
+// missing or not visible to the current user, matching lists.get.
 export const list = query({
   args: { listId: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     const listId = ctx.db.normalizeId("lists", args.listId);
     const list = listId && (await ctx.db.get(listId));
-    if (!list || list.createdBy !== user._id) {
+    if (!list || !(await hasListAccess(ctx, list, user._id))) {
       return [];
     }
     return await ctx.db

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(lsof -ti:5184 -sTCP:LISTEN)",
+      "Bash(xargs -r kill)",
+      "Bash(lsof -ti:5183 -sTCP:LISTEN)",
+      "Bash(curl -sf http://localhost:5184)"
+    ]
+  }
+}

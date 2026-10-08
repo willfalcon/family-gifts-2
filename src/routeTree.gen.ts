@@ -12,14 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardEventsRouteImport } from './routes/dashboard/events'
-import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as DashboardEventsIndexRouteImport } from './routes/dashboard/events.index'
+import { Route as DashboardEventsIdRouteImport } from './routes/dashboard/events.$id'
+import { Route as DashboardGroupsIndexRouteImport } from './routes/dashboard/groups.index'
+import { Route as DashboardGroupsIdRouteImport } from './routes/dashboard/groups.$id'
 import { Route as DashboardListsIndexRouteImport } from './routes/dashboard/lists.index'
 import { Route as DashboardListsIdRouteImport } from './routes/dashboard/lists.$id'
+import { Route as DashboardUsersIdRouteImport } from './routes/dashboard/users.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,19 +41,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardEventsRoute = DashboardEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardGroupsRoute = DashboardGroupsRouteImport.update({
-  id: '/groups',
-  path: '/groups',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardProfileRoute = DashboardProfileRouteImport.update({
@@ -61,10 +61,35 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardEventsIndexRoute = DashboardEventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardEventsIdRoute = DashboardEventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardGroupsIndexRoute = DashboardGroupsIndexRouteImport.update({
+  id: '/groups/',
+  path: '/groups/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardGroupsIdRoute = DashboardGroupsIdRouteImport.update({
+  id: '/groups/$id',
+  path: '/groups/$id',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardListsIndexRoute = DashboardListsIndexRouteImport.update({
   id: '/lists/',
@@ -76,30 +101,45 @@ const DashboardListsIdRoute = DashboardListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardUsersIdRoute = DashboardUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/dashboard/events': typeof DashboardEventsRoute
-  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/signup': typeof SignupRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/events/$id': typeof DashboardEventsIdRoute
+  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/users/$id': typeof DashboardUsersIdRoute
+  '/dashboard/events/': typeof DashboardEventsIndexRoute
+  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
   '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/dashboard/events': typeof DashboardEventsRoute
-  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/signup': typeof SignupRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/events/$id': typeof DashboardEventsIdRoute
+  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/users/$id': typeof DashboardUsersIdRoute
+  '/dashboard/events': typeof DashboardEventsIndexRoute
+  '/dashboard/groups': typeof DashboardGroupsIndexRoute
   '/dashboard/lists': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesById {
@@ -107,13 +147,18 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/dashboard/events': typeof DashboardEventsRoute
-  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/signup': typeof SignupRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/dashboard/events/$id': typeof DashboardEventsIdRoute
+  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
   '/dashboard/lists/$id': typeof DashboardListsIdRoute
+  '/dashboard/users/$id': typeof DashboardUsersIdRoute
+  '/dashboard/events/': typeof DashboardEventsIndexRoute
+  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
   '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRouteTypes {
@@ -122,38 +167,53 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
-    | '/dashboard/events'
-    | '/dashboard/groups'
+    | '/signup'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/invite/$token'
     | '/dashboard/'
     | '/api/auth/$'
+    | '/dashboard/events/$id'
+    | '/dashboard/groups/$id'
     | '/dashboard/lists/$id'
+    | '/dashboard/users/$id'
+    | '/dashboard/events/'
+    | '/dashboard/groups/'
     | '/dashboard/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/dashboard/events'
-    | '/dashboard/groups'
+    | '/signup'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/invite/$token'
     | '/dashboard'
     | '/api/auth/$'
+    | '/dashboard/events/$id'
+    | '/dashboard/groups/$id'
     | '/dashboard/lists/$id'
+    | '/dashboard/users/$id'
+    | '/dashboard/events'
+    | '/dashboard/groups'
     | '/dashboard/lists'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
-    | '/dashboard/events'
-    | '/dashboard/groups'
+    | '/signup'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/invite/$token'
     | '/dashboard/'
     | '/api/auth/$'
+    | '/dashboard/events/$id'
+    | '/dashboard/groups/$id'
     | '/dashboard/lists/$id'
+    | '/dashboard/users/$id'
+    | '/dashboard/events/'
+    | '/dashboard/groups/'
     | '/dashboard/lists/'
   fileRoutesById: FileRoutesById
 }
@@ -161,6 +221,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -187,25 +249,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/events': {
-      id: '/dashboard/events'
-      path: '/events'
-      fullPath: '/dashboard/events'
-      preLoaderRoute: typeof DashboardEventsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/groups': {
-      id: '/dashboard/groups'
-      path: '/groups'
-      fullPath: '/dashboard/groups'
-      preLoaderRoute: typeof DashboardGroupsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/profile': {
@@ -222,12 +277,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/events/': {
+      id: '/dashboard/events/'
+      path: '/events'
+      fullPath: '/dashboard/events/'
+      preLoaderRoute: typeof DashboardEventsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/events/$id': {
+      id: '/dashboard/events/$id'
+      path: '/events/$id'
+      fullPath: '/dashboard/events/$id'
+      preLoaderRoute: typeof DashboardEventsIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/groups/': {
+      id: '/dashboard/groups/'
+      path: '/groups'
+      fullPath: '/dashboard/groups/'
+      preLoaderRoute: typeof DashboardGroupsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/groups/$id': {
+      id: '/dashboard/groups/$id'
+      path: '/groups/$id'
+      fullPath: '/dashboard/groups/$id'
+      preLoaderRoute: typeof DashboardGroupsIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/lists/': {
       id: '/dashboard/lists/'
@@ -243,26 +333,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardListsIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/users/$id': {
+      id: '/dashboard/users/$id'
+      path: '/users/$id'
+      fullPath: '/dashboard/users/$id'
+      preLoaderRoute: typeof DashboardUsersIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
 interface DashboardRouteRouteChildren {
-  DashboardEventsRoute: typeof DashboardEventsRoute
-  DashboardGroupsRoute: typeof DashboardGroupsRoute
   DashboardProfileRoute: typeof DashboardProfileRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardEventsIdRoute: typeof DashboardEventsIdRoute
+  DashboardGroupsIdRoute: typeof DashboardGroupsIdRoute
   DashboardListsIdRoute: typeof DashboardListsIdRoute
+  DashboardUsersIdRoute: typeof DashboardUsersIdRoute
+  DashboardEventsIndexRoute: typeof DashboardEventsIndexRoute
+  DashboardGroupsIndexRoute: typeof DashboardGroupsIndexRoute
   DashboardListsIndexRoute: typeof DashboardListsIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardEventsRoute: DashboardEventsRoute,
-  DashboardGroupsRoute: DashboardGroupsRoute,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardEventsIdRoute: DashboardEventsIdRoute,
+  DashboardGroupsIdRoute: DashboardGroupsIdRoute,
   DashboardListsIdRoute: DashboardListsIdRoute,
+  DashboardUsersIdRoute: DashboardUsersIdRoute,
+  DashboardEventsIndexRoute: DashboardEventsIndexRoute,
+  DashboardGroupsIndexRoute: DashboardGroupsIndexRoute,
   DashboardListsIndexRoute: DashboardListsIndexRoute,
 }
 
@@ -274,6 +377,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
+  InviteTokenRoute: InviteTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

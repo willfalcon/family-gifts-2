@@ -1,27 +1,39 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { convexQuery } from '@convex-dev/react-query';
+import { api } from '@convex/_generated/api';
 import { BigTitle } from '@/components/ui/big-title';
 import { CreateListForm } from '@/components/create-list-form';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Gift } from 'lucide-react';
 import ListListItem from '@/components/list-list-item';
 import { useLists } from '@/hooks/lists';
+import { Spinner } from '@/components/ui/spinner';
 
 export const Route = createFileRoute('/dashboard/lists/')({
   component: Lists,
+  loader: async ({ context }) => {
+    await context.queryClient.query({
+      ...convexQuery(api.lists.myLists, {}),
+      staleTime: 'static',
+    });
+  },
+  pendingComponent: () => (
+    <div className="flex justify-center py-12">
+      <Spinner className="size-6 text-muted-foreground" />
+    </div>
+  ),
 });
 
 function Lists() {
-  const { lists, isPending } = useLists();
+  const { lists } = useLists();
 
   return (
-    <div>
+    <div className="space-y-5">
       <BigTitle title="Lists" subtitle="Things you want, organized by occasion." />
 
       <CreateListForm />
 
-      {isPending ? (
-        <p>Loading lists…</p>
-      ) : lists?.length === 0 ? (
+      {lists.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">

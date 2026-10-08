@@ -53,7 +53,7 @@ export default function User() {
             <AvatarFallback>{user && initials(user.name)}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-display text-[15px] font-semibold text-ink">Will Hawks</div>
+            <div className="font-display text-[15px] font-semibold text-ink">{user?.name}</div>
             <div className="font-body text-xs text-slate">Signed in</div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import Heading from './ui/heading';
+import { FavoriteButton } from './favorite-button';
 
 import { List } from '@/types';
 import { Link } from '@tanstack/react-router';
@@ -17,7 +18,10 @@ export default function ListListItem({ title, itemCount, _id }: List) {
           {itemCount} {itemCount === 1 ? 'item' : 'items'}
         </p>
       </div>
-      <ChevronRight className="text-muted-foreground size-4" />
+      <div className="flex items-center gap-1">
+        <FavoriteButton kind="list" id={_id} />
+        <ChevronRight className="text-muted-foreground size-4" />
+      </div>
     </Link>
   );
 }

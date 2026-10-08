@@ -11,6 +11,7 @@
   --color-ink: #1b2340;
   --color-paper: #f7f4ec;
   --color-accent: #b5432e; /* Rust — also doubles as shadcn's "accent" and "destructive", see note below */
+  --color-accent-foreground: #f7f4ec; /* Paper — legible text/icon color on a solid accent fill (calendar "today", etc.) */
   --color-amber: #c9973b;
   --color-slate: #a6adbe;
   --color-good: #2e7d5b;
