@@ -52,8 +52,20 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
     baseURL: siteUrl,
     // The web app's own origin, plus the mobile app's deep-link scheme
     // (registered as "scheme" in apps/mobile/app.json) so Better Auth
-    // accepts redirects/sessions from both clients.
-    trustedOrigins: [siteUrl, "familygifts://"],
+    // accepts redirects/sessions from both clients. In Expo Go, the
+    // expo-origin header is the exp:// dev-server URL instead of our
+    // scheme, since Expo Go ignores custom schemes — ALLOW_EXPO_GO_DEV_ORIGIN
+    // is set via `npx convex env set` only on the dev deployment (never prod)
+    // to additionally trust that pattern. process.env.NODE_ENV is always
+    // "production" inside Convex functions, even on a dev deployment, so it
+    // can't be used to distinguish dev from prod here.
+    trustedOrigins: [
+      siteUrl,
+      "familygifts://",
+      ...(process.env.ALLOW_EXPO_GO_DEV_ORIGIN === "true"
+        ? ["exp://", "exp://**", "exp://192.168.*.*:*/**"]
+        : []),
+    ],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,

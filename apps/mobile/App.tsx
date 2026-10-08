@@ -11,8 +11,13 @@ if (!CONVEX_URL) {
   throw new Error('Missing EXPO_PUBLIC_CONVEX_URL — copy .env.example to .env.local.');
 }
 
+// No `expectAuth` here: that flag pauses the socket until `client.setAuth`
+// is called, which only happens once Better Auth reports a signed-in user
+// (see ConvexBetterAuthProvider). A signed-out user never triggers that call,
+// so with no SSR step to hand off a token first (unlike the web app), every
+// query — including the one this screen uses to detect "signed out" — would
+// hang forever instead of resolving to null.
 const convex = new ConvexReactClient(CONVEX_URL, {
-  expectAuth: true,
   unsavedChangesWarning: false,
 });
 
@@ -28,9 +33,7 @@ function AuthForm() {
     setError(null);
     setSubmitting(true);
     const { error } =
-      mode === 'signIn'
-        ? await authClient.signIn.email({ email, password })
-        : await authClient.signUp.email({ email, password, name });
+      mode === 'signIn' ? await authClient.signIn.email({ email, password }) : await authClient.signUp.email({ email, password, name });
     setSubmitting(false);
     if (error) setError(error.message ?? 'Something went wrong');
   }
@@ -39,13 +42,7 @@ function AuthForm() {
     <View style={styles.form}>
       <Text style={styles.title}>{mode === 'signIn' ? 'Sign in' : 'Sign up'}</Text>
       {mode === 'signUp' && (
-        <TextInput
-          style={styles.input}
-          placeholder="name"
-          autoCapitalize="words"
-          value={name}
-          onChangeText={setName}
-        />
+        <TextInput style={styles.input} placeholder="name" autoCapitalize="words" value={name} onChangeText={setName} />
       )}
       <TextInput
         style={styles.input}
@@ -55,21 +52,13 @@ function AuthForm() {
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <TextInput style={styles.input} placeholder="password" secureTextEntry value={password} onChangeText={setPassword} />
       <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
         <Text style={styles.buttonText}>{mode === 'signIn' ? 'Sign in' : 'Sign up'}</Text>
       </Pressable>
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}>
-        <Text style={styles.link}>
-          {mode === 'signIn' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-        </Text>
+        <Text style={styles.link}>{mode === 'signIn' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}</Text>
       </Pressable>
     </View>
   );
@@ -89,7 +78,6 @@ function SignedIn({ email }: { email: string }) {
 
 function AppContent() {
   const user = useQuery(api.auth.getCurrentUser);
-
   if (user === undefined) {
     return <Text>Connecting to Convex...</Text>;
   }
