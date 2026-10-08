@@ -11,7 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@convex': fileURLToPath(new URL('./convex', import.meta.url)),
+      '@convex': fileURLToPath(new URL('../../packages/backend/convex', import.meta.url)),
     },
   },
   // Better Auth ships ESM that must be bundled for SSR rather than externalized.
