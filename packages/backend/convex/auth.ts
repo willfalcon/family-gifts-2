@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth/minimal";
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
+import { expo } from "@better-auth/expo";
 import authConfig from "./auth.config";
 import { components, internal } from "./_generated/api";
 import { query } from "./_generated/server";
@@ -49,6 +50,10 @@ export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 export const createAuth = (ctx: GenericCtx<DataModel>) =>
   betterAuth({
     baseURL: siteUrl,
+    // The web app's own origin, plus the mobile app's deep-link scheme
+    // (registered as "scheme" in apps/mobile/app.json) so Better Auth
+    // accepts redirects/sessions from both clients.
+    trustedOrigins: [siteUrl, "familygifts://"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
@@ -56,7 +61,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
     },
     // Add social providers here later, e.g.:
     // socialProviders: { github: { clientId: ..., clientSecret: ... } },
-    plugins: [convex({ authConfig })],
+    plugins: [expo(), convex({ authConfig })],
   });
 
 // Convenience query for the client: current signed-in user, or null.
