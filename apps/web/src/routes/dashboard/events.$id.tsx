@@ -20,7 +20,7 @@ import InviteToEventForm from '@/components/invite-to-event-form';
 import InviteGroupToEventForm from '@/components/invite-group-to-event-form';
 import PendingEventInviteItem from '@/components/pending-event-invite-item';
 import EventActionsMenu from '@/components/event-actions-menu';
-import { formatWhen } from '@/components/event-list-item';
+import { formatWhen } from '@shared/event-dates';
 import SharedListItem from '@/components/shared-list-item';
 import SecretSantaTab from '@/components/secret-santa-tab';
 import { FavoriteButton } from '@/components/favorite-button';

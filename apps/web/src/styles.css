@@ -6,6 +6,12 @@
    Unchanged from before; everything already built (glass panels,
    dock, buttons, rows, the dropdown-menu primitive) depends on these
    exact names, so this block stays as-is.
+
+   These values (plus the shadcn tokens in :root below) are mirrored
+   for the mobile app in packages/design-tokens/index.js, which its
+   tailwind.config.js imports directly. Tailwind 4's CSS-only @theme
+   can't import JS, so this file can't consume that module the same
+   way — if you change a value here, update it there too.
 ------------------------------------------------------------------- */
 @theme {
   --color-ink: #1b2340;

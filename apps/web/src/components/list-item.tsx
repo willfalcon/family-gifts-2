@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from './ui/alert-dialog';
 
-import { Item } from '@/types';
+import { Item } from '@convex/types';
 import PriorityBadge from './priority-badge';
 import EditItemForm from './edit-item-form';
 

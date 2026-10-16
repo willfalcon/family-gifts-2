@@ -1,7 +1,7 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { api } from '@convex/_generated/api';
-import { Group } from '@/types';
+import { Group } from '@convex/types';
 import { Id } from '@convex/_generated/dataModel';
 
 export function useGroups() {

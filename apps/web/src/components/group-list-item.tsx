@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import Heading from './ui/heading';
 import { FavoriteButton } from './favorite-button';
 
-import { Group } from '@/types';
+import { Group } from '@convex/types';
 import { Link } from '@tanstack/react-router';
 
 export default function GroupListItem({ name, _id }: Group) {

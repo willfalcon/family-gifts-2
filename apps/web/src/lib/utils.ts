@@ -1,9 +1,4 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from '@shared/cn';
 
 // First letter of the first two words of a name, for avatar fallbacks.
 export function initials(name: string): string {

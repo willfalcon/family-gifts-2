@@ -8,7 +8,8 @@
     "strictNullChecks": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@convex/*": ["../../packages/backend/convex/*"]
+      "@convex/*": ["../../packages/backend/convex/*"],
+      "@shared/*": ["../../packages/shared/*"]
     }
   }
 }

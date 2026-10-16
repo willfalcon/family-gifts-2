@@ -28,6 +28,7 @@ import type * as secretSanta from "../secretSanta.js";
 import type * as sendEventInviteEmail from "../sendEventInviteEmail.js";
 import type * as sendGroupInviteEmail from "../sendGroupInviteEmail.js";
 import type * as sendSecretSantaAssignmentEmail from "../sendSecretSantaAssignmentEmail.js";
+import type * as types from "../types.js";
 
 import type {
   ApiFromModules,
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   sendEventInviteEmail: typeof sendEventInviteEmail;
   sendGroupInviteEmail: typeof sendGroupInviteEmail;
   sendSecretSantaAssignmentEmail: typeof sendSecretSantaAssignmentEmail;
+  types: typeof types;
 }>;
 
 /**

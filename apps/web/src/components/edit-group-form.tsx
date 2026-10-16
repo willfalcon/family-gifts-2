@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useConvexMutation } from '@convex-dev/react-query';
 import { api } from '@convex/_generated/api';
-import { Group } from '@/types';
+import { Group } from '@convex/types';
 import GroupForm from '@/components/group-form';
 
 interface Props {

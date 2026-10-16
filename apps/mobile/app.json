@@ -24,7 +24,12 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-router",
+      "expo-status-bar",
+      "expo-image",
+      ["expo-splash-screen", { "backgroundColor": "#f7f4ec" }],
+      "expo-font"
     ]
   }
 }

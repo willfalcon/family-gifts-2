@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useConvexMutation } from '@convex-dev/react-query';
 import { api } from '@convex/_generated/api';
-import { List } from '@/types';
+import { List } from '@convex/types';
 import ListForm from '@/components/list-form';
 
 interface Props {
