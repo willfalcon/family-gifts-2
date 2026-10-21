@@ -11,6 +11,22 @@ function formatDate(value: string) {
   return date ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : value;
 }
 
+// "today", "tomorrow", "in 20 days", "yesterday", "3 days ago". Counts
+// calendar days in local time, so 11pm tonight to 1am is still "tomorrow".
+export function formatRelativeDay(value: string) {
+  const date = parseISODate(value);
+  if (!date) return value;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Round rather than floor: a DST change makes some days 23 or 25 hours.
+  const days = Math.round((date.getTime() - today.getTime()) / 86_400_000);
+
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === -1) return 'yesterday';
+  return days > 0 ? `in ${days} days` : `${-days} days ago`;
+}
+
 function formatTime(value: string) {
   const [h, m] = value.split(':').map(Number);
   if (h === undefined || m === undefined) return value;

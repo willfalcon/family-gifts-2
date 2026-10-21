@@ -18,10 +18,10 @@ const colors = {
   line: '#e3dfd2',
   'muted-dot': '#d8d3c2',
 
-  background: '#f7f4ec',
+  background: '#FBFAF8',
   foreground: '#1b2340',
 
-  card: '#fbf9f2',
+  card: '#ffffff',
   'card-foreground': '#1b2340',
 
   popover: '#fbf9f2',
@@ -57,6 +57,43 @@ const colors = {
   'sidebar-accent-foreground': '#1b2340',
   'sidebar-border': '#e3dfd2',
   'sidebar-ring': '#c9973b',
+
+  // Design System
+  bg: '#6B6F7A',
+  surface: '#ffffff',
+  fill: '#f0eee9',
+  line: '#e9e6df',
+  star: '#b7791f',
+  scrim: '#0b0c0f',
+
+  ink: '#15192b',
+  'ink-muted': '#6b6f7a',
+  'ink-faint': '#b3b6bd',
+
+  accent: '#b5432e',
+  'accent-soft': 'rgba(181, 67, 46, 0.12)',
+
+  'on-accent': '#ffffff',
+  'on-success': '#ffffff',
+  'on-avatar': '#f7f4ec',
+
+  success: '#2e7d5b',
+  'success-soft': 'rgba(46,125,91,0.10)',
+
+  'control-off': '#8e8b83',
+
+  'switch-off': '#e3e0d7',
+
+  'segment-thumb': '#ffffff',
+
+  'avatar-navy': '#1b2340',
+  'avatar-terracotta': '#a0553a',
+  'avatar-forest': '#35614a',
+  'avatar-teal': '#24706e',
+  'avatar-plum': '#5b3a5e',
+  'avatar-slate': '#48577a',
+  'avatar-ochre': '#8a6822',
+  'avatar-berry': '#7a3350',
 };
 
 // Unlike CSS, React Native has no font-weight-on-a-named-family mechanism —
@@ -82,6 +119,7 @@ const borderRadius = {
   md: '10px',
   lg: '12px',
   xl: '16px',
+  '2xl': '20px',
   pill: '999px',
 };
 

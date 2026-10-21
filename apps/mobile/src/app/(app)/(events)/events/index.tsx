@@ -1,5 +1,1 @@
-import { View } from 'react-native';
-
-export default function Events() {
-  return <View></View>;
-}
+export { default } from '@/screens/events';

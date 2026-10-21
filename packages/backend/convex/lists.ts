@@ -1,4 +1,5 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { listSchema } from "../../shared/schemas/list";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { hasListAccess } from "./listShares";
@@ -44,11 +45,22 @@ export const get = query({
   },
 });
 
+// Runs the same checks the web and mobile forms run, so a client that skips
+// them can't save an empty or overlong title. Returns the cleaned (trimmed) fields.
+function validateList(fields: { title: string }) {
+  const result = listSchema.safeParse(fields);
+  if (!result.success) {
+    throw new ConvexError(result.error.issues[0]?.message ?? "Invalid list");
+  }
+  return result.data;
+}
+
 export const create = mutation({
   args: { title: v.string(), notes: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    return await ctx.db.insert("lists", { ...args, itemCount: 0, createdBy: user._id });
+    const { title } = validateList({ title: args.title });
+    return await ctx.db.insert("lists", { ...args, title, itemCount: 0, createdBy: user._id });
   },
 });
 
@@ -62,7 +74,8 @@ export const update = mutation({
     }
 
     const { id, ...fields } = args;
-    await ctx.db.patch(id, fields);
+    const { title } = validateList({ title: fields.title });
+    await ctx.db.patch(id, { ...fields, title });
   },
 });
 

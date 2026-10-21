@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { birthdayValidator, birthdayVisibilityValidator } from "./schema";
 import { canViewProfile, visibleProfile } from "./permissions";
 
 // The current user's profile row, or null if they have none yet.
@@ -56,20 +57,36 @@ export const getPublic = query({
 // so a caller can only ever write their own profile. The display name lives on
 // the Better Auth user record and is updated separately by the client.
 //
-// Every field is optional; an empty/whitespace-only string clears that field.
+// Every field is optional; an empty/whitespace-only string clears that field,
+// and `birthday: null` clears the birthday.
 export const updateMine = mutation({
   args: {
-    birthday: v.optional(v.string()),
+    birthday: v.optional(v.union(birthdayValidator, v.null())),
+    birthdayVisibility: v.optional(birthdayVisibilityValidator),
+    birthdayGroupIds: v.optional(v.array(v.id("groups"))),
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
 
+    if (args.birthday) {
+      const { month, day, year } = args.birthday;
+      // Leap year 2000 so Feb 29 is allowed when no year is given.
+      const check = new Date(year ?? 2000, month - 1, day);
+      if (check.getMonth() !== month - 1 || check.getDate() !== day) {
+        throw new Error("Invalid birthday");
+      }
+    }
+
     // Setting a field to `undefined` in a patch deletes it, so blank inputs
     // don't linger as empty strings.
     const fields = {
-      birthday: args.birthday?.trim() || undefined,
+      birthday: args.birthday ?? undefined,
+      birthdayVisibility: args.birthdayVisibility,
+      // Only meaningful for 'someGroups'; drop it otherwise.
+      birthdayGroupIds:
+        args.birthdayVisibility === "someGroups" ? args.birthdayGroupIds : undefined,
       shirtSize: args.shirtSize?.trim() || undefined,
       notes: args.notes?.trim() || undefined,
     };

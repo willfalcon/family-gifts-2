@@ -1,0 +1,6 @@
+# Generated files
+**/_generated/**
+apps/web/src/routeTree.gen.ts
+apps/mobile/ios
+apps/mobile/android
+package-lock.json

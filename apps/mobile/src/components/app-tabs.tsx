@@ -10,21 +10,21 @@ export default function AppTabs() {
       labelStyle={{ selected: { color: TabColors.text } }}
     >
       <NativeTabs.Trigger name="(dashboard)">
-        <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />
+        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="(lists)">
-        <NativeTabs.Trigger.Label>Lists</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'gift', selected: 'gift.fill' }} />
+        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>Lists</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'gift', selected: 'gift' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(groups)">
-        <NativeTabs.Trigger.Label>Groups</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
+        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>People</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(events)">
-        <NativeTabs.Trigger.Label>Events</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} />
+        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>Events</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

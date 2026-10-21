@@ -1,5 +1,6 @@
 import type { QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import type { Birthday } from "./schema";
 
 // Profile visibility rules live here so every read of another user's profile
 // routes through one place. Today the rules are permissive stubs; the real
@@ -9,7 +10,7 @@ import type { Doc } from "./_generated/dataModel";
 // The subset of profile fields a viewer is ever allowed to see. Keep this in
 // sync with the `profiles` table shape in convex/schema.ts.
 export type VisibleProfile = {
-  birthday?: string;
+  birthday?: Birthday;
   shirtSize?: string;
   notes?: string;
 };

@@ -62,6 +62,33 @@ const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
   h4: '4',
 };
 
+// React Native can't pick a weight within a custom font family: each loaded
+// weight is its own family (Fraunces_700Bold etc.), so `font-bold` alone does
+// nothing to Fraunces. When a display font and a weight class are combined,
+// swap in the family for that weight. Only 500/600/700 are loaded.
+const DISPLAY_WEIGHT_CLASS: Record<string, string> = {
+  'font-thin': 'font-display-medium',
+  'font-extralight': 'font-display-medium',
+  'font-light': 'font-display-medium',
+  'font-normal': 'font-display-medium',
+  'font-medium': 'font-display-medium',
+  'font-semibold': 'font-display-semibold',
+  'font-bold': 'font-display-bold',
+  'font-extrabold': 'font-display-bold',
+  'font-black': 'font-display-bold',
+};
+const DISPLAY_FAMILY = /^font-display(-medium|-semibold|-bold)?$/;
+
+function resolveDisplayWeight(className: string) {
+  const classes = className.split(/\s+/);
+  if (!classes.some(c => DISPLAY_FAMILY.test(c))) return className;
+  const weight = classes.findLast(c => c in DISPLAY_WEIGHT_CLASS);
+  if (!weight) return className;
+  // Drop the weight class too, so Android doesn't fake-bold an already bold font.
+  const rest = classes.filter(c => !DISPLAY_FAMILY.test(c) && !(c in DISPLAY_WEIGHT_CLASS));
+  return [...rest, DISPLAY_WEIGHT_CLASS[weight]].join(' ');
+}
+
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
 function Text({
@@ -78,7 +105,7 @@ function Text({
   const Component = asChild ? Slot : RNText;
   return (
     <Component
-      className={cn(textVariants({ variant }), textClass, className)}
+      className={resolveDisplayWeight(cn(textVariants({ variant }), textClass, className))}
       role={variant ? ROLE[variant] : undefined}
       aria-level={variant ? ARIA_LEVEL[variant] : undefined}
       {...props}

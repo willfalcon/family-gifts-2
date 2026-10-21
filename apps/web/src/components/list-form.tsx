@@ -1,22 +1,11 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { listSchema, type ListInput } from '@shared/schemas/list';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { bigTitleClasses } from '@/components/ui/big-title';
-
-const listSchema = z.object({
-  title: z.string().trim().min(1, 'Give your list a name').max(100, 'Keep it under 100 characters'),
-});
-
-type ListFormValues = z.infer<typeof listSchema>;
-
-// The shape create/update mutations take, minus the id update resolves itself.
-export interface ListInput {
-  title: string;
-}
 
 interface Props {
   // True for editing an existing list, so the title field can read as an
@@ -30,12 +19,12 @@ interface Props {
 }
 
 export default function ListForm({ update = false, defaults, submitLabel, onSubmit, onCancel }: Props) {
-  const form = useForm<ListFormValues>({
+  const form = useForm<ListInput>({
     resolver: zodResolver(listSchema),
     defaultValues: { title: defaults?.title ?? '' },
   });
 
-  async function handleSubmit(values: ListFormValues) {
+  async function handleSubmit(values: ListInput) {
     await onSubmit(values);
     form.reset();
   }

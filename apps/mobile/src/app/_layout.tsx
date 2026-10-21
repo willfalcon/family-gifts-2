@@ -1,8 +1,6 @@
 import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
 import { ThemeProvider } from 'expo-router';
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
-import { ConvexQueryClient } from '@convex-dev/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Fraunces_500Medium, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -16,23 +14,12 @@ if (!CONVEX_URL) {
   throw new Error('Missing EXPO_PUBLIC_CONVEX_URL — copy .env.example to .env.local.');
 }
 
-const convex = new ConvexReactClient(CONVEX_URL, {
+// Reuse one client across hot reloads. Without this, every reload of this
+// file opens a new websocket and the new client starts without auth.
+const globalForConvex = globalThis as { __convex?: ConvexReactClient };
+const convex = (globalForConvex.__convex ??= new ConvexReactClient(CONVEX_URL, {
   unsavedChangesWarning: false,
-});
-
-// Bridges Convex's live subscriptions into TanStack Query's cache so
-// `useQuery(convexQuery(...))` stays reactive. Shares the client above so
-// auth set by ConvexBetterAuthProvider applies to react-query calls too.
-const convexQueryClient = new ConvexQueryClient(convex);
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      queryKeyHashFn: convexQueryClient.hashFn(),
-      queryFn: convexQueryClient.queryFn(),
-    },
-  },
-});
-convexQueryClient.connect(queryClient);
+}));
 
 import '../global.css';
 
@@ -54,10 +41,8 @@ export default function AppLayout() {
       {/* <AnimatedSplashOverlay /> */}
       <ConvexProvider client={convex}>
         <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-          <QueryClientProvider client={queryClient}>
-            <AppContent />
-            <PortalHost />
-          </QueryClientProvider>
+          <AppContent />
+          <PortalHost />
         </ConvexBetterAuthProvider>
       </ConvexProvider>
     </ThemeProvider>

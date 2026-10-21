@@ -7,6 +7,20 @@ import { avatarColorValidator } from './avatarColors';
 export const priorityValidator = v.union(v.literal('low'), v.literal('medium'), v.literal('high'));
 export type Priority = Infer<typeof priorityValidator>; // "low" | "medium" | "high"
 
+export const birthdayValidator = v.object({
+  month: v.number(), // 1-12
+  day: v.number(), // 1-31
+  year: v.optional(v.number()), // set only when "Show my age" is on
+});
+export type Birthday = Infer<typeof birthdayValidator>;
+
+export const birthdayVisibilityValidator = v.union(
+  v.literal('allGroups'),
+  v.literal('someGroups'),
+  v.literal('private'),
+);
+export type BirthdayVisibility = Infer<typeof birthdayVisibilityValidator>;
+
 // App tables. Better Auth's own tables (user, session, account, ...) live in the
 // betterAuth component and are not declared here.
 export default defineSchema({
@@ -14,13 +28,22 @@ export default defineSchema({
   // Created automatically by the `user.onCreate` trigger in convex/auth.ts.
   profiles: defineTable({
     userId: v.string(), // Better Auth user id
-    birthday: v.optional(v.string()), // ISO date, "YYYY-MM-DD"
+    birthday: v.optional(birthdayValidator),
+    birthdayVisibility: v.optional(birthdayVisibilityValidator),
+    birthdayGroupIds: v.optional(v.array(v.id('groups'))), // only for 'someGroups'
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
   }).index('by_userId', ['userId']),
   lists: defineTable({
     title: v.string(),
     notes: v.optional(v.string()),
+    occasion: v.optional(
+      v.union(
+        v.object({ kind: v.literal('event'), eventId: v.id('events') }), // "Christmas party"
+        v.object({ kind: v.literal('birthday') }), // "My birthday" (the creator's)
+        v.object({ kind: v.literal('date'), date: v.string() }), // "Another occasion"
+      ),
+    ), // none = "Just ideas"
     // Denormalized count of `items` rows for this list, kept in sync by
     // convex/items.ts mutations. Avoids reading every item just to count them.
     itemCount: v.number(),
@@ -43,6 +66,12 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     date: v.optional(v.string()), // ISO date, "YYYY-MM-DD" - start date
+    sourceBirthday: v.optional(
+      v.object({
+        userId: v.string(),
+        year: v.number(),
+      }),
+    ),
     endDate: v.optional(v.string()), // ISO date - only set when it differs from `date`
     startTime: v.optional(v.string()), // "HH:MM", 24h
     endTime: v.optional(v.string()),

@@ -1,9 +1,8 @@
-import { api } from '@family-gifts/backend/convex/_generated/api';
-import { useQuery } from 'convex/react';
 import { Stack } from 'expo-router';
+import { useUser } from '@/hooks/user';
 
 export default function AppContent() {
-  const user = useQuery(api.auth.getCurrentUser);
+  const user = useUser();
   return (
     <Stack>
       <Stack.Protected guard={!!user}>

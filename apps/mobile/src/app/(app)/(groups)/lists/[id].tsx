@@ -1,1 +1,1 @@
-export { default } from '../../(lists)/lists/[id]';
+export { default } from '@/screens/list';
