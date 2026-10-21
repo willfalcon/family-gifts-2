@@ -1,8 +1,12 @@
 import { ConvexError, v } from "convex/values";
-import { listSchema } from "../../shared/schemas/list";
-import { mutation, query } from "./_generated/server";
+import { listSchema, type ListInput } from "../../shared/schemas/list";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
+import { getAttendance } from "./events";
+import { getMembership } from "./groups";
 import { hasListAccess } from "./listShares";
+import { occasionValidator } from "./schema";
 
 // Lists the current user created.
 export const myLists = query({
@@ -46,8 +50,9 @@ export const get = query({
 });
 
 // Runs the same checks the web and mobile forms run, so a client that skips
-// them can't save an empty or overlong title. Returns the cleaned (trimmed) fields.
-function validateList(fields: { title: string }) {
+// them can't save an empty or overlong title or a bad date. Returns the cleaned
+// (trimmed) fields.
+function validateList(fields: ListInput) {
   const result = listSchema.safeParse(fields);
   if (!result.success) {
     throw new ConvexError(result.error.issues[0]?.message ?? "Invalid list");
@@ -55,17 +60,62 @@ function validateList(fields: { title: string }) {
   return result.data;
 }
 
+// An event occasion must be one the user is attending.
+async function checkOccasion(ctx: MutationCtx, occasion: ListInput["occasion"], userId: string) {
+  if (occasion?.kind === "event" && !(await getAttendance(ctx, occasion.eventId, userId))) {
+    throw new ConvexError("You can only pick events you're attending.");
+  }
+}
+
+// Makes the list's group shares match `groupIds` exactly: adds missing ones,
+// removes unchecked ones. User and event shares are left alone.
+async function syncGroupShares(ctx: MutationCtx, listId: Id<"lists">, groupIds: Id<"groups">[], userId: string) {
+  const wanted = new Set(groupIds);
+  for (const groupId of wanted) {
+    if (!(await getMembership(ctx, groupId, userId))) {
+      throw new ConvexError("You can only share with groups you're a member of.");
+    }
+  }
+
+  const existing = new Set<Id<"groups">>();
+  for await (const share of ctx.db.query("listShares").withIndex("by_list", (q) => q.eq("listId", listId))) {
+    if (!share.sharedWithGroupId) continue;
+    if (wanted.has(share.sharedWithGroupId)) existing.add(share.sharedWithGroupId);
+    else await ctx.db.delete(share._id);
+  }
+
+  for (const groupId of wanted) {
+    if (!existing.has(groupId)) {
+      await ctx.db.insert("listShares", { listId, sharedWithGroupId: groupId, canEdit: false });
+    }
+  }
+}
+
+const listFields = {
+  title: v.string(),
+  notes: v.optional(v.string()),
+  occasion: v.optional(occasionValidator),
+  // Omit to leave the list's group shares unchanged.
+  sharedWithGroupIds: v.optional(v.array(v.id("groups"))),
+};
+
 export const create = mutation({
-  args: { title: v.string(), notes: v.optional(v.string()) },
+  args: listFields,
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    const { title } = validateList({ title: args.title });
-    return await ctx.db.insert("lists", { ...args, title, itemCount: 0, createdBy: user._id });
+    const { sharedWithGroupIds, notes, ...input } = args;
+    const { title, occasion } = validateList(input);
+    await checkOccasion(ctx, occasion, user._id);
+
+    const id = await ctx.db.insert("lists", { title, notes, occasion, itemCount: 0, createdBy: user._id });
+    if (sharedWithGroupIds) await syncGroupShares(ctx, id, sharedWithGroupIds, user._id);
+    return id;
   },
 });
 
+// Note: leaving `occasion` out clears it, same as `notes`.
 export const update = mutation({
-  args: { id: v.id("lists"), title: v.string(), notes: v.optional(v.string()) },
+  args: { id: v.id("lists"), ...listFields },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     const list = await ctx.db.get(args.id);
@@ -73,9 +123,12 @@ export const update = mutation({
       throw new Error("List not found");
     }
 
-    const { id, ...fields } = args;
-    const { title } = validateList({ title: fields.title });
-    await ctx.db.patch(id, { ...fields, title });
+    const { id, sharedWithGroupIds, notes, ...input } = args;
+    const { title, occasion } = validateList(input);
+    await checkOccasion(ctx, occasion, user._id);
+
+    await ctx.db.patch(id, { title, notes, occasion });
+    if (sharedWithGroupIds) await syncGroupShares(ctx, id, sharedWithGroupIds, user._id);
   },
 });
 

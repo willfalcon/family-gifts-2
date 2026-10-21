@@ -28,8 +28,14 @@
       "expo-router",
       "expo-status-bar",
       "expo-image",
-      ["expo-splash-screen", { "backgroundColor": "#f7f4ec" }],
-      "expo-font"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f7f4ec"
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

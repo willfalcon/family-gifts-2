@@ -8,14 +8,12 @@
  */
 
 const colors = {
-  ink: '#1b2340',
   paper: '#f7f4ec',
-  accent: '#b5432e',
   'accent-foreground': '#f7f4ec',
   amber: '#c9973b',
   slate: '#a6adbe',
   good: '#2e7d5b',
-  line: '#e3dfd2',
+
   'muted-dot': '#d8d3c2',
 
   background: '#FBFAF8',

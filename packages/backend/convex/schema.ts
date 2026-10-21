@@ -21,6 +21,14 @@ export const birthdayVisibilityValidator = v.union(
 );
 export type BirthdayVisibility = Infer<typeof birthdayVisibilityValidator>;
 
+// What a list is for. Mirrors `occasionSchema` in packages/shared/schemas/list.ts.
+export const occasionValidator = v.union(
+  v.object({ kind: v.literal('event'), eventId: v.id('events') }), // a real event, e.g. "Christmas party"
+  v.object({ kind: v.literal('christmas') }), // Dec 25, every year
+  v.object({ kind: v.literal('birthday') }), // "My birthday" (the creator's)
+  v.object({ kind: v.literal('date'), date: v.string() }), // "Another occasion"
+);
+
 // App tables. Better Auth's own tables (user, session, account, ...) live in the
 // betterAuth component and are not declared here.
 export default defineSchema({
@@ -37,13 +45,7 @@ export default defineSchema({
   lists: defineTable({
     title: v.string(),
     notes: v.optional(v.string()),
-    occasion: v.optional(
-      v.union(
-        v.object({ kind: v.literal('event'), eventId: v.id('events') }), // "Christmas party"
-        v.object({ kind: v.literal('birthday') }), // "My birthday" (the creator's)
-        v.object({ kind: v.literal('date'), date: v.string() }), // "Another occasion"
-      ),
-    ), // none = "Just ideas"
+    occasion: v.optional(occasionValidator), // none = "Just ideas"
     // Denormalized count of `items` rows for this list, kept in sync by
     // convex/items.ts mutations. Avoids reading every item just to count them.
     itemCount: v.number(),

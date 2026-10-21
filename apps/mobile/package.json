@@ -11,6 +11,7 @@
     "@family-gifts/design-tokens": "*",
     "@family-gifts/shared": "*",
     "@hookform/resolvers": "^5.9.1",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@rn-primitives/checkbox": "^1.5.2",
     "@rn-primitives/label": "^1.5.2",
     "@rn-primitives/portal": "^1.5.3",

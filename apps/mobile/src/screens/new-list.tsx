@@ -3,7 +3,7 @@ import { ConvexError } from 'convex/values';
 import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import GlassButton from '@/components/glass-button';
 import ListForm from '@/components/list-form';
@@ -19,7 +19,7 @@ export default function NewList() {
 
   const { control, handleSubmit, formState, setError } = useForm<ListInput>({
     resolver: zodResolver(listSchema),
-    defaultValues: { title: '' },
+    defaultValues: { title: '', sharedWithGroupIds: [] },
   });
 
   const createList = useMutation(api.lists.create);
@@ -37,8 +37,9 @@ export default function NewList() {
   });
 
   return (
-    <View className="flex-1 gap-6 bg-background p-4">
-      <View className="flex-row items-center gap-2">
+    <View className="flex-1 bg-background">
+      {/* Header stays pinned so Create is always reachable; the form below scrolls. */}
+      <View className="flex-row items-center gap-2 p-4">
         <GlassButton className="w-20" onPress={() => router.back()} accessibilityLabel="Go back">
           <Icon as={X} size={20} />
         </GlassButton>
@@ -57,7 +58,15 @@ export default function NewList() {
         </GlassButton>
       </View>
 
-      <ListForm control={control} onSubmit={onSubmit} />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-6 px-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
+        <ListForm control={control} onSubmit={onSubmit} />
+      </ScrollView>
     </View>
   );
 }
