@@ -9,8 +9,9 @@ export default defineConfig({
     port: 3000,
   },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+'@': fileURLToPath(new URL('./src', import.meta.url)),
       '@convex': fileURLToPath(new URL('../../packages/backend/convex', import.meta.url)),
       '@shared': fileURLToPath(new URL('../../packages/shared', import.meta.url)),
     },

@@ -9,3 +9,7 @@ dist
 .vinxi
 count.txt
 .expo
+
+# Expo generated native folders
+ios/
+android/

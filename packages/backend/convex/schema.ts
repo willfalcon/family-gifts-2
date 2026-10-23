@@ -60,6 +60,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     price: v.optional(v.number()),
+    imageId: v.optional(v.id('_storage')),
     // Better Auth user id of whoever added it.
     createdBy: v.string(),
   }).index('by_listId', ['listId']),

@@ -56,3 +56,18 @@
     --chart-5: 340 75% 55%;
   }
 }
+
+@layer components {
+  .display-greeting {
+    @apply font-display text-[36px] font-bold;
+  }
+  .display-title {
+    @apply font-display text-[30px] font-bold;
+  }
+  .display-detail {
+    @apply font-display !text-2xl font-bold;
+  }
+  .display-name {
+    @apply font-display text-[26px] font-bold;
+  }
+}

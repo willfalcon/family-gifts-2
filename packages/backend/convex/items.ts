@@ -4,6 +4,14 @@ import { authComponent } from "./auth";
 import { priorityValidator } from "./schema";
 import { hasListAccess } from "./listShares";
 
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await authComponent.getAuthUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 // Items in a list, oldest first. `listId` comes from a URL param, so it's
 // untrusted - normalize it rather than v.id("lists") (which would throw on
 // anything the user edits in the address bar) and return [] when the list is
@@ -32,6 +40,7 @@ export const create = mutation({
     notes: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     price: v.optional(v.number()),
+    imageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -54,6 +63,7 @@ export const update = mutation({
     notes: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     price: v.optional(v.number()),
+    imageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);

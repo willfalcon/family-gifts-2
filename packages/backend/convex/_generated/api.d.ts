@@ -19,6 +19,7 @@ import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as items from "../items.js";
+import type * as linkParser from "../linkParser.js";
 import type * as listShares from "../listShares.js";
 import type * as lists from "../lists.js";
 import type * as permissions from "../permissions.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   invites: typeof invites;
   items: typeof items;
+  linkParser: typeof linkParser;
   listShares: typeof listShares;
   lists: typeof lists;
   permissions: typeof permissions;

@@ -6,11 +6,11 @@ export function useLists() {
   return useQuery(api.lists.myLists);
 }
 
-export function useList(id: string) {
+export function useList(id: Id<'lists'>) {
   return useQuery(api.lists.get, { id });
 }
 
-export function useItems(listId: string) {
+export function useItems(listId: Id<'lists'>) {
   return useQuery(api.items.list, { listId });
 }
 
