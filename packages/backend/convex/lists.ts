@@ -1,21 +1,21 @@
-import { ConvexError, v } from "convex/values";
-import { listSchema, type ListInput } from "../../shared/schemas/list";
-import type { Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx } from "./_generated/server";
-import { authComponent } from "./auth";
-import { getAttendance } from "./events";
-import { getMembership } from "./groups";
-import { hasListAccess } from "./listShares";
-import { occasionValidator } from "./schema";
+import { ConvexError, v } from 'convex/values';
+import { listSchema, type ListInput } from '../../shared/schemas/list';
+import type { Id } from './_generated/dataModel';
+import { mutation, query, type MutationCtx } from './_generated/server';
+import { authComponent } from './auth';
+import { getAttendance } from './events';
+import { getMembership } from './groups';
+import { hasListAccess } from './listShares';
+import { occasionValidator } from './schema';
 
 // Lists the current user created.
 export const myLists = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const user = await authComponent.getAuthUser(ctx);
     return await ctx.db
-      .query("lists")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
+      .query('lists')
+      .withIndex('by_createdBy', q => q.eq('createdBy', user._id))
       .collect();
   },
 });
@@ -31,7 +31,7 @@ export const get = query({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    const id = ctx.db.normalizeId("lists", args.id);
+    const id = ctx.db.normalizeId('lists', args.id);
     const list = id && (await ctx.db.get(id));
     if (!list || !(await hasListAccess(ctx, list, user._id))) {
       return null;
@@ -39,12 +39,25 @@ export const get = query({
     // Owner display info for the list header. `createdBy` is a Better Auth user
     // id, which lives in the betterAuth component's tables, not ours.
     const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
+
+    // Resolve event name/date when the occasion references one, so the client
+    // doesn't need a second round-trip.
+    let occasionEventName: string | null = null;
+    let occasionEventDate: string | null = null;
+    if (list.occasion?.kind === 'event') {
+      const event = await ctx.db.get(list.occasion.eventId);
+      occasionEventName = event?.name ?? null;
+      occasionEventDate = event?.date ?? null;
+    }
+
     return {
       ...list,
       owner: {
-        name: owner?.name ?? "Unknown",
+        name: owner?.name ?? 'Unknown',
         image: owner?.image ?? null,
       },
+      occasionEventName,
+      occasionEventDate,
     };
   },
 });
@@ -55,21 +68,21 @@ export const get = query({
 function validateList(fields: ListInput) {
   const result = listSchema.safeParse(fields);
   if (!result.success) {
-    throw new ConvexError(result.error.issues[0]?.message ?? "Invalid list");
+    throw new ConvexError(result.error.issues[0]?.message ?? 'Invalid list');
   }
   return result.data;
 }
 
 // An event occasion must be one the user is attending.
-async function checkOccasion(ctx: MutationCtx, occasion: ListInput["occasion"], userId: string) {
-  if (occasion?.kind === "event" && !(await getAttendance(ctx, occasion.eventId, userId))) {
+async function checkOccasion(ctx: MutationCtx, occasion: ListInput['occasion'], userId: string) {
+  if (occasion?.kind === 'event' && !(await getAttendance(ctx, occasion.eventId, userId))) {
     throw new ConvexError("You can only pick events you're attending.");
   }
 }
 
 // Makes the list's group shares match `groupIds` exactly: adds missing ones,
 // removes unchecked ones. User and event shares are left alone.
-async function syncGroupShares(ctx: MutationCtx, listId: Id<"lists">, groupIds: Id<"groups">[], userId: string) {
+async function syncGroupShares(ctx: MutationCtx, listId: Id<'lists'>, groupIds: Id<'groups'>[], userId: string) {
   const wanted = new Set(groupIds);
   for (const groupId of wanted) {
     if (!(await getMembership(ctx, groupId, userId))) {
@@ -77,8 +90,8 @@ async function syncGroupShares(ctx: MutationCtx, listId: Id<"lists">, groupIds: 
     }
   }
 
-  const existing = new Set<Id<"groups">>();
-  for await (const share of ctx.db.query("listShares").withIndex("by_list", (q) => q.eq("listId", listId))) {
+  const existing = new Set<Id<'groups'>>();
+  for await (const share of ctx.db.query('listShares').withIndex('by_list', q => q.eq('listId', listId))) {
     if (!share.sharedWithGroupId) continue;
     if (wanted.has(share.sharedWithGroupId)) existing.add(share.sharedWithGroupId);
     else await ctx.db.delete(share._id);
@@ -86,7 +99,7 @@ async function syncGroupShares(ctx: MutationCtx, listId: Id<"lists">, groupIds: 
 
   for (const groupId of wanted) {
     if (!existing.has(groupId)) {
-      await ctx.db.insert("listShares", { listId, sharedWithGroupId: groupId, canEdit: false });
+      await ctx.db.insert('listShares', { listId, sharedWithGroupId: groupId, canEdit: false });
     }
   }
 }
@@ -96,7 +109,7 @@ const listFields = {
   notes: v.optional(v.string()),
   occasion: v.optional(occasionValidator),
   // Omit to leave the list's group shares unchanged.
-  sharedWithGroupIds: v.optional(v.array(v.id("groups"))),
+  sharedWithGroupIds: v.optional(v.array(v.id('groups'))),
 };
 
 export const create = mutation({
@@ -107,7 +120,7 @@ export const create = mutation({
     const { title, occasion } = validateList(input);
     await checkOccasion(ctx, occasion, user._id);
 
-    const id = await ctx.db.insert("lists", { title, notes, occasion, itemCount: 0, createdBy: user._id });
+    const id = await ctx.db.insert('lists', { title, notes, occasion, itemCount: 0, createdBy: user._id });
     if (sharedWithGroupIds) await syncGroupShares(ctx, id, sharedWithGroupIds, user._id);
     return id;
   },
@@ -115,12 +128,12 @@ export const create = mutation({
 
 // Note: leaving `occasion` out clears it, same as `notes`.
 export const update = mutation({
-  args: { id: v.id("lists"), ...listFields },
+  args: { id: v.id('lists'), ...listFields },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     const list = await ctx.db.get(args.id);
     if (!list || list.createdBy !== user._id) {
-      throw new Error("List not found");
+      throw new Error('List not found');
     }
 
     const { id, sharedWithGroupIds, notes, ...input } = args;
@@ -135,21 +148,23 @@ export const update = mutation({
 // Deletes a list along with everything that hangs off it - its items and any
 // shares - so nothing orphaned is left behind.
 export const remove = mutation({
-  args: { id: v.id("lists") },
+  args: { id: v.id('lists') },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     const list = await ctx.db.get(args.id);
     if (!list || list.createdBy !== user._id) {
-      throw new Error("List not found");
+      throw new Error('List not found');
     }
 
-    for await (const item of ctx.db.query("items").withIndex("by_listId", (q) => q.eq("listId", list._id))) {
+    for await (const item of ctx.db.query('items').withIndex('by_listId', q => q.eq('listId', list._id))) {
       await ctx.db.delete(item._id);
     }
-    for await (const share of ctx.db.query("listShares").withIndex("by_list", (q) => q.eq("listId", list._id))) {
+    for await (const share of ctx.db.query('listShares').withIndex('by_list', q => q.eq('listId', list._id))) {
       await ctx.db.delete(share._id);
     }
-    for await (const favorite of ctx.db.query("favorites").withIndex("by_favoritedListId", (q) => q.eq("favoritedListId", list._id))) {
+    for await (const favorite of ctx.db
+      .query('favorites')
+      .withIndex('by_favoritedListId', q => q.eq('favoritedListId', list._id))) {
       await ctx.db.delete(favorite._id);
     }
 

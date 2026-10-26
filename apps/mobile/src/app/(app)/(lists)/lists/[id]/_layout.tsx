@@ -8,6 +8,7 @@ export default function Layout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="add-item" options={{ presentation: 'modal' }} />
       <Stack.Screen name="edit" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="items/[itemId]" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

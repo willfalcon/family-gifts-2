@@ -46,7 +46,7 @@ export const list = query({
       shares.map(async share => {
         if (share.sharedWithGroupId) {
           const group = await ctx.db.get(share.sharedWithGroupId);
-          return { id: share._id, kind: 'group' as const, name: group?.name ?? 'Unknown group' };
+          return { id: share._id, kind: 'group' as const, name: group?.name ?? 'Unknown group', groupId: share.sharedWithGroupId };
         }
         if (share.sharedWithEventId) {
           const event = await ctx.db.get(share.sharedWithEventId);

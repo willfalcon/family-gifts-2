@@ -11,7 +11,7 @@ const buttonVariants = cva(cn('group shrink-0 flex-row items-center justify-cent
       outline:
         'border border-border bg-background shadow-sm shadow-black/5 active:bg-accent dark:border-input dark:bg-input/30 dark:active:bg-input/50',
       secondary: 'bg-fill',
-      ghost: 'active:bg-accent dark:active:bg-accent/50',
+      ghost: '',
       link: '',
     },
     size: {
@@ -34,7 +34,7 @@ const buttonTextVariants = cva('text-sm font-semibold text-foreground', {
       destructive: 'text-white',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-ink',
-      ghost: 'group-active:text-accent-foreground',
+      ghost: '',
       link: 'text-primary group-active:underline',
     },
     size: {

@@ -25,10 +25,19 @@ export const list = query({
     if (!list || !(await hasListAccess(ctx, list, user._id))) {
       return [];
     }
-    return await ctx.db
+    const items = await ctx.db
       .query("items")
       .withIndex("by_listId", (q) => q.eq("listId", list._id))
       .collect();
+
+    return await Promise.all(
+      items.map(async (item) => ({
+        ...item,
+        imageUrl: item.imageId
+          ? await ctx.storage.getUrl(item.imageId)
+          : null,
+      }))
+    );
   },
 });
 

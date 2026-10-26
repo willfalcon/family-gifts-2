@@ -1,16 +1,26 @@
-import { BackLink } from '@/components/back-link';
-import GlassButton from '@/components/glass-button';
-import { Button } from '@/components/ui/button';
-
-import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
-import { useItems, useList, useListShares } from '@/hooks/lists';
-import { Id } from '@convex/_generated/dataModel';
 import { Image } from 'expo-image';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { Ellipsis, Gift, Plus, Star } from 'lucide-react-native';
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Host, List as UIList, Section } from '@expo/ui/swift-ui';
+
+import { BackLink } from '@/components/back-link';
+import GlassButton from '@/components/glass-button';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Text } from '@/components/ui/text';
+import { useItems, useList, useListShares } from '@/hooks/lists';
+import { Id } from '@convex/_generated/dataModel';
+import EditListMenu from '@/components/edit-list-menu';
+import { GlassView } from 'expo-glass-effect';
+import ListItem from '@/components/list-item';
+
+function formatOccasionDate(isoDate: string) {
+  // Parse as local date to avoid UTC-offset surprises on "YYYY-MM-DD" strings.
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function List() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,31 +29,58 @@ export default function List() {
   const list = useList(listId);
   const items = useItems(listId);
   const listShares = useListShares(listId);
-  console.log('list', list);
-  console.log('listShares', listShares);
 
   const sharedWithGroups = listShares?.filter(share => share.kind === 'group');
 
   return (
-    <SafeAreaView className="flex-1 gap-6 bg-background p-4">
-      <View>
-        <View className="flex-row gap-4">
+    <SafeAreaView className="flex-1 gap-6 bg-background">
+      <View className="px-4">
+        <View className="flex-row items-center gap-4">
           <View className="flex-0">
             <BackLink />
           </View>
           {list && <Text className="display-detail flex-1">{list.title}</Text>}
-          <View className="flex-0">
-            <GlassButton accessibilityLabel="Options">
-              <Icon as={Ellipsis} />
-            </GlassButton>
-          </View>
+          <GlassView
+            style={{
+              flex: 0,
+              borderRadius: 999,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <Link href={`/lists/${listId}/add-item`} asChild>
+              <Button variant="ghost" size="icon">
+                <Icon as={Plus} className="text-ink" size={24} />
+              </Button>
+            </Link>
+            <EditListMenu listId={listId} />
+          </GlassView>
         </View>
 
-        {sharedWithGroups && sharedWithGroups.length > 0 && (
-          <View className="ml-12 pl-1">
-            <Text>Shared with {sharedWithGroups.map(group => group.name).join(', ')}</Text>
-          </View>
-        )}
+        <Text className="ml-12 pl-1">
+          {list?.occasion &&
+            (() => {
+              const { occasion } = list;
+              const parts: string[] = [];
+              if (occasion.kind === 'event') {
+                parts.push(list.occasionEventName ?? 'Event');
+                if (list.occasionEventDate) parts.push(formatOccasionDate(list.occasionEventDate));
+              } else if (occasion.kind === 'christmas') {
+                parts.push('Christmas');
+              } else if (occasion.kind === 'birthday') {
+                parts.push('My birthday');
+              } else {
+                parts.push(formatOccasionDate(occasion.date));
+              }
+              return <Text className="text-ink-muted">{parts.join(' · ')}</Text>;
+            })()}
+          {list?.occasion && sharedWithGroups && sharedWithGroups.length > 0 && (
+            <Text className="text-ink-muted"> · </Text>
+          )}
+          {sharedWithGroups && sharedWithGroups.length > 0 && (
+            <Text className="text-ink-muted">Shared with {sharedWithGroups.map(group => group.name).join(', ')}</Text>
+          )}
+        </Text>
       </View>
       {items?.length === 0 && (
         <View className="flex-1 items-center justify-center gap-2">
@@ -66,28 +103,9 @@ export default function List() {
       )}
 
       {items?.length && (
-        <View>
+        <View className="flex-1 p-4">
           {items.map(item => (
-            <View key={item._id} className="mb-2 flex-row gap-2">
-              {item.imageId && <Image source={{ uri: item.imageId }} />}
-              <View className="flex-1 border-b border-line">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-lg">{item.name}</Text>
-                  {item.priority === 'high' && (
-                    <View className="flex-row items-center gap-1">
-                      <Icon as={Star} className="text-star" size={16} />
-                    </View>
-                  )}
-                </View>
-                {(item.notes || item.price) && (
-                  <Text>
-                    {item.notes && <Text className="text-sm text-ink-muted">{item.notes}</Text>}
-                    {item.notes && item.price && <Text className="text-sm text-ink-muted"> • </Text>}
-                    {item.price && <Text className="text-sm text-ink-muted">${item.price}</Text>}
-                  </Text>
-                )}
-              </View>
-            </View>
+            <ListItem key={item._id} item={item} />
           ))}
           <Link href={{ pathname: '/(app)/(lists)/lists/[id]/add-item', params: { id: listId } }} asChild>
             <Button variant="link" className="justify-start">
