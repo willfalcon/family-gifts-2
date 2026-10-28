@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v, type Infer } from 'convex/values';
 import { avatarColorValidator } from './avatarColors';
+import { currencyValidator } from './currencies';
 
 // Reusable "enum". Import this in mutation args too, so the schema and the
 // functions can never drift apart.
@@ -21,6 +22,18 @@ export const birthdayVisibilityValidator = v.union(
 );
 export type BirthdayVisibility = Infer<typeof birthdayVisibilityValidator>;
 
+// How far ahead to notify the user.
+export const notificationPreferenceValidator = v.union(
+  v.literal('none'),
+  v.literal('day-before'),
+  v.literal('week-before'),
+  v.literal('3-weeks'),
+);
+export type NotificationPreference = Infer<typeof notificationPreferenceValidator>;
+// Used when the user hasn't picked one. Anything that sends notifications
+// should use this too, so it matches what the profile screen shows.
+export const DEFAULT_NOTIFICATION_PREFERENCE: NotificationPreference = 'day-before';
+
 // What a list is for. Mirrors `occasionSchema` in packages/shared/schemas/list.ts.
 export const occasionValidator = v.union(
   v.object({ kind: v.literal('event'), eventId: v.id('events') }), // a real event, e.g. "Christmas party"
@@ -39,6 +52,9 @@ export default defineSchema({
     birthday: v.optional(birthdayValidator),
     birthdayVisibility: v.optional(birthdayVisibilityValidator),
     birthdayGroupIds: v.optional(v.array(v.id('groups'))), // only for 'someGroups'
+    notificationPreference: v.optional(notificationPreferenceValidator), // none = DEFAULT_NOTIFICATION_PREFERENCE
+    shareNewLists: v.optional(v.array(v.id('groups'))), // groups each new list is shared with
+    currency: v.optional(currencyValidator), // none = DEFAULT_CURRENCY
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
   }).index('by_userId', ['userId']),
@@ -51,7 +67,11 @@ export default defineSchema({
     itemCount: v.number(),
     // Better Auth user id of whoever added it.
     createdBy: v.string(),
-  }).index('by_createdBy', ['createdBy']),
+    // When the owner archived it. Archived lists drop out of the owner's main
+    // lists and out of everyone else's view entirely, but keep their items and
+    // shares so restoring brings everything back as it was.
+    archivedAt: v.optional(v.number()),
+  }).index('by_createdBy_archivedAt', ['createdBy', 'archivedAt']),
 
   items: defineTable({
     listId: v.id('lists'),
@@ -60,6 +80,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     price: v.optional(v.number()),
+    quantity: v.optional(v.number()),
     imageId: v.optional(v.id('_storage')),
     // Better Auth user id of whoever added it.
     createdBy: v.string(),

@@ -1,12 +1,9 @@
-import { Image } from 'expo-image';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { Ellipsis, Gift, Plus, Star } from 'lucide-react-native';
+import { Plus, Gift } from 'lucide-react-native';
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Host, List as UIList, Section } from '@expo/ui/swift-ui';
 
 import { BackLink } from '@/components/back-link';
-import GlassButton from '@/components/glass-button';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -15,8 +12,9 @@ import { Id } from '@convex/_generated/dataModel';
 import EditListMenu from '@/components/edit-list-menu';
 import { GlassView } from 'expo-glass-effect';
 import ListItem from '@/components/list-item';
+import { StatusBar } from 'expo-status-bar';
 
-function formatOccasionDate(isoDate: string) {
+export function formatOccasionDate(isoDate: string) {
   // Parse as local date to avoid UTC-offset surprises on "YYYY-MM-DD" strings.
   const [year, month, day] = isoDate.split('-').map(Number);
   return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -34,26 +32,32 @@ export default function List() {
 
   return (
     <SafeAreaView className="flex-1 gap-6 bg-background">
-      <View className="px-4">
+      <StatusBar style="light" />
+      <View className="gap-2 px-4">
         <View className="flex-row items-center gap-4">
           <View className="flex-0">
             <BackLink />
           </View>
-          {list && <Text className="display-detail flex-1">{list.title}</Text>}
+          {list && (
+            <Text variant="detail" className="flex-1 text-left">
+              {list.title}
+            </Text>
+          )}
           <GlassView
             style={{
               flex: 0,
               borderRadius: 999,
               flexDirection: 'row',
               alignItems: 'center',
+              height: 36,
             }}
           >
-            <Link href={`/lists/${listId}/add-item`} asChild>
+            <Link href={`/lists/${listId}/add-item`} asChild style={{ height: 36 }}>
               <Button variant="ghost" size="icon">
-                <Icon as={Plus} className="text-ink" size={24} />
+                <Icon as={Plus} className="text-ink" size={17} />
               </Button>
             </Link>
-            <EditListMenu listId={listId} />
+            <EditListMenu listId={listId} archived={list?.archivedAt !== undefined} />
           </GlassView>
         </View>
 
@@ -72,13 +76,15 @@ export default function List() {
               } else {
                 parts.push(formatOccasionDate(occasion.date));
               }
-              return <Text className="text-ink-muted">{parts.join(' · ')}</Text>;
+              return <Text className="text-label text-ink-muted">{parts.join(' · ')}</Text>;
             })()}
           {list?.occasion && sharedWithGroups && sharedWithGroups.length > 0 && (
-            <Text className="text-ink-muted"> · </Text>
+            <Text className="text-label text-ink-muted"> · </Text>
           )}
           {sharedWithGroups && sharedWithGroups.length > 0 && (
-            <Text className="text-ink-muted">Shared with {sharedWithGroups.map(group => group.name).join(', ')}</Text>
+            <Text className="text-label text-ink-muted">
+              Shared with {sharedWithGroups.map(group => group.name).join(', ')}
+            </Text>
           )}
         </Text>
       </View>
@@ -102,17 +108,16 @@ export default function List() {
         </View>
       )}
 
-      {items?.length && (
-        <View className="flex-1 p-4">
+      {items && items.length > 0 && (
+        <View className="flex-1 gap-2 p-4">
           {items.map(item => (
             <ListItem key={item._id} item={item} />
           ))}
           <Link href={{ pathname: '/(app)/(lists)/lists/[id]/add-item', params: { id: listId } }} asChild>
-            <Button variant="link" className="justify-start">
-              <View className="h-10 w-10">
-                <Icon as={Plus} />
-              </View>
-              <Text>Add an idea</Text>
+            <Button variant="link" className="items-center justify-start">
+              <Icon as={Plus} className="text-accent" />
+
+              <Text className="text-accent">Add an idea</Text>
             </Button>
           </Link>
         </View>

@@ -15,10 +15,10 @@ const buttonVariants = cva(cn('group shrink-0 flex-row items-center justify-cent
       link: '',
     },
     size: {
-      default: 'h-10 px-4 py-2 sm:h-9',
+      default: 'h-9 px-4 py-2 sm:h-9',
       sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
       lg: 'h-11 rounded-md px-6 sm:h-10',
-      icon: 'h-10 w-10 sm:h-9 sm:w-9',
+      icon: 'h-9 w-9 sm:h-9 sm:w-9',
     },
   },
   defaultVariants: {

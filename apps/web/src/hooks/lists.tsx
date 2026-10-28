@@ -1,11 +1,17 @@
 import { convexQuery } from '@convex-dev/react-query';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { api } from '@convex/_generated/api';
 import { List } from '@convex/types';
 import { Id } from '@convex/_generated/dataModel';
 
 export function useLists() {
   const { data: lists } = useSuspenseQuery(convexQuery(api.lists.myLists, {}));
+  return { lists };
+}
+
+// Not suspense: the archive is secondary, so it shouldn't hold up the page.
+export function useArchivedLists() {
+  const { data: lists } = useQuery(convexQuery(api.lists.myArchivedLists, {}));
   return { lists };
 }
 

@@ -6,7 +6,7 @@ import { CreateListForm } from '@/components/create-list-form';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Gift } from 'lucide-react';
 import ListListItem from '@/components/list-list-item';
-import { useLists } from '@/hooks/lists';
+import { useArchivedLists, useLists } from '@/hooks/lists';
 import { Spinner } from '@/components/ui/spinner';
 
 export const Route = createFileRoute('/dashboard/lists/')({
@@ -26,6 +26,7 @@ export const Route = createFileRoute('/dashboard/lists/')({
 
 function Lists() {
   const { lists } = useLists();
+  const { lists: archivedLists } = useArchivedLists();
 
   return (
     <div className="space-y-5">
@@ -49,6 +50,19 @@ function Lists() {
             <ListListItem key={l._id} {...l} />
           ))}
         </ul>
+      )}
+
+      {archivedLists && archivedLists.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-sm text-muted-foreground select-none">
+            Archived ({archivedLists.length})
+          </summary>
+          <ul className="mt-4 opacity-70">
+            {archivedLists.map(l => (
+              <ListListItem key={l._id} {...l} />
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );

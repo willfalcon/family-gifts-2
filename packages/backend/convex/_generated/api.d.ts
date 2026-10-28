@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as avatarColors from "../avatarColors.js";
+import type * as currencies from "../currencies.js";
 import type * as emails_EventInviteEmail from "../emails/EventInviteEmail.js";
 import type * as emails_GroupInviteEmail from "../emails/GroupInviteEmail.js";
 import type * as emails_SecretSantaAssignmentEmail from "../emails/SecretSantaAssignmentEmail.js";
@@ -40,6 +41,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   avatarColors: typeof avatarColors;
+  currencies: typeof currencies;
   "emails/EventInviteEmail": typeof emails_EventInviteEmail;
   "emails/GroupInviteEmail": typeof emails_GroupInviteEmail;
   "emails/SecretSantaAssignmentEmail": typeof emails_SecretSantaAssignmentEmail;

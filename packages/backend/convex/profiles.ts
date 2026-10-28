@@ -1,17 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
-import { birthdayValidator, birthdayVisibilityValidator } from "./schema";
-import { canViewProfile, visibleProfile } from "./permissions";
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import { authComponent } from './auth';
+import { birthdayValidator, birthdayVisibilityValidator, notificationPreferenceValidator } from './schema';
+import { currencyValidator } from './currencies';
+import { canViewProfile, visibleProfile } from './permissions';
 
 // The current user's profile row, or null if they have none yet.
 export const getMine = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async ctx => {
     const user = await authComponent.getAuthUser(ctx);
     return await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .query('profiles')
+      .withIndex('by_userId', q => q.eq('userId', user._id))
       .unique();
   },
 });
@@ -38,8 +40,8 @@ export const getPublic = query({
     }
 
     const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query('profiles')
+      .withIndex('by_userId', q => q.eq('userId', args.userId))
       .unique();
 
     const isSelf = viewerUserId === args.userId;
@@ -57,13 +59,17 @@ export const getPublic = query({
 // so a caller can only ever write their own profile. The display name lives on
 // the Better Auth user record and is updated separately by the client.
 //
-// Every field is optional; an empty/whitespace-only string clears that field,
-// and `birthday: null` clears the birthday.
+// Only the fields passed in are changed, so the client can save one field at a
+// time. An empty/whitespace-only string clears that field, and `birthday: null`
+// clears the birthday.
 export const updateMine = mutation({
   args: {
     birthday: v.optional(v.union(birthdayValidator, v.null())),
     birthdayVisibility: v.optional(birthdayVisibilityValidator),
-    birthdayGroupIds: v.optional(v.array(v.id("groups"))),
+    birthdayGroupIds: v.optional(v.array(v.id('groups'))),
+    notificationPreference: v.optional(notificationPreferenceValidator),
+    shareNewLists: v.optional(v.array(v.id('groups'))),
+    currency: v.optional(currencyValidator),
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
@@ -75,31 +81,45 @@ export const updateMine = mutation({
       // Leap year 2000 so Feb 29 is allowed when no year is given.
       const check = new Date(year ?? 2000, month - 1, day);
       if (check.getMonth() !== month - 1 || check.getDate() !== day) {
-        throw new Error("Invalid birthday");
+        throw new Error('Invalid birthday');
       }
     }
 
-    // Setting a field to `undefined` in a patch deletes it, so blank inputs
-    // don't linger as empty strings.
-    const fields = {
-      birthday: args.birthday ?? undefined,
-      birthdayVisibility: args.birthdayVisibility,
-      // Only meaningful for 'someGroups'; drop it otherwise.
-      birthdayGroupIds:
-        args.birthdayVisibility === "someGroups" ? args.birthdayGroupIds : undefined,
-      shirtSize: args.shirtSize?.trim() || undefined,
-      notes: args.notes?.trim() || undefined,
-    };
+    // Only the user's own groups can be picked to see their birthday or get
+    // their new lists.
+    for (const groupId of [...(args.birthdayGroupIds ?? []), ...(args.shareNewLists ?? [])]) {
+      const membership = await ctx.db
+        .query('groupMembers')
+        .withIndex('by_group_user', q => q.eq('groupId', groupId).eq('userId', user._id))
+        .unique();
+      if (!membership) throw new Error('Not a member of that group');
+    }
+
+    // A key left out of `args` is left out of the patch, so it stays as it is.
+    // A key set to `undefined` in a patch deletes that field, which is how
+    // blank strings and `birthday: null` clear things.
+    // `birthdayGroupIds` is kept even when visibility isn't 'someGroups', so
+    // switching back restores the user's picks. Readers should only use it
+    // when visibility is 'someGroups'.
+    const fields: Partial<Omit<Doc<'profiles'>, '_id' | '_creationTime' | 'userId'>> = {};
+    if ('birthday' in args) fields.birthday = args.birthday ?? undefined;
+    if ('birthdayVisibility' in args) fields.birthdayVisibility = args.birthdayVisibility;
+    if ('birthdayGroupIds' in args) fields.birthdayGroupIds = args.birthdayGroupIds;
+    if ('notificationPreference' in args) fields.notificationPreference = args.notificationPreference;
+    if ('shareNewLists' in args) fields.shareNewLists = args.shareNewLists;
+    if ('currency' in args) fields.currency = args.currency;
+    if ('shirtSize' in args) fields.shirtSize = args.shirtSize?.trim() || undefined;
+    if ('notes' in args) fields.notes = args.notes?.trim() || undefined;
 
     const existing = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .query('profiles')
+      .withIndex('by_userId', q => q.eq('userId', user._id))
       .unique();
     // Upsert: also covers any user created before the onCreate trigger existed.
     if (existing) {
       await ctx.db.patch(existing._id, fields);
     } else {
-      await ctx.db.insert("profiles", { userId: user._id, ...fields });
+      await ctx.db.insert('profiles', { userId: user._id, ...fields });
     }
   },
 });

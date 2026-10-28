@@ -3,7 +3,9 @@ import { ConvexError } from 'convex/values';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Link, X } from 'lucide-react-native';
+import { Host, Picker, Text as SwiftText } from '@expo/ui/swift-ui';
+import { tag, tint } from '@expo/ui/swift-ui/modifiers';
+import { DollarSign, Image, Link, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
@@ -14,12 +16,16 @@ import GlassButton from '@/components/glass-button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
 import { Textarea } from '@/components/ui/textarea';
-import { useItems } from '@/hooks/lists';
+import { useItems, useLists } from '@/hooks/lists';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
 import { colors } from '@family-gifts/design-tokens';
+
+const PRIORITIES = ['low', 'medium', 'high'] as const;
+const IMAGE_SIZE = 72;
 
 const itemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -29,6 +35,14 @@ const itemSchema = z.object({
     .string()
     .optional()
     .refine(v => !v || (!isNaN(parseFloat(v)) && parseFloat(v) > 0), { message: 'Price must be a positive number' }),
+  priority: z.enum(PRIORITIES).optional(),
+  quantity: z
+    .string()
+    .optional()
+    .refine(v => !v || (!isNaN(parseInt(v, 10)) && parseInt(v, 10) > 0), {
+      message: 'Quantity must be a positive number',
+    }),
+  listId: z.string().min(1, 'List is required'),
 });
 
 type ItemInput = z.infer<typeof itemSchema>;
@@ -40,6 +54,7 @@ export default function EditItem() {
 
   const items = useItems(listId);
   const item = items?.find(i => i._id === itemId);
+  const lists = useLists();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -47,7 +62,7 @@ export default function EditItem() {
 
   const { control, handleSubmit, formState, setError, reset } = useForm<ItemInput>({
     resolver: zodResolver(itemSchema),
-    defaultValues: { name: '', link: '', notes: '', price: '' },
+    defaultValues: { name: '', link: '', notes: '', price: '', priority: undefined, quantity: '1', listId: '' },
   });
 
   // Pre-populate form once item loads
@@ -58,6 +73,9 @@ export default function EditItem() {
       link: item.link ?? '',
       notes: item.notes ?? '',
       price: item.price != null ? String(item.price) : '',
+      priority: item.priority ?? undefined,
+      quantity: item.quantity != null ? String(item.quantity) : '1',
+      listId: item.listId,
     });
     setImageUri(item.imageUrl ?? null);
     setImageId(item.imageId ?? null);
@@ -117,6 +135,9 @@ export default function EditItem() {
         link: values.link || undefined,
         notes: values.notes || undefined,
         price: values.price ? parseFloat(values.price) : undefined,
+        priority: values.priority,
+        quantity: values.quantity ? parseInt(values.quantity, 10) : undefined,
+        listId: values.listId !== item.listId ? (values.listId as Id<'lists'>) : undefined,
         imageId: imageId ?? undefined,
       });
       router.back();
@@ -149,16 +170,81 @@ export default function EditItem() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-6 px-4 pb-8"
+        contentContainerClassName="gap-2 px-4 pb-8"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
+        <View className="flex-row gap-2">
+          {imageUri ? (
+            <View
+              className="relative"
+              style={{
+                width: IMAGE_SIZE,
+                height: IMAGE_SIZE,
+              }}
+            >
+              <Pressable onPress={handlePickImage} accessibilityLabel="Change photo" style={{ flex: 1 }}>
+                <ExpoImage
+                  source={{ uri: imageUri }}
+                  style={{ width: IMAGE_SIZE, height: IMAGE_SIZE, borderRadius: 16 }}
+                  contentFit="cover"
+                />
+              </Pressable>
+              {isUploadingImage && (
+                <View className="absolute inset-0 items-center justify-center rounded-xl bg-background/60">
+                  <ActivityIndicator size="small" />
+                </View>
+              )}
+              <GlassButton
+                className="absolute bottom-1 right-1 items-center justify-center rounded-full"
+                onPress={handleRemoveImage}
+                accessibilityLabel="Remove photo"
+                glassProps={{
+                  style: { width: 20, height: 20, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
+                }}
+              >
+                <Icon as={X} size={14} />
+              </GlassButton>
+            </View>
+          ) : (
+            <Pressable
+              onPress={handlePickImage}
+              accessibilityLabel="Add photo"
+              className="items-center justify-center gap-2 rounded-xl bg-fill"
+              style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
+            >
+              <Icon as={Image} size={24} className="text-ink-muted" />
+            </Pressable>
+          )}
+
+          <Controller
+            control={control}
+            name="name"
+            render={({ field, fieldState }) => (
+              <View className="flex-1 gap-1.5">
+                <Label nativeID="item-name">Name</Label>
+                <Input
+                  aria-labelledby="item-name"
+                  placeholder="e.g. Blue wool sweater"
+                  returnKeyType="next"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!fieldState.error}
+                />
+                {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
+              </View>
+            )}
+          />
+        </View>
+
         <Controller
           control={control}
           name="link"
           render={({ field, fieldState }) => (
             <View className="gap-1.5">
+              <Label nativeID="item-link">Link</Label>
               <Input
                 prepend={Link}
                 aria-labelledby="item-link"
@@ -177,77 +263,27 @@ export default function EditItem() {
           )}
         />
 
-        <View className="gap-1.5">
-          <Label nativeID="item-image">Photo (optional)</Label>
-          {imageUri ? (
-            <View className="relative h-32 w-32">
-              <Pressable onPress={handlePickImage} accessibilityLabel="Change photo" style={{ flex: 1 }}>
-                <ExpoImage
-                  source={{ uri: imageUri }}
-                  style={{ width: 128, height: 128, borderRadius: 12 }}
-                  contentFit="cover"
-                />
-              </Pressable>
-              {isUploadingImage && (
-                <View className="absolute inset-0 items-center justify-center rounded-xl bg-background/60">
-                  <ActivityIndicator size="small" />
-                </View>
-              )}
-              <GlassButton
-                className="absolute right-1 top-1 size-7 items-center justify-center rounded-full"
-                onPress={handleRemoveImage}
-                accessibilityLabel="Remove photo"
-              >
-                <Icon as={X} size={14} />
-              </GlassButton>
-            </View>
-          ) : (
-            <Pressable
-              onPress={handlePickImage}
-              accessibilityLabel="Add photo"
-              className="h-32 w-32 items-center justify-center gap-2 rounded-xl bg-fill"
-            >
-              <Icon as={Image} size={24} className="text-ink-muted" />
-              <Text className="text-sm text-ink-muted">Add photo</Text>
-            </Pressable>
-          )}
-        </View>
-
-        <Controller
-          control={control}
-          name="name"
-          render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-name">Name</Label>
-              <Input
-                aria-labelledby="item-name"
-                placeholder="e.g. Blue wool sweater"
-                returnKeyType="next"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                aria-invalid={!!fieldState.error}
-              />
-              {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
-            </View>
-          )}
-        />
+        <Text className="mt-4 text-sm font-semibold text-ink-muted">Details</Text>
 
         <Controller
           control={control}
           name="price"
           render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-price">Price (optional)</Label>
+            <View className="flex-row gap-1.5 border-b border-line">
+              <Label nativeID="item-price" className="text-ink">
+                Price
+              </Label>
               <Input
                 aria-labelledby="item-price"
-                placeholder="0.00"
+                placeholder="Optional"
                 keyboardType="decimal-pad"
                 returnKeyType="next"
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!fieldState.error}
+                prepend={DollarSign}
+                className="bg-transparent"
               />
               {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
             </View>
@@ -258,8 +294,10 @@ export default function EditItem() {
           control={control}
           name="notes"
           render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-notes">Notes (optional)</Label>
+            <View className="flex-row gap-3 border-b border-line pb-2">
+              <Label nativeID="item-notes" className="text-ink">
+                Notes
+              </Label>
               <Textarea
                 aria-labelledby="item-notes"
                 placeholder="Size, color, anything helpful..."
@@ -267,7 +305,96 @@ export default function EditItem() {
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!fieldState.error}
+                className="flex-1"
               />
+              {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="priority"
+          render={({ field }) => (
+            <View className="flex-row justify-between gap-1.5 border-b border-line pb-2">
+              <Label nativeID="item-priority" className="text-ink">
+                Priority
+              </Label>
+              <SegmentedControl
+                options={PRIORITIES.map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }))}
+                value={field.value ?? null}
+                onChange={field.onChange}
+              />
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field, fieldState }) => {
+            const numVal = parseInt(field.value ?? '', 10);
+            const current = isNaN(numVal) ? 1 : numVal;
+            return (
+              <View className="gap-1.5 border-b border-line pb-2">
+                <View className="flex-row items-center gap-1.5">
+                  <Label nativeID="item-quantity" className="text-ink">
+                    Quantity
+                  </Label>
+                  <View className="ml-auto flex-row items-center gap-2 rounded-md bg-fill">
+                    <Pressable
+                      onPress={() => field.onChange(String(Math.max(1, current - 1)))}
+                      className="h-9 w-9 items-center justify-center"
+                      accessibilityLabel="Decrease quantity"
+                    >
+                      <Text className="text-lg font-semibold leading-none">−</Text>
+                    </Pressable>
+                    <Input
+                      aria-labelledby="item-quantity"
+                      keyboardType="number-pad"
+                      returnKeyType="done"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      aria-invalid={!!fieldState.error}
+                      className="w-14 text-center"
+                    />
+                    <Pressable
+                      onPress={() => field.onChange(String(current + 1))}
+                      className="h-9 w-9 items-center justify-center"
+                      accessibilityLabel="Increase quantity"
+                    >
+                      <Text className="text-lg font-semibold leading-none">+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+                {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
+              </View>
+            );
+          }}
+        />
+
+        <Controller
+          control={control}
+          name="listId"
+          render={({ field, fieldState }) => (
+            <View className="flex-row justify-between gap-1.5 border-b border-line pb-2">
+              <Label nativeID="item-list" className="text-ink">
+                List
+              </Label>
+              <Host matchContents style={{ alignSelf: 'stretch' }}>
+                <Picker
+                  label="List"
+                  selection={field.value || null}
+                  onSelectionChange={val => field.onChange(val ?? '')}
+                  modifiers={[tint(colors['ink-muted'])]}
+                >
+                  {(lists ?? []).map(l => (
+                    <SwiftText key={l._id} modifiers={[tag(l._id)]}>
+                      {l.title}
+                    </SwiftText>
+                  ))}
+                </Picker>
+              </Host>
               {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
             </View>
           )}

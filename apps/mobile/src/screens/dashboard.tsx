@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/text';
 import { GlassView } from 'expo-glass-effect';
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MenuView } from '@expo/ui/community/menu';
 
 import NextUp from '@/components/next-up';
 import ToDo from '@/components/to-do';
@@ -9,6 +10,8 @@ import { useEvents } from '@/hooks/events';
 import { useGroups } from '@/hooks/groups';
 import { useLists } from '@/hooks/lists';
 import { useUser } from '@/hooks/user';
+import { StatusBar } from 'expo-status-bar';
+import { Link } from 'expo-router';
 
 export default function DashboardScreen() {
   const lists = useLists();
@@ -25,6 +28,7 @@ export default function DashboardScreen() {
   const firstName = user?.name ? user.name.split(' ')[0] : undefined;
   return (
     <SafeAreaView className="flex-1 gap-6 bg-background p-4">
+      <StatusBar style="light" />
       <View className="flex-row items-center justify-between">
         <View>
           <Text className="text-muted-foreground">{today}</Text>
@@ -41,7 +45,9 @@ export default function DashboardScreen() {
             justifyContent: 'center',
           }}
         >
-          <Text className="font-bold">{initial}</Text>
+          <Link href="/(app)/(dashboard)/profile" asChild>
+            <Text className="font-bold">{initial}</Text>
+          </Link>
         </GlassView>
       </View>
       <NextUp />

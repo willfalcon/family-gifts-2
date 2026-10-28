@@ -8,6 +8,7 @@ const textVariants = cva('text-base text-ink', {
   variants: {
     variant: {
       default: '',
+      detail: 'text-detail font-display-bold leading-[1.1]',
       h1: 'text-center text-4xl font-extrabold tracking-tight',
       h2: 'border-b border-border pb-2 text-3xl font-semibold tracking-tight',
       h3: 'text-2xl font-semibold tracking-tight',

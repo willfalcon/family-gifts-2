@@ -10,8 +10,10 @@ import { authClient } from '../../lib/auth-client';
 import AppContent from '../components/app-content';
 import { AnimatedSplashOverlay } from '../components/animated-splash-screen';
 import { NAV_THEME } from '../lib/theme';
+import { applySavedAppearance } from '../hooks/appearance';
 
 SplashScreen.preventAutoHideAsync();
+applySavedAppearance();
 
 const CONVEX_URL = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!CONVEX_URL) {

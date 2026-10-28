@@ -59,15 +59,15 @@
 
 @layer components {
   .display-greeting {
-    @apply font-display text-[36px] font-bold;
+    @apply font-display-bold text-[36px] font-bold;
   }
   .display-title {
-    @apply font-display text-[30px] font-bold;
+    @apply font-display-bold text-[30px] font-bold;
   }
   .display-detail {
-    @apply font-display !text-2xl font-bold;
+    @apply text-detail font-display-bold font-bold;
   }
   .display-name {
-    @apply font-display text-[26px] font-bold;
+    @apply font-display-bold !text-name leading-8 tracking-tight;
   }
 }

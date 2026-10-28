@@ -8,8 +8,10 @@ import { getAttendance } from './events';
 // Whether `userId` can view `list` - its owner, or anyone reachable through
 // one of its shares (a direct share, or membership/attendance in a shared
 // group/event). Shared access is always read-only; only the owner can edit.
+// Archived lists are visible to their owner only.
 export async function hasListAccess(ctx: QueryCtx, list: Doc<'lists'>, userId: string): Promise<boolean> {
   if (list.createdBy === userId) return true;
+  if (list.archivedAt !== undefined) return false;
 
   for await (const share of ctx.db.query('listShares').withIndex('by_list', q => q.eq('listId', list._id))) {
     if (share.sharedWithUserId === userId) return true;
@@ -229,7 +231,7 @@ async function resolveSharedLists(ctx: QueryCtx, shares: Doc<'listShares'>[]) {
   const lists = await Promise.all(
     shares.map(async share => {
       const list = await ctx.db.get(share.listId);
-      if (!list) return null;
+      if (!list || list.archivedAt !== undefined) return null;
       const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
       return { ...list, owner: { name: owner?.name ?? 'Unknown', image: owner?.image ?? null } };
     })

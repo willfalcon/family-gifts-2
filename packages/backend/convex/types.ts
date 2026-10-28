@@ -6,4 +6,4 @@ export type Profile = Doc<'profiles'>;
 export type Group = Doc<'groups'>;
 export type Event = Doc<'events'>;
 
-export type ItemWithImage = Item & { imageUrl: string };
+export type ItemWithImage = Item & { imageUrl: string | null };

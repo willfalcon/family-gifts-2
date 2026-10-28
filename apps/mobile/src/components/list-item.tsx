@@ -3,20 +3,34 @@ import { View, Text, Image } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { ItemWithImage } from '@convex/types';
-import { Host, SwipeActions, Button as UIButton, ConfirmationDialog, ContextMenu } from '@expo/ui/swift-ui';
+import {
+  Host,
+  SwipeActions,
+  Button as UIButton,
+  ConfirmationDialog,
+  ContextMenu,
+  Section,
+  Picker,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
 import { useRouter } from 'expo-router';
 import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
+import { tag } from '@expo/ui/swift-ui/modifiers';
 
 export default function ListItem({ item }: { item: ItemWithImage }) {
   const router = useRouter();
   const removeItem = useMutation(api.items.remove);
+  const updatePriority = useMutation(api.items.updatePriority);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-
 
   const confirmDelete = () => {
     removeItem({ id: item._id });
     setDeleteConfirm(false);
+  };
+
+  const handleUpdatePriority = (priority: 'low' | 'medium' | 'high') => {
+    updatePriority({ id: item._id, priority });
   };
 
   return (
@@ -29,6 +43,27 @@ export default function ListItem({ item }: { item: ItemWithImage }) {
               systemImage="pencil"
               onPress={() => router.push(`/lists/${item.listId}/items/${item._id}`)}
             />
+            <Section title="Priority">
+              <Picker
+                label="Priority"
+                selection={item.priority}
+                onSelectionChange={value => {
+                  handleUpdatePriority(value as 'low' | 'medium' | 'high');
+                }}
+              >
+                <UIText key="low" modifiers={[tag('low')]}>
+                  Low
+                </UIText>
+                <UIText key="medium" modifiers={[tag('medium')]}>
+                  Medium
+                </UIText>
+                <UIText key="high" modifiers={[tag('high')]}>
+                  High
+                </UIText>
+              </Picker>
+            </Section>
+
+            <UIButton label="Move to List" systemImage="arrow.right" onPress={() => {}} />
             <UIButton label="Delete" systemImage="trash" role="destructive" onPress={() => setDeleteConfirm(true)} />
           </ContextMenu.Items>
           <ContextMenu.Trigger>
@@ -61,7 +96,6 @@ export default function ListItem({ item }: { item: ItemWithImage }) {
               </View>
             </View>
           </ContextMenu.Trigger>
-
         </ContextMenu>
 
         <SwipeActions.Actions edge="leading" allowsFullSwipe={false}>

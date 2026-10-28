@@ -13,21 +13,13 @@ function Input({ className, prepend, ...props }: InputProps) {
     return (
       <View
         className={cn(
-          'flex h-10 w-full min-w-0 flex-row items-center rounded-md border-input bg-fill px-3 py-1 dark:bg-fill sm:h-9',
+          'mb-1 flex h-10 w-full min-w-0 flex-row items-center rounded-md border-input bg-fill px-3 py-1 dark:bg-fill',
           props.editable === false && 'opacity-50',
           className,
         )}
       >
-        <Icon as={prepend} size={18} className="mr-2 text-ink-muted" />
-        <TextInput
-          className={cn(
-            'flex-1 text-base leading-5 text-ink',
-            Platform.select({
-              native: 'placeholder:text-muted-foreground/50',
-            }),
-          )}
-          {...props}
-        />
+        <Icon as={prepend} size={18} className="mr-2 mt-0.5 text-ink-muted" />
+        <TextInput className="flex-1 text-base leading-5 text-ink placeholder:text-muted-foreground/50" {...props} />
       </View>
     );
   }
@@ -35,11 +27,9 @@ function Input({ className, prepend, ...props }: InputProps) {
   return (
     <TextInput
       className={cn(
-        'flex h-10 w-full min-w-0 flex-row items-center rounded-md border-input bg-fill px-3 py-1 text-base leading-5 text-ink dark:bg-fill sm:h-9',
+        'mb-1 flex h-10 w-full min-w-0 flex-row items-center rounded-md border-input bg-fill px-3 py-1 text-base leading-5 text-ink dark:bg-fill',
         props.editable === false && cn('opacity-50'),
-        Platform.select({
-          native: 'placeholder:text-muted-foreground/50',
-        }),
+        'placeholder:text-muted-foreground/50',
         className,
       )}
       {...props}

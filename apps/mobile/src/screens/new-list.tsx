@@ -4,11 +4,14 @@ import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { ScrollView, View } from 'react-native';
+import { useEffect, useRef } from 'react';
 
 import GlassButton from '@/components/glass-button';
 import ListForm from '@/components/list-form';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { useGroups } from '@/hooks/groups';
+import { useProfile } from '@/hooks/user';
 import { api } from '@convex/_generated/api';
 import { colors } from '@family-gifts/design-tokens';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,10 +20,26 @@ import { ListInput, listSchema } from '@shared/schemas/list';
 export default function NewList() {
   const router = useRouter();
 
-  const { control, handleSubmit, formState, setError } = useForm<ListInput>({
+  const { control, handleSubmit, formState, setError, resetField } = useForm<ListInput>({
     resolver: zodResolver(listSchema),
     defaultValues: { title: '', sharedWithGroupIds: [] },
   });
+
+  // Start "Who can see it?" from the profile's "Share new lists with" setting.
+  // Both load after the form opens, so fill it in once they arrive - and only
+  // once, so a later profile change doesn't undo what the user picked here.
+  // Groups the user has since left are skipped; sharing with them would fail.
+  const profile = useProfile();
+  const groups = useGroups();
+  const defaultsReady = profile !== undefined && groups !== undefined;
+  const appliedDefaults = useRef(false);
+  useEffect(() => {
+    if (!defaultsReady || appliedDefaults.current) return;
+    appliedDefaults.current = true;
+    const myGroupIds = new Set(groups.map(g => g._id));
+    const sharedWithGroupIds = (profile?.shareNewLists ?? []).filter(id => myGroupIds.has(id));
+    resetField('sharedWithGroupIds', { defaultValue: sharedWithGroupIds });
+  }, [defaultsReady, profile, groups, resetField]);
 
   const createList = useMutation(api.lists.create);
 
@@ -52,7 +71,8 @@ export default function NewList() {
           glassProps={{ tintColor: colors.accent }}
           glassStyle={{ width: 'auto', paddingHorizontal: 8 }}
           onPress={() => onSubmit()}
-          disabled={formState.isSubmitting}
+          // Wait for the sharing defaults, so a quick tap can't create an unshared list.
+          disabled={formState.isSubmitting || !defaultsReady}
         >
           <Text className="font-semibold text-accent-foreground">Create</Text>
         </GlassButton>

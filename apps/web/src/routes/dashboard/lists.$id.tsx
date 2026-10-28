@@ -13,7 +13,8 @@ import { useCurrentUser } from '@/hooks/auth';
 import { useState } from 'react';
 import AddItemForm from '@/components/add-item-form';
 import EditListForm from '@/components/edit-list-form';
-import DeleteListButton from '@/components/delete-list-button';
+import ArchiveListButton from '@/components/archive-list-button';
+import ArchivedListBanner from '@/components/archived-list-banner';
 import ListSharing from '@/components/list-sharing';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FavoriteButton } from '@/components/favorite-button';
@@ -56,6 +57,7 @@ function ListPage() {
   const { items } = useItems(id);
   const { user } = useCurrentUser();
   const isOwner = !!user && user._id === list?.createdBy;
+  const isArchived = list?.archivedAt !== undefined;
   const count = items.length;
   const [itemFormOpen, setItemFormOpen] = useState(false);
   const [editingList, setEditingList] = useState(false);
@@ -65,6 +67,8 @@ function ListPage() {
       <BackLink to="/dashboard/lists" breadcrumb>
         Lists
       </BackLink>
+
+      {isOwner && list && isArchived && <ArchivedListBanner id={list._id} title={list.title} />}
 
       <div className="flex justify-between items-start gap-4">
         <div className="w-full">
@@ -78,10 +82,15 @@ function ListPage() {
                   <FavoriteButton kind="list" id={list._id} />
                   {isOwner && (
                     <>
-                      <Button variant="ghost" size="icon-sm" aria-label="Edit list" onClick={() => setEditingList(true)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Edit list"
+                        onClick={() => setEditingList(true)}
+                      >
                         <Pencil />
                       </Button>
-                      <DeleteListButton id={list._id} title={list.title} />
+                      {!isArchived && <ArchiveListButton id={list._id} />}
                     </>
                   )}
                 </div>
@@ -118,7 +127,11 @@ function ListPage() {
               <Gift />
             </EmptyMedia>
             <EmptyTitle>No items yet</EmptyTitle>
-            <EmptyDescription>{isOwner ? 'Add the first thing you want to this list.' : `${list?.owner.name} hasn't added anything yet.`}</EmptyDescription>
+            <EmptyDescription>
+              {isOwner
+                ? 'Add the first thing you want to this list.'
+                : `${list?.owner.name} hasn't added anything yet.`}
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

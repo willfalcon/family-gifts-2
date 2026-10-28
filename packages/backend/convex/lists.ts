@@ -1,22 +1,50 @@
 import { ConvexError, v } from 'convex/values';
 import { listSchema, type ListInput } from '../../shared/schemas/list';
-import type { Id } from './_generated/dataModel';
-import { mutation, query, type MutationCtx } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import { authComponent } from './auth';
 import { getAttendance } from './events';
 import { getMembership } from './groups';
 import { hasListAccess } from './listShares';
 import { occasionValidator } from './schema';
 
-// Lists the current user created.
+// Resolves the event name/date when a list's occasion references one, so the
+// client doesn't need a second round-trip.
+async function withOccasionEvent(ctx: QueryCtx, list: Doc<'lists'>) {
+  let occasionEventName: string | null = null;
+  let occasionEventDate: string | null = null;
+  if (list.occasion?.kind === 'event') {
+    const event = await ctx.db.get(list.occasion.eventId);
+    occasionEventName = event?.name ?? null;
+    occasionEventDate = event?.date ?? null;
+  }
+  return { ...list, occasionEventName, occasionEventDate };
+}
+
+// Lists the current user created, excluding archived ones.
 export const myLists = query({
   args: {},
   handler: async ctx => {
     const user = await authComponent.getAuthUser(ctx);
-    return await ctx.db
+    const lists = await ctx.db
       .query('lists')
-      .withIndex('by_createdBy', q => q.eq('createdBy', user._id))
+      .withIndex('by_createdBy_archivedAt', q => q.eq('createdBy', user._id).eq('archivedAt', undefined))
       .collect();
+    return await Promise.all(lists.map(list => withOccasionEvent(ctx, list)));
+  },
+});
+
+// The current user's archived lists, most recently archived first.
+export const myArchivedLists = query({
+  args: {},
+  handler: async ctx => {
+    const user = await authComponent.getAuthUser(ctx);
+    const lists = await ctx.db
+      .query('lists')
+      .withIndex('by_createdBy_archivedAt', q => q.eq('createdBy', user._id).gt('archivedAt', 0))
+      .order('desc')
+      .collect();
+    return await Promise.all(lists.map(list => withOccasionEvent(ctx, list)));
   },
 });
 
@@ -40,24 +68,12 @@ export const get = query({
     // id, which lives in the betterAuth component's tables, not ours.
     const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
 
-    // Resolve event name/date when the occasion references one, so the client
-    // doesn't need a second round-trip.
-    let occasionEventName: string | null = null;
-    let occasionEventDate: string | null = null;
-    if (list.occasion?.kind === 'event') {
-      const event = await ctx.db.get(list.occasion.eventId);
-      occasionEventName = event?.name ?? null;
-      occasionEventDate = event?.date ?? null;
-    }
-
     return {
-      ...list,
+      ...(await withOccasionEvent(ctx, list)),
       owner: {
         name: owner?.name ?? 'Unknown',
         image: owner?.image ?? null,
       },
-      occasionEventName,
-      occasionEventDate,
     };
   },
 });
@@ -142,6 +158,36 @@ export const update = mutation({
 
     await ctx.db.patch(id, { title, notes, occasion });
     if (sharedWithGroupIds) await syncGroupShares(ctx, id, sharedWithGroupIds, user._id);
+  },
+});
+
+// Archiving is the normal way to remove a list: it hides the list from the
+// owner's main lists and from everyone it's shared with, but keeps its items,
+// shares, and favorites so `unarchive` restores it exactly as it was.
+export const archive = mutation({
+  args: { id: v.id('lists') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const list = await ctx.db.get(args.id);
+    if (!list || list.createdBy !== user._id) {
+      throw new Error('List not found');
+    }
+    if (list.archivedAt !== undefined) return;
+
+    await ctx.db.patch(args.id, { archivedAt: Date.now() });
+  },
+});
+
+export const unarchive = mutation({
+  args: { id: v.id('lists') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const list = await ctx.db.get(args.id);
+    if (!list || list.createdBy !== user._id) {
+      throw new Error('List not found');
+    }
+
+    await ctx.db.patch(args.id, { archivedAt: undefined });
   },
 });
 

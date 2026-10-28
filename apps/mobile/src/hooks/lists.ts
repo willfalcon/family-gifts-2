@@ -6,6 +6,10 @@ export function useLists() {
   return useQuery(api.lists.myLists);
 }
 
+export function useArchivedLists() {
+  return useQuery(api.lists.myArchivedLists);
+}
+
 export function useList(id: Id<'lists'>) {
   return useQuery(api.lists.get, { id });
 }

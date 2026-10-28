@@ -20,7 +20,7 @@ function Checkbox({
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        'size-6 shrink-0 overflow-hidden rounded-full border border-input shadow-sm shadow-black/5 dark:bg-input/30',
+        'size-6 shrink-0 overflow-hidden rounded-full border border-input bg-background shadow-sm shadow-black/5 dark:bg-input/30',
         props.checked && cn('border-good', checkedClassName),
         props.disabled && 'opacity-50',
         className,
