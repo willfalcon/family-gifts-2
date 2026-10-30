@@ -36,26 +36,28 @@ export default function GroupListItem({ _id, name }: Group) {
                   : `${plural(member.itemCount, 'idea')} · ${member.claimedCount} claimed`;
 
             return (
-              <View key={member.id} className="flex-row items-center gap-2">
-                <View
-                  className="size-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: member.color }}
-                >
-                  <Text className="text-white font-bold">{initial}</Text>
-                </View>
-                <View className="border-b border-line flex-1 py-1">
-                  <Text>
-                    {member.name}
-                    {member.isSelf && <Text className="text-ink-muted"> (you)</Text>}
-                  </Text>
-                  <Text className="text-sm text-ink-muted">{ideas}</Text>
-                  {member.nextOccasion && (
-                    <Text className="text-sm text-accent">
-                      {member.nextOccasion.label} · {formatRelativeDay(member.nextOccasion.date)}
+              <Link href={{ pathname: '/(app)/(groups)/people/[id]', params: { id: member.userId } }} key={member.id} asChild>
+                <Pressable className="flex-row items-center gap-2">
+                  <View
+                    className="size-10 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: member.color }}
+                  >
+                    <Text className="text-white font-bold">{initial}</Text>
+                  </View>
+                  <View className="border-b border-line flex-1 py-1">
+                    <Text>
+                      {member.name}
+                      {member.isSelf && <Text className="text-ink-muted"> (you)</Text>}
                     </Text>
-                  )}
-                </View>
-              </View>
+                    <Text className="text-sm text-ink-muted">{ideas}</Text>
+                    {member.nextOccasion && (
+                      <Text className="text-sm text-accent">
+                        {member.nextOccasion.label} · {formatRelativeDay(member.nextOccasion.date)}
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              </Link>
             );
           })}
         </View>

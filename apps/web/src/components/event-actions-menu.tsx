@@ -27,7 +27,7 @@ interface Props {
   eventId: Id<'events'>;
   attendeeId: Id<'eventAttendees'>;
   attendeeName: string;
-  role: 'manager' | 'guest';
+  role: 'host' | 'guest';
   canTransferOwnership: boolean;
   onError: (message: string) => void;
 }
@@ -49,20 +49,20 @@ export default function EventActionsMenu({ eventId, attendeeId, attendeeName, ro
         <DropdownMenuContent align="end">
           {role === 'guest' ? (
             <DropdownMenuItem
-              onClick={() => setAttendeeRole.mutate({ eventId, attendeeId, role: 'manager' }, { onError: e => onError(errorMessage(e)) })}
+              onClick={() => setAttendeeRole.mutate({ eventId, attendeeId, role: 'host' }, { onError: e => onError(errorMessage(e)) })}
             >
               <ShieldPlus className="size-3.75" />
-              Promote to manager
+              Make host
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
               onClick={() => setAttendeeRole.mutate({ eventId, attendeeId, role: 'guest' }, { onError: e => onError(errorMessage(e)) })}
             >
               <ShieldMinus className="size-3.75" />
-              Demote to guest
+              Make guest
             </DropdownMenuItem>
           )}
-          {canTransferOwnership && role === 'manager' && (
+          {canTransferOwnership && role === 'host' && (
             <DropdownMenuItem onClick={() => setConfirm('transfer')}>
               <Crown className="size-3.75" />
               Make owner
@@ -109,7 +109,7 @@ export default function EventActionsMenu({ eventId, attendeeId, attendeeName, ro
           <AlertDialogHeader>
             <AlertDialogTitle>Make {attendeeName} the owner?</AlertDialogTitle>
             <AlertDialogDescription>
-              You&apos;ll become a manager instead. Only {attendeeName} will be able to delete the event or transfer ownership again.
+              You&apos;ll become a host instead. Only {attendeeName} will be able to delete the event or transfer ownership again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -38,7 +38,7 @@ export default function EditListMenu({ listId, archived }: Props) {
       onPressAction={async e => {
         const action = e.nativeEvent.event;
         if (action === 'edit') {
-          router.push({ pathname: '/(app)/(lists)/lists/[id]/edit', params: { id: listId } });
+          router.push({ pathname: '/(app)/(my-lists)/lists/[id]/edit', params: { id: listId } });
         } else if (action === 'archive') {
           await archiveList({ id: listId });
           router.back();

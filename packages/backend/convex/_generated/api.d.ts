@@ -10,7 +10,6 @@
 
 import type * as auth from "../auth.js";
 import type * as avatarColors from "../avatarColors.js";
-import type * as backfills from "../backfills.js";
 import type * as claims from "../claims.js";
 import type * as currencies from "../currencies.js";
 import type * as emails_EventInviteEmail from "../emails/EventInviteEmail.js";
@@ -27,6 +26,7 @@ import type * as listShares from "../listShares.js";
 import type * as lists from "../lists.js";
 import type * as occasions from "../occasions.js";
 import type * as permissions from "../permissions.js";
+import type * as privateIdeas from "../privateIdeas.js";
 import type * as profiles from "../profiles.js";
 import type * as resend from "../resend.js";
 import type * as secretSanta from "../secretSanta.js";
@@ -44,7 +44,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   avatarColors: typeof avatarColors;
-  backfills: typeof backfills;
   claims: typeof claims;
   currencies: typeof currencies;
   "emails/EventInviteEmail": typeof emails_EventInviteEmail;
@@ -61,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   lists: typeof lists;
   occasions: typeof occasions;
   permissions: typeof permissions;
+  privateIdeas: typeof privateIdeas;
   profiles: typeof profiles;
   resend: typeof resend;
   secretSanta: typeof secretSanta;

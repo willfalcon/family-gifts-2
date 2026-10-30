@@ -76,8 +76,19 @@ export const myGroups = query({
       .query('groupMembers')
       .withIndex('by_user', q => q.eq('userId', user._id))
       .collect();
-    const groups = await Promise.all(memberships.map(m => ctx.db.get(m.groupId)));
-    return groups.filter((g): g is NonNullable<typeof g> => g !== null).map(toClientGroup);
+    const groups = await Promise.all(
+      memberships.map(async m => {
+        const group = await ctx.db.get(m.groupId);
+        if (!group) return null;
+        // Family groups stay small, so counting the rows is cheap enough.
+        let memberCount = 0;
+        for await (const _ of ctx.db.query('groupMembers').withIndex('by_group', q => q.eq('groupId', group._id))) {
+          memberCount++;
+        }
+        return { ...toClientGroup(group), memberCount };
+      }),
+    );
+    return groups.filter((g): g is NonNullable<typeof g> => g !== null);
   },
 });
 
@@ -108,16 +119,33 @@ export const get = query({
 // member, with the 'owner' role - otherwise the group would have no members
 // and `myGroups`/`get` could never surface it back to them.
 export const create = mutation({
-  args: { name: v.string() },
+  args: {
+    name: v.string(),
+    membersCanInvite: v.optional(v.boolean()),
+    // The creator's own lists to share with the new group right away.
+    sharedListIds: v.optional(v.array(v.id('lists'))),
+  },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
+    const name = args.name.trim();
+    if (!name) throw new ConvexError('Give your group a name');
+    if (name.length > 100) throw new ConvexError('Keep it under 100 characters');
+
     const groupId = await ctx.db.insert('groups', {
-      ...args,
+      name,
       createdBy: user._id,
       inviteToken: crypto.randomUUID(),
-      membersCanInvite: false,
+      membersCanInvite: args.membersCanInvite ?? false,
     });
     await addMember(ctx, groupId, user._id, 'owner');
+
+    for (const listId of new Set(args.sharedListIds ?? [])) {
+      const list = await ctx.db.get(listId);
+      if (!list || list.createdBy !== user._id) {
+        throw new ConvexError('You can only share your own lists.');
+      }
+      await ctx.db.insert('listShares', { listId, sharedWithGroupId: groupId, canEdit: false });
+    }
     return groupId;
   },
 });
@@ -369,20 +397,21 @@ export const listEvents = query({
         const event = await ctx.db.get(groupInvite.eventId);
         if (!event) return null;
 
-        const [attendance, pendingInvite] = await Promise.all([
+        const [attendance, invite] = await Promise.all([
           ctx.db
             .query('eventAttendees')
             .withIndex('by_event_user', q => q.eq('eventId', event._id).eq('userId', user._id))
             .unique(),
           ctx.db
-            .query('eventInvites')
+            .query('eventAttendees')
             .withIndex('by_event_email', q => q.eq('eventId', event._id).eq('email', email))
-            .filter(q => q.eq(q.field('status'), 'pending'))
             .first(),
         ]);
-        const status: 'attending' | 'invited' | 'notInvited' = attendance
-          ? 'attending'
-          : pendingInvite
+        const status: 'attending' | 'invited' | 'declined' | 'notInvited' = attendance
+          ? attendance.status === 'declined'
+            ? 'declined'
+            : 'attending'
+          : invite?.status === 'invited'
             ? 'invited'
             : 'notInvited';
 

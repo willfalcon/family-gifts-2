@@ -3,7 +3,7 @@ import { mutation, query, internalQuery, type MutationCtx, type QueryCtx } from 
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { authComponent } from './auth';
-import { getAttendance, requireManager } from './events';
+import { getAttendance, isHostRole, requireHost } from './events';
 
 // Random derangement respecting one-directional exclusions ("giver must not
 // receive excludedUserId"). Tries plain random shuffles first (cheap, and
@@ -77,7 +77,7 @@ async function deleteSecretSantaChildren(ctx: MutationCtx, secretSantaId: Id<'se
 }
 
 // The whole Secret Santa state for an event, shaped differently depending on
-// the viewer's role: a manager gets the full roster/exclusions/assignments
+// the viewer's role: a host gets the full roster/exclusions/assignments
 // (they already saw everything while setting it up), while a regular
 // attendee only ever gets their own assignment - never anyone else's.
 export const getState = query({
@@ -86,7 +86,7 @@ export const getState = query({
     const user = await authComponent.getAuthUser(ctx);
     const attendance = await getAttendance(ctx, args.eventId, user._id);
     if (!attendance) return null;
-    const isManager = attendance.role === 'owner' || attendance.role === 'manager';
+    const isManager = isHostRole(attendance.role);
 
     const secretSanta = await getSecretSanta(ctx, args.eventId);
     if (!secretSanta) {
@@ -181,7 +181,7 @@ export const generate = mutation({
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.eventId, user._id);
+    await requireHost(ctx, args.eventId, user._id);
 
     const participantIds = [...new Set(args.participantUserIds)];
     if (participantIds.length < 2) {
@@ -192,9 +192,10 @@ export const generate = mutation({
       .query('eventAttendees')
       .withIndex('by_event', q => q.eq('eventId', args.eventId))
       .collect();
-    const attendeeIds = new Set(attendees.map(a => a.userId));
-    if (!participantIds.every(id => attendeeIds.has(id))) {
-      throw new ConvexError('All participants must be attendees of this event.');
+    // Only people who are going can be drawn.
+    const goingIds = new Set(attendees.flatMap(a => (a.userId && a.status === 'going' ? [a.userId] : [])));
+    if (!participantIds.every(id => goingIds.has(id))) {
+      throw new ConvexError('Everyone in Secret Santa has to be going to the event.');
     }
 
     for (const { userId, excludedUserId } of args.exclusions) {
@@ -242,7 +243,7 @@ export const swap = mutation({
   args: { eventId: v.id('events'), giverAUserId: v.string(), giverBUserId: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.eventId, user._id);
+    await requireHost(ctx, args.eventId, user._id);
 
     if (args.giverAUserId === args.giverBUserId) {
       throw new ConvexError('Pick two different people to swap.');
@@ -296,7 +297,7 @@ export const send = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.eventId, user._id);
+    await requireHost(ctx, args.eventId, user._id);
 
     const secretSanta = await getSecretSanta(ctx, args.eventId);
     if (!secretSanta) throw new ConvexError('Set up Secret Santa first.');
@@ -315,14 +316,14 @@ export const send = mutation({
   },
 });
 
-// Wipes the round so a manager can start over from scratch - the only way
+// Wipes the round so a host can start over from scratch - the only way
 // back once notifications have gone out, since `generate` refuses to touch a
 // 'sent' round.
 export const reset = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.eventId, user._id);
+    await requireHost(ctx, args.eventId, user._id);
 
     const secretSanta = await getSecretSanta(ctx, args.eventId);
     if (!secretSanta) return;

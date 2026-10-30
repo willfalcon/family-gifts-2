@@ -35,6 +35,29 @@ function formatTime(value: string) {
   return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 }
 
+// Formats a date as "Sat, Oct 31" or "Sat, Oct 31, 2025" if not current year
+// Optionally adds time separated by middot: "Sat, Oct 31 · 5:00 PM"
+export function formatShortDate(value: string, time?: string) {
+  const date = parseISODate(value);
+  if (!date) return value;
+  const currentYear = new Date().getFullYear();
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  };
+  if (date.getFullYear() !== currentYear) {
+    options.year = 'numeric';
+  }
+  const formattedDate = date.toLocaleDateString(undefined, options);
+  if (time) {
+    return `${formattedDate} · ${formatTime(time)}`;
+  }
+  return formattedDate;
+}
+
+// Formats an event's date
+// Example: "Oct 15, 2025, 2:00 PM – Oct 16, 2025, 5:00 PM"
 export function formatWhen(event: Event) {
   const isRange = !!event.date && !!event.endDate && event.endDate !== event.date;
 
@@ -49,8 +72,12 @@ export function formatWhen(event: Event) {
   if (isRange) {
     // Each end of a multi-day range gets its own time, if set, rather than
     // dropping times just because the event spans more than one day.
-    const start = event.startTime ? `${formatDate(event.date)}, ${formatTime(event.startTime)}` : formatDate(event.date);
-    const end = event.endTime ? `${formatDate(event.endDate!)}, ${formatTime(event.endTime)}` : formatDate(event.endDate!);
+    const start = event.startTime
+      ? `${formatDate(event.date)}, ${formatTime(event.startTime)}`
+      : formatDate(event.date);
+    const end = event.endTime
+      ? `${formatDate(event.endDate!)}, ${formatTime(event.endTime)}`
+      : formatDate(event.endDate!);
     return `${start} – ${end}`;
   }
 

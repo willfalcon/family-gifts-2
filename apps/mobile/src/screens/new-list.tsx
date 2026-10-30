@@ -47,7 +47,7 @@ export default function NewList() {
     try {
       const id = await createList(values);
       router.back();
-      router.push({ pathname: '/(app)/(lists)/lists/[id]', params: { id } });
+      router.push({ pathname: '/(app)/(my-lists)/lists/[id]', params: { id } });
     } catch (e) {
       // ConvexError carries the server's validation message; anything else is unexpected.
       const message = e instanceof ConvexError ? String(e.data) : 'Something went wrong. Try again.';

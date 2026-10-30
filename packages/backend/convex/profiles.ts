@@ -5,6 +5,9 @@ import { authComponent } from './auth';
 import { birthdayValidator, birthdayVisibilityValidator, notificationPreferenceValidator } from './schema';
 import { currencyValidator } from './currencies';
 import { canViewProfile, visibleProfile } from './permissions';
+import { hasListAccess } from './listShares';
+import { withOccasionEvent } from './lists';
+import { getClaimedItemCount } from './claims';
 
 // The current user's profile row, or null if they have none yet.
 export const getMine = query({
@@ -39,18 +42,38 @@ export const getPublic = query({
       return null;
     }
 
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_userId', q => q.eq('userId', args.userId))
-      .unique();
+    const [profile, ownLists] = await Promise.all([
+      ctx.db
+        .query('profiles')
+        .withIndex('by_userId', q => q.eq('userId', args.userId))
+        .unique(),
+      // Their non-archived lists; narrowed below to the ones the viewer can see.
+      ctx.db
+        .query('lists')
+        .withIndex('by_createdBy_archivedAt', q => q.eq('createdBy', args.userId).eq('archivedAt', undefined))
+        .collect(),
+    ]);
 
     const isSelf = viewerUserId === args.userId;
+    const access = await Promise.all(ownLists.map(list => viewerUserId !== null && hasListAccess(ctx, list, viewerUserId)));
+    const lists = await Promise.all(
+      ownLists
+        .filter((_, i) => access[i])
+        .map(async list => ({
+          ...(await withOccasionEvent(ctx, list)),
+          // How many items nobody has fully claimed yet. Null when viewing your
+          // own profile - owners never see anything derived from claims.
+          openItemCount: isSelf ? null : Math.max(0, list.itemCount - (await getClaimedItemCount(ctx, list._id))),
+        })),
+    );
+
     return {
       userId: args.userId,
       name: target.name,
       image: target.image ?? null,
       isSelf,
       ...visibleProfile(profile, viewerUserId, isSelf),
+      lists,
     };
   },
 });

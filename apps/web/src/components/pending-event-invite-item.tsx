@@ -2,11 +2,11 @@ import { X } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useConvexMutation } from '@convex-dev/react-query';
 import { api } from '@convex/_generated/api';
-import { Doc } from '@convex/_generated/dataModel';
+import { Id } from '@convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 
 interface Props {
-  invite: Doc<'eventInvites'> & { sourceGroupName: string | null };
+  invite: { _id: Id<'eventAttendees'>; email: string; sourceGroupName: string | null };
 }
 
 export default function PendingEventInviteItem({ invite }: Props) {

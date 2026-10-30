@@ -71,7 +71,9 @@ export default defineSchema({
     // lists and out of everyone else's view entirely, but keep their items and
     // shares so restoring brings everything back as it was.
     archivedAt: v.optional(v.number()),
-  }).index('by_createdBy_archivedAt', ['createdBy', 'archivedAt']),
+  })
+    .index('by_createdBy_archivedAt', ['createdBy', 'archivedAt'])
+    .index('by_occasion_event', ['occasion.eventId']),
 
   items: defineTable({
     listId: v.id('lists'),
@@ -100,6 +102,16 @@ export default defineSchema({
     .index('by_item_user', ['itemId', 'userId'])
     .index('by_list', ['listId']),
 
+  // A gift idea someone jots down for another person. Only its author ever
+  // sees it - every read and write goes through convex/privateIdeas.ts, which
+  // scopes to the caller. `forUserId` is never shown anything about these.
+  privateIdeas: defineTable({
+    userId: v.string(), // Better Auth user id of the author
+    forUserId: v.string(), // Better Auth user id of who the idea is for
+    title: v.string(),
+    description: v.optional(v.string()),
+  }).index('by_user_forUser', ['userId', 'forUserId']),
+
   // How many items on a list are fully claimed (claims >= the item's quantity).
   // Kept in its own table, not on `lists`, so it can't leak to the owner
   // through any query that returns their list document. Maintained only by
@@ -122,38 +134,49 @@ export default defineSchema({
     endDate: v.optional(v.string()), // ISO date - only set when it differs from `date`
     startTime: v.optional(v.string()), // "HH:MM", 24h
     endTime: v.optional(v.string()),
+    location: v.optional(v.string()), // free text, e.g. "Grandma's house"
     // Better Auth user id of whoever created it.
     createdBy: v.string(),
-  }).index('by_createdBy', ['createdBy']),
+    // Secret behind the event's shareable join link - anyone holding the link
+    // can join, so it's never sent to clients except to people allowed to
+    // share it (see events.getInviteLink). Hosts can reset it to cut off an
+    // old link. Missing on events from before links; they get one the first
+    // time a host resets the link.
+    inviteToken: v.optional(v.string()),
+    // Whether guests (not just hosts) may see and share the join link.
+    // Missing means false.
+    guestsCanInvite: v.optional(v.boolean()),
+  })
+    .index('by_createdBy', ['createdBy'])
+    .index('by_inviteToken', ['inviteToken']),
 
-  // users <-> events (many-to-many). Mirrors groupMembers - events are
-  // independent of groups, with their own owner/manager/guest roster, so a
-  // group can be invited to an event without the two becoming structurally linked.
+  // Everyone on an event's guest list, one row per person per event - from
+  // the moment they're invited through to going or not. Events are
+  // independent of groups, with their own owner/host/guest roster, so a group
+  // can be invited to an event without the two becoming structurally linked.
+  //
+  // `userId` is set once the person has accepted or declined with their
+  // account; until then the row is just an emailed invite (status 'invited')
+  // known by `email` + `token`. Having a `userId` is what grants access to the
+  // event (see events.getAttendance) - whether they're going or not.
   eventAttendees: defineTable({
     eventId: v.id('events'),
-    userId: v.string(), // Better Auth user id
-    role: v.union(v.literal('owner'), v.literal('manager'), v.literal('guest')),
+    userId: v.optional(v.string()), // Better Auth user id
+    role: v.union(v.literal('owner'), v.literal('host'), v.literal('guest')),
+    status: v.union(v.literal('invited'), v.literal('going'), v.literal('declined')),
     color: avatarColorValidator,
+    email: v.optional(v.string()), // lowercased; set when invited by email
+    token: v.optional(v.string()), // the invite link's secret; cleared once used
+    invitedBy: v.optional(v.string()), // Better Auth user id
+    // Set when invited as part of a whole group (events.inviteGroup) - purely
+    // for display ("via the Smith Family"), not a live link to the group.
+    sourceGroupId: v.optional(v.id('groups')),
   })
     .index('by_event', ['eventId'])
     .index('by_user', ['userId'])
-    .index('by_event_user', ['eventId', 'userId']),
-
-  // A pending (or resolved) email invite to attend an event. Mirrors
-  // groupInvites. `sourceGroupId` is set when this invite was created as part
-  // of inviting a whole group (see events.inviteGroup) - purely for display
-  // ("invited via the Smith Family group"), not a live link to the group.
-  eventInvites: defineTable({
-    eventId: v.id('events'),
-    email: v.string(), // lowercased
-    token: v.string(),
-    invitedBy: v.string(), // Better Auth user id
-    status: v.union(v.literal('pending'), v.literal('accepted'), v.literal('revoked')),
-    sourceGroupId: v.optional(v.id('groups')),
-  })
-    .index('by_token', ['token'])
-    .index('by_event', ['eventId'])
-    .index('by_event_email', ['eventId', 'email']),
+    .index('by_event_user', ['eventId', 'userId'])
+    .index('by_event_email', ['eventId', 'email'])
+    .index('by_token', ['token']),
 
   groups: defineTable({
     name: v.string(),
@@ -175,7 +198,7 @@ export default defineSchema({
   // A record that a group was invited to an event (events.inviteGroup), so the
   // group page can list its events. One row per (event, group); re-inviting
   // the same group updates it. It's only a record of the invite - the members
-  // still get individual eventInvites, and the event's roster stays separate.
+  // still get individual invites, and the event's roster stays separate.
   eventGroupInvites: defineTable({
     eventId: v.id('events'),
     groupId: v.id('groups'),

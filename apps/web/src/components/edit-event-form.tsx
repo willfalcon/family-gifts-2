@@ -22,6 +22,7 @@ export default function EditEventForm({ event, onDone }: Props) {
         endDate: event.endDate,
         startTime: event.startTime,
         endTime: event.endTime,
+        location: event.location,
       }}
       onCancel={onDone}
       onSubmit={async values => {

@@ -5,13 +5,15 @@ import { authComponent } from './auth';
 import { getMembership } from './groups';
 import { getAttendance } from './events';
 
-// Whether `userId` can view `list` - its owner, or anyone reachable through
-// one of its shares (a direct share, or membership/attendance in a shared
-// group/event). Shared access is always read-only; only the owner can edit.
-// Archived lists are visible to their owner only.
+// Whether `userId` can view `list` - its owner, anyone attending the event
+// it's for (its occasion), or anyone reachable through one of its shares (a
+// direct share, or membership/attendance in a shared group/event). Shared
+// access is always read-only; only the owner can edit. Archived lists are
+// visible to their owner only.
 export async function hasListAccess(ctx: QueryCtx, list: Doc<'lists'>, userId: string): Promise<boolean> {
   if (list.createdBy === userId) return true;
   if (list.archivedAt !== undefined) return false;
+  if (list.occasion?.kind === 'event' && (await getAttendance(ctx, list.occasion.eventId, userId))) return true;
 
   for await (const share of ctx.db.query('listShares').withIndex('by_list', q => q.eq('listId', list._id))) {
     if (share.sharedWithUserId === userId) return true;
@@ -80,7 +82,7 @@ export const myConnections = query({
     }
     for (const attendance of attendances) {
       const attendees = await ctx.db.query('eventAttendees').withIndex('by_event', q => q.eq('eventId', attendance.eventId)).collect();
-      for (const attendee of attendees) connectionIds.add(attendee.userId);
+      for (const attendee of attendees) if (attendee.userId) connectionIds.add(attendee.userId);
     }
     connectionIds.delete(user._id);
 

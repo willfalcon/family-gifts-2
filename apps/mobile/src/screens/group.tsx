@@ -6,7 +6,7 @@ import { useMutation } from 'convex/react';
 import { ConvexError } from 'convex/values';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { BackLink } from '@/components/back-link';
+import { BackButton } from '@/components/back-button';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useGroup, useGroupEvents, useGroupInviteLink, useGroupInvites, useGroupMembers } from '@/hooks/groups';
 import { Icon } from '@/components/ui/icon';
@@ -31,6 +31,7 @@ function formatEventDate(date: string) {
 const eventStatusLabel = {
   attending: 'Attending',
   invited: 'Invited',
+  declined: 'Declined',
   notInvited: 'Not invited',
 } as const;
 
@@ -193,7 +194,7 @@ export default function Group() {
         <View className="gap-2">
           <View className="flex-row items-center gap-4">
             <View className="flex-0">
-              <BackLink />
+              <BackButton />
             </View>
             {group && (
               <Text variant="detail" className="flex-1 text-left">

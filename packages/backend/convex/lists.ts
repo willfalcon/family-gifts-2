@@ -3,6 +3,7 @@ import { listSchema, type ListInput } from '../../shared/schemas/list';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import { authComponent } from './auth';
+import { getClaimedItemCount } from './claims';
 import { getAttendance } from './events';
 import { getMembership } from './groups';
 import { hasListAccess } from './listShares';
@@ -10,7 +11,7 @@ import { occasionValidator } from './schema';
 
 // Resolves the event name/date when a list's occasion references one, so the
 // client doesn't need a second round-trip.
-async function withOccasionEvent(ctx: QueryCtx, list: Doc<'lists'>) {
+export async function withOccasionEvent(ctx: QueryCtx, list: Doc<'lists'>) {
   let occasionEventName: string | null = null;
   let occasionEventDate: string | null = null;
   if (list.occasion?.kind === 'event') {
@@ -48,6 +49,47 @@ export const myArchivedLists = query({
   },
 });
 
+// Lists whose occasion is this event. Every attendee can open these (see
+// hasListAccess), so no per-list check is needed. Others' lists come first;
+// the viewer's own come last. `claimedItemCount` is null on the viewer's own
+// lists, since owners never see claims.
+export const forEvent = query({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!(await getAttendance(ctx, args.eventId, user._id))) return null;
+
+    const others = [];
+    const mine = [];
+    for await (const list of ctx.db
+      .query('lists')
+      .withIndex('by_occasion_event', q => q.eq('occasion.eventId', args.eventId))) {
+      if (list.archivedAt !== undefined) continue;
+      if (list.createdBy === user._id) {
+        mine.push({
+          _id: list._id,
+          title: list.title,
+          itemCount: list.itemCount,
+          claimedItemCount: null,
+          ownerId: list.createdBy,
+          ownerName: user.name,
+        });
+        continue;
+      }
+      const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
+      others.push({
+        _id: list._id,
+        title: list.title,
+        itemCount: list.itemCount,
+        claimedItemCount: await getClaimedItemCount(ctx, list._id),
+        ownerId: list.createdBy,
+        ownerName: owner?.name ?? 'Unknown',
+      });
+    }
+    return [...others, ...mine];
+  },
+});
+
 // Gets a single list by id. Returns null if the id is malformed, doesn't
 // exist, or isn't visible to the current user (its owner, or shared with
 // them directly or through a group/event they belong to), so callers can
@@ -70,7 +112,9 @@ export const get = query({
 
     return {
       ...(await withOccasionEvent(ctx, list)),
+      isMine: list.createdBy === user._id,
       owner: {
+        userId: list.createdBy,
         name: owner?.name ?? 'Unknown',
         image: owner?.image ?? null,
       },

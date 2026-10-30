@@ -11,7 +11,7 @@ import { EventInviteEmail } from './emails/EventInviteEmail';
 // the mutations/queries there. Reads go through an internal query since
 // actions have no ctx.db.
 export const sendEventInviteEmail = internalAction({
-  args: { inviteId: v.id('eventInvites') },
+  args: { inviteId: v.id('eventAttendees') },
   handler: async (ctx, args) => {
     const data = await ctx.runQuery(internal.events.getInviteEmailData, { inviteId: args.inviteId });
     if (!data) return null;

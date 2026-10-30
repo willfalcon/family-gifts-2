@@ -14,8 +14,8 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="(lists)">
-        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>Lists</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="(my-lists)">
+        <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>My Lists</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'gift', selected: 'gift' }} selectedColor={TabColors.accent} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(groups)">

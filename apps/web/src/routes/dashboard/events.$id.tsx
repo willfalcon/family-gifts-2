@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
-import { Pencil, Gift } from 'lucide-react';
+import { Pencil, Gift, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { BackLink } from '@/components/back-link';
 import { bigTitleClasses } from '@/components/ui/big-title';
@@ -18,6 +18,7 @@ import EditEventForm from '@/components/edit-event-form';
 import DeleteEventButton from '@/components/delete-event-button';
 import InviteToEventForm from '@/components/invite-to-event-form';
 import InviteGroupToEventForm from '@/components/invite-group-to-event-form';
+import EventInviteLink from '@/components/event-invite-link';
 import PendingEventInviteItem from '@/components/pending-event-invite-item';
 import EventActionsMenu from '@/components/event-actions-menu';
 import { formatWhen } from '@shared/event-dates';
@@ -70,7 +71,7 @@ function EventPage() {
 
   const myAttendance = attendees?.find(a => a.userId === user?._id);
   const isOwner = myAttendance?.role === 'owner';
-  const isManager = isOwner || myAttendance?.role === 'manager';
+  const isManager = isOwner || myAttendance?.role === 'host';
 
   return (
     <div className="space-y-5">
@@ -91,7 +92,12 @@ function EventPage() {
                     <FavoriteButton kind="event" id={event._id} />
                     {isManager && (
                       <>
-                        <Button variant="ghost" size="icon-sm" aria-label="Edit event" onClick={() => setEditingEvent(true)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Edit event"
+                          onClick={() => setEditingEvent(true)}
+                        >
                           <Pencil />
                         </Button>
                         {isOwner && <DeleteEventButton id={event._id} name={event.name} />}
@@ -101,6 +107,12 @@ function EventPage() {
                 )}
               </div>
               {event && <p className="text-muted-foreground">{formatWhen(event)}</p>}
+              {event?.location && (
+                <p className="text-muted-foreground flex items-center gap-1">
+                  <MapPin className="size-4" />
+                  {event.location}
+                </p>
+              )}
               {event?.description && <p className="mt-2 whitespace-pre-wrap">{event.description}</p>}
             </>
           )}
@@ -122,10 +134,19 @@ function EventPage() {
                 <li key={attendee.id} className="flex items-center gap-2">
                   <Avatar size="sm">
                     {attendee.image && <AvatarImage src={attendee.image} alt={attendee.name} />}
-                    <AvatarFallback style={{ backgroundColor: attendee.color }}>{initials(attendee.name)}</AvatarFallback>
+                    <AvatarFallback style={{ backgroundColor: attendee.color }}>
+                      {initials(attendee.name)}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="flex-1">{attendee.name}</span>
-                  {attendee.role !== 'guest' && <span className="text-muted-foreground text-xs capitalize">{attendee.role}</span>}
+                  <span className="flex-1">
+                    {attendee.name}
+                    {attendee.status === 'declined' && (
+                      <span className="text-muted-foreground text-xs"> · can&apos;t go</span>
+                    )}
+                  </span>
+                  {attendee.role !== 'guest' && (
+                    <span className="text-muted-foreground text-xs capitalize">{attendee.role}</span>
+                  )}
                   {attendee.userId !== user?._id && <FavoriteButton kind="user" id={attendee.userId} />}
                   {isManager && attendee.role !== 'owner' && attendee.userId !== user?._id && (
                     <EventActionsMenu
@@ -142,13 +163,17 @@ function EventPage() {
             </ul>
           </div>
 
-          {isManager && (
+          {isManager ? (
             <div className="space-y-3">
               <Heading>Invite</Heading>
               <InviteToEventForm eventId={eventId} />
               <InviteGroupToEventForm eventId={eventId} />
+              <EventInviteLink eventId={eventId} />
               <PendingInvites eventId={eventId} />
             </div>
+          ) : (
+            // Shows only when hosts have let guests share the link.
+            <EventInviteLink eventId={eventId} />
           )}
         </TabsContent>
 

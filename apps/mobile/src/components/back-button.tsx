@@ -11,7 +11,7 @@ type BackLinkProps = {
   className?: string;
 };
 
-export function BackLink({ children = 'Back', className }: BackLinkProps) {
+export function BackButton({ children = 'Back', className }: BackLinkProps) {
   const router = useRouter();
 
   return (

@@ -1,28 +1,19 @@
 import { Cake, ChevronRight, TreePine, Calendar, Gift } from 'lucide-react-native';
-import {
-  Host,
-  SwipeActions,
-  Button as UIButton,
-  ConfirmationDialog,
-  ContextMenu,
-  Section,
-  Picker,
-  Text as UIText,
-} from '@expo/ui/swift-ui';
+import { SwipeActions, Button as UIButton, ConfirmationDialog, ContextMenu } from '@expo/ui/swift-ui';
+import { tint } from '@expo/ui/swift-ui/modifiers';
 import type { FunctionReturnType } from 'convex/server';
 import { useRouter } from 'expo-router';
-import { Pressable, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { api } from '@convex/_generated/api';
 import { Text } from './ui/text';
 import { useListShares } from '@/hooks/lists';
-import { formatOccasionDate } from '@/screens/list';
+import { LIST_ROW_MODIFIERS, RNRowContent } from './native-list';
+import { formatOccasionDate } from '@/lib/occasion';
 import { Icon } from './ui/icon';
 import { useMutation } from 'convex/react';
-import { useRef, useState } from 'react';
-
-// How far (in points) the finger can move before a touch counts as a swipe instead of a tap.
-const TAP_SLOP = 10;
+import { useState } from 'react';
+import { useRowTap } from '@/hooks/row-tap';
 
 type ListRow = FunctionReturnType<typeof api.lists.myLists>[number];
 
@@ -55,24 +46,7 @@ export default function ListListItem({
   const unarchiveList = useMutation(api.lists.unarchive);
   const [archiveConfirm, setArchiveConfirm] = useState(false);
 
-  // The native swipe moves the row along with the finger, so React Native never sees the
-  // touch leave the row and would treat a partial swipe as a tap. Track the start point
-  // in screen coordinates and ignore the press if the finger traveled.
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const onPressIn = (e: GestureResponderEvent) => {
-    touchStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
-  };
-  const onPress = (e: GestureResponderEvent) => {
-    const start = touchStart.current;
-    touchStart.current = null;
-    if (
-      start &&
-      (Math.abs(e.nativeEvent.pageX - start.x) > TAP_SLOP || Math.abs(e.nativeEvent.pageY - start.y) > TAP_SLOP)
-    ) {
-      return;
-    }
-    router.push({ pathname: '/(app)/(lists)/lists/[id]', params: { id: _id } });
-  };
+  const rowTap = useRowTap(() => router.push({ pathname: '/(app)/(my-lists)/lists/[id]', params: { id: _id } }));
   let details = [];
   if (occasionEventName) {
     details.push(occasionEventName);
@@ -91,86 +65,74 @@ export default function ListListItem({
     setArchiveConfirm(false);
   };
 
+  const edit = () => router.push({ pathname: '/(app)/(my-lists)/lists/[id]/edit', params: { id: _id } });
+  const unarchive = () => unarchiveList({ id: _id });
+
+  // A row of a NativeList. The archive dialog hangs off the row, not the swipe
+  // button, so it stays up after SwiftUI closes the swipe. Swipe buttons are
+  // tinted red rather than role="destructive", which would make SwiftUI
+  // animate the row away before the archive is confirmed.
   return (
-    <Host>
-      <SwipeActions>
-        <ContextMenu>
-          <ContextMenu.Items>
-            <UIButton
-              label="Edit"
-              systemImage="pencil"
-              onPress={() => {
-                router.push({ pathname: '/(app)/(lists)/lists/[id]/edit', params: { id: _id } });
-              }}
-            />
-            {archived ? (
-              <UIButton label="Unarchive" systemImage="tray.and.arrow.up" onPress={() => unarchiveList({ id: _id })} />
-            ) : (
-              <UIButton
-                label="Archive"
-                systemImage="archivebox"
-                role="destructive"
-                onPress={() => {
-                  setArchiveConfirm(true);
-                }}
-              />
-            )}
-          </ContextMenu.Items>
-          <ContextMenu.Trigger>
-            {/* onLongPress is a no-op so releasing after opening the context menu doesn't also navigate. */}
-            <Pressable onPressIn={onPressIn} onPress={onPress} onLongPress={() => {}}>
-              <View className="flex-row items-center gap-3 py-1">
-                <View className="bg-fill rounded-lg size-11 items-center justify-center">
-                  <Icon as={icon} size={20} className="text-ink-muted" />
-                </View>
-                <View className="flex-1 border-b pb-3 flex-row justify-between items-center w-full border-line pt-2">
-                  <View className="">
-                    <Text className="font-semibold text-button-lg">{title}</Text>
-                    {details.length > 0 && <Text className="text-ink-muted text-sm">{details.join(' • ')}</Text>}
-                  </View>
-                  <View className="flex-row items-center gap-1">
-                    <Text className="text-ink-muted">{itemCount}</Text>
-                    <ChevronRight className="text-ink-faint size-4" />
-                  </View>
-                </View>
-              </View>
-            </Pressable>
-          </ContextMenu.Trigger>
-        </ContextMenu>
-        <SwipeActions.Actions edge="leading" allowsFullSwipe={false}>
-          <UIButton
-            label="Edit"
-            systemImage="pencil"
-            onPress={() => {
-              router.push({ pathname: '/(app)/(lists)/lists/[id]/edit', params: { id: _id } });
-            }}
-          />
-        </SwipeActions.Actions>
-        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-          {archived ? (
-            <UIButton label="Unarchive" systemImage="tray.and.arrow.up" onPress={() => unarchiveList({ id: _id })} />
-          ) : (
-            <ConfirmationDialog
-              title="Archive List"
-              isPresented={archiveConfirm}
-              onIsPresentedChange={setArchiveConfirm}
-            >
-              <ConfirmationDialog.Trigger>
+    <SwipeActions modifiers={LIST_ROW_MODIFIERS}>
+      <ConfirmationDialog title="Archive List" isPresented={archiveConfirm} onIsPresentedChange={setArchiveConfirm}>
+        <ConfirmationDialog.Trigger>
+          <ContextMenu>
+            <ContextMenu.Items>
+              <UIButton label="Edit" systemImage="pencil" onPress={edit} />
+              {archived ? (
+                <UIButton label="Unarchive" systemImage="tray.and.arrow.up" onPress={unarchive} />
+              ) : (
                 <UIButton
                   label="Archive"
                   systemImage="archivebox"
                   role="destructive"
                   onPress={() => setArchiveConfirm(true)}
                 />
-              </ConfirmationDialog.Trigger>
-              <ConfirmationDialog.Actions>
-                <UIButton label="Cancel" onPress={() => setArchiveConfirm(false)} />
-                <UIButton label="Archive" role="destructive" onPress={confirmArchive} />
-              </ConfirmationDialog.Actions>
-            </ConfirmationDialog>
-          )}
-        </SwipeActions.Actions>
-      </SwipeActions>
-    </Host>
+              )}
+            </ContextMenu.Items>
+            <ContextMenu.Trigger>
+              <RNRowContent>
+                <Pressable {...rowTap}>
+                  <View className="flex-row items-center gap-3 py-1">
+                    <View className="bg-fill rounded-lg size-11 items-center justify-center">
+                      <Icon as={icon} size={20} className="text-ink-muted" />
+                    </View>
+                    <View className="flex-1 border-b pb-3 flex-row justify-between items-center w-full border-line pt-2">
+                      <View className="">
+                        <Text className="font-semibold text-button-lg">{title}</Text>
+                        {details.length > 0 && <Text className="text-ink-muted text-sm">{details.join(' • ')}</Text>}
+                      </View>
+                      <View className="flex-row items-center gap-1">
+                        <Text className="text-ink-muted">{itemCount}</Text>
+                        <ChevronRight className="text-ink-faint size-4" />
+                      </View>
+                    </View>
+                  </View>
+                </Pressable>
+              </RNRowContent>
+            </ContextMenu.Trigger>
+          </ContextMenu>
+        </ConfirmationDialog.Trigger>
+        <ConfirmationDialog.Actions>
+          <UIButton label="Cancel" onPress={() => setArchiveConfirm(false)} />
+          <UIButton label="Archive" role="destructive" onPress={confirmArchive} />
+        </ConfirmationDialog.Actions>
+      </ConfirmationDialog>
+      <SwipeActions.Actions edge="leading" allowsFullSwipe={false}>
+        <UIButton label="Edit" systemImage="pencil" onPress={edit} />
+      </SwipeActions.Actions>
+      <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+        {archived ? (
+          <UIButton label="Unarchive" systemImage="tray.and.arrow.up" onPress={unarchive} />
+        ) : (
+          <UIButton
+            label="Archive"
+            systemImage="archivebox"
+            modifiers={[tint('red')]}
+            onPress={() => setArchiveConfirm(true)}
+          />
+        )}
+      </SwipeActions.Actions>
+    </SwipeActions>
   );
 }

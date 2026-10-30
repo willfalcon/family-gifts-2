@@ -137,11 +137,23 @@ export const forList = query({
       return null;
     }
 
-    const byItem: Record<string, { claimedQuantity: number; myQuantity: number }> = {};
+    // `otherClaimers` is the names of everyone else claiming the item, so a
+    // shopper can see who's already getting it.
+    const byItem: Record<string, { claimedQuantity: number; myQuantity: number; otherClaimers: string[] }> = {};
+    const names = new Map<string, string>();
     for await (const claim of ctx.db.query('claims').withIndex('by_list', q => q.eq('listId', list._id))) {
-      const entry = (byItem[claim.itemId] ??= { claimedQuantity: 0, myQuantity: 0 });
+      const entry = (byItem[claim.itemId] ??= { claimedQuantity: 0, myQuantity: 0, otherClaimers: [] });
       entry.claimedQuantity += claim.quantity;
-      if (claim.userId === user._id) entry.myQuantity += claim.quantity;
+      if (claim.userId === user._id) {
+        entry.myQuantity += claim.quantity;
+      } else {
+        let name = names.get(claim.userId);
+        if (name === undefined) {
+          name = (await authComponent.getAnyUserById(ctx, claim.userId))?.name ?? 'Someone';
+          names.set(claim.userId, name);
+        }
+        entry.otherClaimers.push(name);
+      }
     }
     return byItem;
   },

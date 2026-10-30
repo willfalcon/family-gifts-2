@@ -15,6 +15,7 @@ const eventSchema = z.object({
   endDate: z.string().optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
+  location: z.string().trim().max(200, 'Keep it under 200 characters').optional(),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
@@ -26,6 +27,7 @@ export interface EventInput {
   endDate?: string;
   startTime?: string;
   endTime?: string;
+  location?: string;
 }
 
 interface Props {
@@ -45,6 +47,7 @@ export default function EventForm({ defaults, submitLabel, onSubmit, onCancel }:
       endDate: defaults?.endDate ?? '',
       startTime: defaults?.startTime ?? '',
       endTime: defaults?.endTime ?? '',
+      location: defaults?.location ?? '',
     },
   });
 
@@ -56,6 +59,7 @@ export default function EventForm({ defaults, submitLabel, onSubmit, onCancel }:
       endDate: values.endDate || undefined,
       startTime: values.startTime || undefined,
       endTime: values.endTime || undefined,
+      location: values.location || undefined,
     });
     form.reset();
   }
@@ -70,6 +74,18 @@ export default function EventForm({ defaults, submitLabel, onSubmit, onCancel }:
             <FormItem className="w-full">
               <FormControl>
                 <Input placeholder="Event name" autoFocus {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormControl>
+                <Input placeholder="Location (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

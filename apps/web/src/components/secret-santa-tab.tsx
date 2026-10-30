@@ -14,7 +14,9 @@ interface Props {
 
 export default function SecretSantaTab({ eventId }: Props) {
   const { secretSanta } = useSecretSanta(eventId);
-  const { attendees } = useEventAttendees(eventId);
+  // Only people who are going can be drawn.
+  const { attendees: allAttendees } = useEventAttendees(eventId);
+  const attendees = allAttendees?.filter(a => a.status === 'going');
 
   if (!secretSanta) return null;
 

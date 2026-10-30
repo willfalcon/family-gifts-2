@@ -61,18 +61,36 @@ function InvitePage() {
   // A group's shareable join link has no invited email - any account can use it.
   const invitedEmail = effectivePreview && 'email' in effectivePreview ? effectivePreview.email : null;
   const emailMismatch = !!user && !!invitedEmail && user.email.toLowerCase() !== invitedEmail.toLowerCase();
-  const displayName = effectivePreview?.kind === 'event' ? effectivePreview.eventName : effectivePreview?.groupName;
+  // Events ask "Going or can't go?" first; groups just join.
+  const isEvent = effectivePreview?.kind === 'event' || effectivePreview?.kind === 'eventLink';
+  const displayName = effectivePreview
+    ? 'eventName' in effectivePreview
+      ? effectivePreview.eventName
+      : effectivePreview.groupName
+    : undefined;
+  const [answering, setAnswering] = useState(false);
 
-  // Auto-join: a logged-in user whose account matches the invited email
-  // shouldn't need an extra click to accept - land straight on the destination.
+  async function answer(status: 'going' | 'declined') {
+    setAnswering(true);
+    try {
+      const result = await acceptInvite.mutateAsync({ token, status });
+      navigate(destinationFor(result));
+    } catch (e) {
+      setError(acceptInviteErrorMessage(e));
+      setAnswering(false);
+    }
+  }
+
+  // Auto-join for groups: a logged-in user whose account matches the invited
+  // email shouldn't need an extra click to accept - land straight on the group.
   useEffect(() => {
-    if (!user || !preview || emailMismatch || accepted.current) return;
+    if (!user || !preview || emailMismatch || isEvent || accepted.current) return;
     accepted.current = true;
     acceptInvite
       .mutateAsync({ token })
       .then(result => navigate(destinationFor(result)))
       .catch(e => setError(acceptInviteErrorMessage(e)));
-  }, [user, preview, emailMismatch, token]);
+  }, [user, preview, emailMismatch, isEvent, token]);
 
   if (!effectivePreview) {
     return (
@@ -107,7 +125,9 @@ function InvitePage() {
   }
 
   if (!user) {
-    return <InviteAuthForm token={token} invitedEmail={invitedEmail} displayName={displayName!} />;
+    return (
+      <InviteAuthForm token={token} invitedEmail={invitedEmail} displayName={displayName!} acceptOnAuth={!isEvent} />
+    );
   }
 
   if (error) {
@@ -123,6 +143,20 @@ function InvitePage() {
     );
   }
 
+  if (isEvent && !answering) {
+    return (
+      <div className="max-w-sm mx-auto mt-16 space-y-4 text-center">
+        <BigTitle title={`You're invited to ${displayName}`} subtitle="Can you make it? You can change your answer later." />
+        <div className="flex justify-center gap-2">
+          <Button onClick={() => answer('going')}>Going</Button>
+          <Button variant="outline" onClick={() => answer('declined')}>
+            Can&apos;t go
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-3 mt-24">
       <Spinner className="size-6 text-muted-foreground" />
@@ -133,12 +167,15 @@ function InvitePage() {
 
 interface InviteAuthFormProps {
   token: string;
-  // Null for a group join link, where the person types their own email.
+  // Null for a join link, where the person types their own email.
   invitedEmail: string | null;
   displayName: string;
+  // Groups join as soon as you're signed in. Events don't: once signed in,
+  // the page re-renders with the Going / Can't go choice.
+  acceptOnAuth: boolean;
 }
 
-function InviteAuthForm({ token, invitedEmail, displayName }: InviteAuthFormProps) {
+function InviteAuthForm({ token, invitedEmail, displayName, acceptOnAuth }: InviteAuthFormProps) {
   const navigate = useNavigate();
   const acceptInvite = useMutation({ mutationFn: useConvexMutation(api.invites.accept) });
   const [name, setName] = useState('');
@@ -160,6 +197,7 @@ function InviteAuthForm({ token, invitedEmail, displayName }: InviteAuthFormProp
       setSubmitting(false);
       return;
     }
+    if (!acceptOnAuth) return;
 
     try {
       const result = await acceptInvite.mutateAsync({ token });
@@ -195,7 +233,7 @@ function InviteAuthForm({ token, invitedEmail, displayName }: InviteAuthFormProp
           required
         />
         <Button type="submit" disabled={submitting} className="w-full">
-          {name ? 'Sign up & join' : 'Sign in & join'}
+          {acceptOnAuth ? (name ? 'Sign up & join' : 'Sign in & join') : name ? 'Sign up' : 'Sign in'}
         </Button>
         {error && <p className="text-destructive text-sm">{error}</p>}
       </form>
