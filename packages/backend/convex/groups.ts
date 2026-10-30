@@ -1,9 +1,11 @@
 import { v, ConvexError } from 'convex/values';
 import { mutation, query, internalQuery, type MutationCtx, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
-import { Id } from './_generated/dataModel';
+import { Doc, Id } from './_generated/dataModel';
 import { authComponent } from './auth';
 import { pickAvatarColor } from './avatarColors';
+import { getClaimedItemCount } from './claims';
+import { birthdayVisibleInGroup, nextOccasion, normalizeToday } from './occasions';
 
 // Exported for convex/listShares.ts, which needs to check group membership
 // when resolving whether a group-shared list is visible to a given user.
@@ -25,15 +27,29 @@ async function requireManager(ctx: QueryCtx, groupId: Id<'groups'>, userId: stri
   return membership;
 }
 
-// Throws unless `userId` is the group's owner specifically - for the handful
-// of actions (deleting the group, transferring ownership) that even a
-// manager shouldn't be able to do.
+// Throws unless `userId` is the group's owner specifically - for transferring
+// ownership, which even a manager shouldn't be able to do.
 async function requireOwner(ctx: QueryCtx, groupId: Id<'groups'>, userId: string) {
   const membership = await getMembership(ctx, groupId, userId);
   if (!membership || membership.role !== 'owner') {
     throw new Error('Group not found');
   }
   return membership;
+}
+
+function isManagerRole(role: Doc<'groupMembers'>['role']) {
+  return role === 'owner' || role === 'manager';
+}
+
+// The join-link token lets anyone in, so it's stripped from every group doc
+// sent to a client. groups.getInviteLink hands it out only to members allowed
+// to share it.
+function toClientGroup({ inviteToken: _inviteToken, ...group }: Doc<'groups'>) {
+  return group;
+}
+
+function inviteUrl(token: string) {
+  return `${process.env.SITE_URL}/invite/${token}`;
 }
 
 // Seats a user in a group, picking an avatar color that avoids the group's
@@ -61,7 +77,7 @@ export const myGroups = query({
       .withIndex('by_user', q => q.eq('userId', user._id))
       .collect();
     const groups = await Promise.all(memberships.map(m => ctx.db.get(m.groupId)));
-    return groups.filter((g): g is NonNullable<typeof g> => g !== null);
+    return groups.filter((g): g is NonNullable<typeof g> => g !== null).map(toClientGroup);
   },
 });
 
@@ -84,7 +100,7 @@ export const get = query({
       .unique();
     if (!membership) return null;
 
-    return group;
+    return toClientGroup(group);
   },
 });
 
@@ -95,7 +111,12 @@ export const create = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    const groupId = await ctx.db.insert('groups', { ...args, createdBy: user._id });
+    const groupId = await ctx.db.insert('groups', {
+      ...args,
+      createdBy: user._id,
+      inviteToken: crypto.randomUUID(),
+      membersCanInvite: false,
+    });
     await addMember(ctx, groupId, user._id, 'owner');
     return groupId;
   },
@@ -121,7 +142,7 @@ export const remove = mutation({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireOwner(ctx, args.id, user._id);
+    await requireManager(ctx, args.id, user._id);
 
     for await (const member of ctx.db.query('groupMembers').withIndex('by_group', q => q.eq('groupId', args.id))) {
       await ctx.db.delete(member._id);
@@ -129,10 +150,19 @@ export const remove = mutation({
     for await (const invite of ctx.db.query('groupInvites').withIndex('by_group', q => q.eq('groupId', args.id))) {
       await ctx.db.delete(invite._id);
     }
-    for await (const share of ctx.db.query('listShares').withIndex('by_group', q => q.eq('sharedWithGroupId', args.id))) {
+    for await (const eventInvite of ctx.db
+      .query('eventGroupInvites')
+      .withIndex('by_group', q => q.eq('groupId', args.id))) {
+      await ctx.db.delete(eventInvite._id);
+    }
+    for await (const share of ctx.db
+      .query('listShares')
+      .withIndex('by_group', q => q.eq('sharedWithGroupId', args.id))) {
       await ctx.db.delete(share._id);
     }
-    for await (const favorite of ctx.db.query('favorites').withIndex('by_favoritedGroupId', q => q.eq('favoritedGroupId', args.id))) {
+    for await (const favorite of ctx.db
+      .query('favorites')
+      .withIndex('by_favoritedGroupId', q => q.eq('favoritedGroupId', args.id))) {
       await ctx.db.delete(favorite._id);
     }
 
@@ -141,21 +171,23 @@ export const remove = mutation({
 });
 
 // Members of a group, with display info for the roster. Returns null if the
-// current user isn't a member, so the group page can render a "not found"
-// state instead of leaking membership of a group the viewer can't see into.
+// id is malformed or the current user isn't a member, so the group page can
+// render a "not found" state instead of leaking membership of a group the
+// viewer can't see into. `groupId` can come from a URL param, so it's taken
+// as a string and normalized, matching `get`.
 export const listMembers = query({
-  args: { groupId: v.id('groups') },
+  args: { groupId: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    const viewerMembership = await ctx.db
-      .query('groupMembers')
-      .withIndex('by_group_user', q => q.eq('groupId', args.groupId).eq('userId', user._id))
-      .unique();
+    const groupId = ctx.db.normalizeId('groups', args.groupId);
+    if (!groupId) return null;
+
+    const viewerMembership = await getMembership(ctx, groupId, user._id);
     if (!viewerMembership) return null;
 
     const members = await ctx.db
       .query('groupMembers')
-      .withIndex('by_group', q => q.eq('groupId', args.groupId))
+      .withIndex('by_group', q => q.eq('groupId', groupId))
       .collect();
 
     return await Promise.all(
@@ -169,24 +201,95 @@ export const listMembers = query({
           name: memberUser?.name ?? 'Unknown',
           image: memberUser?.image ?? null,
         };
-      })
+      }),
+    );
+  },
+});
+
+// The group roster plus, for each member, what they've shared with this
+// group: how many ideas, how many of those are claimed, and their next
+// occasion (birthday, if they share it with this group, or a dated list).
+// `claimedCount` is null on the viewer's own row - people never see claims on
+// their own ideas. `today` is the viewer's local date ("YYYY-MM-DD").
+export const memberSummaries = query({
+  args: { groupId: v.string(), today: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const groupId = ctx.db.normalizeId('groups', args.groupId);
+    if (!groupId || !(await getMembership(ctx, groupId, user._id))) return null;
+    const today = normalizeToday(args.today);
+
+    const [members, shares] = await Promise.all([
+      ctx.db
+        .query('groupMembers')
+        .withIndex('by_group', q => q.eq('groupId', groupId))
+        .collect(),
+      ctx.db
+        .query('listShares')
+        .withIndex('by_group', q => q.eq('sharedWithGroupId', groupId))
+        .collect(),
+    ]);
+
+    const sharedLists = (await Promise.all(shares.map(share => ctx.db.get(share.listId)))).filter(
+      (list): list is Doc<'lists'> => list !== null && list.archivedAt === undefined,
+    );
+
+    return await Promise.all(
+      members.map(async member => {
+        const isSelf = member.userId === user._id;
+        const lists = sharedLists.filter(list => list.createdBy === member.userId);
+        const [memberUser, profile, claimedCounts] = await Promise.all([
+          authComponent.getAnyUserById(ctx, member.userId),
+          ctx.db
+            .query('profiles')
+            .withIndex('by_userId', q => q.eq('userId', member.userId))
+            .unique(),
+          isSelf ? null : Promise.all(lists.map(list => getClaimedItemCount(ctx, list._id))),
+        ]);
+
+        return {
+          id: member._id,
+          userId: member.userId,
+          role: member.role,
+          color: member.color,
+          name: memberUser?.name ?? 'Unknown',
+          image: memberUser?.image ?? null,
+          isSelf,
+          itemCount: lists.reduce((sum, list) => sum + list.itemCount, 0),
+          claimedCount: claimedCounts ? claimedCounts.reduce((sum, n) => sum + n, 0) : null,
+          nextOccasion: await nextOccasion(ctx, {
+            birthday: isSelf ? (profile?.birthday ?? null) : birthdayVisibleInGroup(profile, groupId),
+            lists,
+            today,
+          }),
+        };
+      }),
     );
   },
 });
 
 // Pending invites for a group. Manager-only, since the list of who's been
 // invited (their email addresses) is more sensitive than the roster itself.
+// Returns null (rather than throwing) for a bad id or a non-manager, so the
+// group screen can just hide the section. `groupId` may come from a URL param,
+// so it's taken as a string and normalized.
 export const listInvites = query({
-  args: { groupId: v.id('groups') },
+  args: { groupId: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.groupId, user._id);
+    const groupId = ctx.db.normalizeId('groups', args.groupId);
+    if (!groupId) return null;
 
-    return await ctx.db
+    const membership = await getMembership(ctx, groupId, user._id);
+    if (!membership || (membership.role !== 'owner' && membership.role !== 'manager')) {
+      return null;
+    }
+
+    const invites = await ctx.db
       .query('groupInvites')
-      .withIndex('by_group', q => q.eq('groupId', args.groupId))
-      .filter(q => q.eq(q.field('status'), 'pending'))
+      .withIndex('by_group', q => q.eq('groupId', groupId))
       .collect();
+    return invites.filter(invite => invite.status === 'pending');
   },
 });
 
@@ -242,6 +345,199 @@ export const revokeInvite = mutation({
   },
 });
 
+// Events this group has been invited to (see events.inviteGroup), for the
+// group page. Member-only; null for a bad id or a non-member. Only basic event
+// info is returned - the group was invited, so its members may know the event
+// exists, but the roster and lists stay behind event attendance. `status` is
+// the viewer's own relationship to the event, since members who joined the
+// group after the invite never got one. Sorted by date, undated events last.
+export const listEvents = query({
+  args: { groupId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const groupId = ctx.db.normalizeId('groups', args.groupId);
+    if (!groupId || !(await getMembership(ctx, groupId, user._id))) return null;
+
+    const groupInvites = await ctx.db
+      .query('eventGroupInvites')
+      .withIndex('by_group', q => q.eq('groupId', groupId))
+      .take(100);
+    const email = user.email.toLowerCase();
+
+    const events = await Promise.all(
+      groupInvites.map(async groupInvite => {
+        const event = await ctx.db.get(groupInvite.eventId);
+        if (!event) return null;
+
+        const [attendance, pendingInvite] = await Promise.all([
+          ctx.db
+            .query('eventAttendees')
+            .withIndex('by_event_user', q => q.eq('eventId', event._id).eq('userId', user._id))
+            .unique(),
+          ctx.db
+            .query('eventInvites')
+            .withIndex('by_event_email', q => q.eq('eventId', event._id).eq('email', email))
+            .filter(q => q.eq(q.field('status'), 'pending'))
+            .first(),
+        ]);
+        const status: 'attending' | 'invited' | 'notInvited' = attendance
+          ? 'attending'
+          : pendingInvite
+            ? 'invited'
+            : 'notInvited';
+
+        return {
+          id: event._id,
+          name: event.name,
+          date: event.date ?? null,
+          endDate: event.endDate ?? null,
+          invitedAt: groupInvite.invitedAt,
+          status,
+        };
+      }),
+    );
+
+    return events
+      .filter(event => event !== null)
+      .sort((a, b) => {
+        if (a.date === b.date) return 0;
+        if (a.date === null) return 1;
+        if (b.date === null) return -1;
+        return a.date.localeCompare(b.date);
+      });
+  },
+});
+
+// The group's shareable join link, plus the settings around it. Returns null
+// for a bad id or a non-member. `url` is null when the viewer isn't allowed to
+// share the link (a plain member while membersCanInvite is off), or when the
+// group predates links and a manager hasn't generated one yet.
+export const getInviteLink = query({
+  args: { groupId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const groupId = ctx.db.normalizeId('groups', args.groupId);
+    const group = groupId && (await ctx.db.get(groupId));
+    if (!group) return null;
+    const membership = await getMembership(ctx, group._id, user._id);
+    if (!membership) return null;
+
+    const canManage = isManagerRole(membership.role);
+    const membersCanInvite = group.membersCanInvite ?? false;
+    const canShare = canManage || membersCanInvite;
+
+    return {
+      url: canShare && group.inviteToken ? inviteUrl(group.inviteToken) : null,
+      membersCanInvite,
+      canManage,
+    };
+  },
+});
+
+// Turns "members can invite" on or off. Manager-only.
+export const setMembersCanInvite = mutation({
+  args: { groupId: v.id('groups'), membersCanInvite: v.boolean() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireManager(ctx, args.groupId, user._id);
+    await ctx.db.patch(args.groupId, { membersCanInvite: args.membersCanInvite });
+  },
+});
+
+// Swaps in a new join-link token, so the old link stops working. Manager-only.
+// Also how groups created before links existed get their first one.
+export const resetInviteLink = mutation({
+  args: { groupId: v.id('groups') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireManager(ctx, args.groupId, user._id);
+    const inviteToken = crypto.randomUUID();
+    await ctx.db.patch(args.groupId, { inviteToken });
+    return inviteUrl(inviteToken);
+  },
+});
+
+// Looks up a group by its join-link token. Shared by invites.getPreview and
+// invites.accept, which handle every kind of invite token.
+export async function getGroupByInviteToken(ctx: QueryCtx, token: string) {
+  return await ctx.db
+    .query('groups')
+    .withIndex('by_inviteToken', q => q.eq('inviteToken', token))
+    .unique();
+}
+
+// Joins the signed-in user to a group via its join link. Unlike an email
+// invite there's no address to match - holding the current link is enough.
+// Already being a member isn't an error; they just land on the group.
+export async function joinGroupByLink(ctx: MutationCtx, userId: string, group: Doc<'groups'>) {
+  if (!(await getMembership(ctx, group._id, userId))) {
+    await addMember(ctx, group._id, userId, 'member');
+  }
+  return group._id;
+}
+
+// Cleans up what a user leaves behind in a group once they're no longer a
+// member: shares of their own lists with the group (so the group stops seeing
+// them), their favorite of it, and the group in their profile's
+// "share new lists with" and birthday-visibility settings.
+async function cleanUpDepartedMember(ctx: MutationCtx, groupId: Id<'groups'>, userId: string) {
+  for await (const share of ctx.db.query('listShares').withIndex('by_group', q => q.eq('sharedWithGroupId', groupId))) {
+    const list = await ctx.db.get(share.listId);
+    if (list?.createdBy === userId) {
+      await ctx.db.delete(share._id);
+    }
+  }
+
+  const favorite = await ctx.db
+    .query('favorites')
+    .withIndex('by_user_favoritedGroupId', q => q.eq('userId', userId).eq('favoritedGroupId', groupId))
+    .unique();
+  if (favorite) await ctx.db.delete(favorite._id);
+
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_userId', q => q.eq('userId', userId))
+    .unique();
+  if (profile) {
+    const without = (ids: Id<'groups'>[] | undefined) => ids?.filter(id => id !== groupId);
+    await ctx.db.patch(profile._id, {
+      birthdayGroupIds: without(profile.birthdayGroupIds),
+      shareNewLists: without(profile.shareNewLists),
+    });
+  }
+}
+
+// Leaves a group. A plain member can always leave. A manager (or the owner)
+// can only leave if another manager remains, so the group is never left with
+// no one able to manage it. When the owner leaves, ownership passes to the
+// longest-standing remaining manager.
+export const leave = mutation({
+  args: { groupId: v.id('groups') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const membership = await getMembership(ctx, args.groupId, user._id);
+    if (!membership) throw new Error('Group not found');
+
+    if (isManagerRole(membership.role)) {
+      const members = await ctx.db
+        .query('groupMembers')
+        .withIndex('by_group', q => q.eq('groupId', args.groupId))
+        .collect();
+      // by_group ends in _creationTime, so the first match is the longest-standing.
+      const nextManager = members.find(m => m._id !== membership._id && isManagerRole(m.role));
+      if (!nextManager) {
+        throw new ConvexError("You're the only manager. Make someone else a manager before you leave.");
+      }
+      if (membership.role === 'owner') {
+        await ctx.db.patch(nextManager._id, { role: 'owner' });
+      }
+    }
+
+    await ctx.db.delete(membership._id);
+    await cleanUpDepartedMember(ctx, args.groupId, user._id);
+  },
+});
+
 // Removes a member's association with the group (their account itself is
 // untouched). The owner can't be removed this way - ownership must be
 // transferred first, so a group is never left ownerless.
@@ -263,6 +559,7 @@ export const removeMember = mutation({
     }
 
     await ctx.db.delete(args.memberId);
+    await cleanUpDepartedMember(ctx, args.groupId, target.userId);
   },
 });
 
@@ -272,7 +569,11 @@ export const removeMember = mutation({
 // themselves (or the only other manager) and leave the group with no one
 // able to manage it.
 export const setMemberRole = mutation({
-  args: { groupId: v.id('groups'), memberId: v.id('groupMembers'), role: v.union(v.literal('manager'), v.literal('member')) },
+  args: {
+    groupId: v.id('groups'),
+    memberId: v.id('groupMembers'),
+    role: v.union(v.literal('manager'), v.literal('member')),
+  },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     await requireManager(ctx, args.groupId, user._id);

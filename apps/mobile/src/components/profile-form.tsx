@@ -354,6 +354,6 @@ export default function ProfileForm({ profile, groups, email }: ProfileFormProps
   );
 }
 
-function FieldRow({ children }: { children: React.ReactNode }) {
+export function FieldRow({ children }: { children: React.ReactNode }) {
   return <View className="flex-row flex-wrap items-center justify-between border-b border-line pb-2">{children}</View>;
 }

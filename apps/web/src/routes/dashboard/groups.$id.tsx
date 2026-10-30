@@ -86,7 +86,7 @@ function GroupPage() {
                       <Button variant="ghost" size="icon-sm" aria-label="Edit group" onClick={() => setEditingGroup(true)}>
                         <Pencil />
                       </Button>
-                      {isOwner && <DeleteGroupButton id={group._id} name={group.name} />}
+                      {isManager && <DeleteGroupButton id={group._id} name={group.name} />}
                     </>
                   )}
                 </div>
@@ -182,7 +182,7 @@ function GroupLists({ groupId }: { groupId: Id<'groups'> }) {
 
 function PendingInvites({ groupId }: { groupId: Id<'groups'> }) {
   const { invites } = useGroupInvites(groupId);
-  if (invites.length === 0) return null;
+  if (!invites || invites.length === 0) return null;
   return (
     <ul className="mt-3 divide-y">
       {invites.map(invite => (

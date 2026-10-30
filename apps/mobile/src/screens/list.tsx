@@ -7,7 +7,7 @@ import { BackLink } from '@/components/back-link';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { useItems, useList, useListShares } from '@/hooks/lists';
+import { useItemClaims, useItems, useList, useListShares } from '@/hooks/lists';
 import { Id } from '@convex/_generated/dataModel';
 import EditListMenu from '@/components/edit-list-menu';
 import { GlassView } from 'expo-glass-effect';
@@ -27,6 +27,7 @@ export default function List() {
   const list = useList(listId);
   const items = useItems(listId);
   const listShares = useListShares(listId);
+  const claims = useItemClaims(listId);
 
   const sharedWithGroups = listShares?.filter(share => share.kind === 'group');
 
@@ -111,7 +112,11 @@ export default function List() {
       {items && items.length > 0 && (
         <View className="flex-1 gap-2 p-4">
           {items.map(item => (
-            <ListItem key={item._id} item={item} />
+            <ListItem
+              key={item._id}
+              item={item}
+              claim={claims ? (claims[item._id] ?? { claimedQuantity: 0, myQuantity: 0 }) : undefined}
+            />
           ))}
           <Link href={{ pathname: '/(app)/(lists)/lists/[id]/add-item', params: { id: listId } }} asChild>
             <Button variant="link" className="items-center justify-start">

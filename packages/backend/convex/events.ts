@@ -3,6 +3,7 @@ import { mutation, query, internalQuery, type MutationCtx, type QueryCtx } from 
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { authComponent } from './auth';
+import { getMembership } from './groups';
 import { pickAvatarColor } from './avatarColors';
 
 // Exported for convex/listShares.ts, which needs to check event attendance
@@ -134,10 +135,19 @@ export const remove = mutation({
     for await (const invite of ctx.db.query('eventInvites').withIndex('by_event', q => q.eq('eventId', args.id))) {
       await ctx.db.delete(invite._id);
     }
-    for await (const share of ctx.db.query('listShares').withIndex('by_event', q => q.eq('sharedWithEventId', args.id))) {
+    for await (const groupInvite of ctx.db
+      .query('eventGroupInvites')
+      .withIndex('by_event_group', q => q.eq('eventId', args.id))) {
+      await ctx.db.delete(groupInvite._id);
+    }
+    for await (const share of ctx.db
+      .query('listShares')
+      .withIndex('by_event', q => q.eq('sharedWithEventId', args.id))) {
       await ctx.db.delete(share._id);
     }
-    for await (const favorite of ctx.db.query('favorites').withIndex('by_favoritedEventId', q => q.eq('favoritedEventId', args.id))) {
+    for await (const favorite of ctx.db
+      .query('favorites')
+      .withIndex('by_favoritedEventId', q => q.eq('favoritedEventId', args.id))) {
       await ctx.db.delete(favorite._id);
     }
 
@@ -146,13 +156,19 @@ export const remove = mutation({
       .withIndex('by_event', q => q.eq('eventId', args.id))
       .unique();
     if (secretSanta) {
-      for await (const row of ctx.db.query('secretSantaParticipants').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
+      for await (const row of ctx.db
+        .query('secretSantaParticipants')
+        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
         await ctx.db.delete(row._id);
       }
-      for await (const row of ctx.db.query('secretSantaExclusions').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
+      for await (const row of ctx.db
+        .query('secretSantaExclusions')
+        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
         await ctx.db.delete(row._id);
       }
-      for await (const row of ctx.db.query('secretSantaAssignments').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
+      for await (const row of ctx.db
+        .query('secretSantaAssignments')
+        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
         await ctx.db.delete(row._id);
       }
       await ctx.db.delete(secretSanta._id);
@@ -188,7 +204,7 @@ export const listAttendees = query({
           name: attendeeUser?.name ?? 'Unknown',
           image: attendeeUser?.image ?? null,
         };
-      })
+      }),
     );
   },
 });
@@ -212,7 +228,7 @@ export const listInvites = query({
       invites.map(async invite => {
         const sourceGroup = invite.sourceGroupId ? await ctx.db.get(invite.sourceGroupId) : null;
         return { ...invite, sourceGroupName: sourceGroup?.name ?? null };
-      })
+      }),
     );
   },
 });
@@ -222,11 +238,13 @@ async function createInvite(
   eventId: Id<'events'>,
   email: string,
   invitedBy: string,
-  sourceGroupId?: Id<'groups'>
+  sourceGroupId?: Id<'groups'>,
 ) {
   // Superseding any earlier pending invite to this address keeps at most one
   // live link per (event, email), so an old link can't be used after a fresh one.
-  for await (const existing of ctx.db.query('eventInvites').withIndex('by_event_email', q => q.eq('eventId', eventId).eq('email', email))) {
+  for await (const existing of ctx.db
+    .query('eventInvites')
+    .withIndex('by_event_email', q => q.eq('eventId', eventId).eq('email', email))) {
     if (existing.status === 'pending') {
       await ctx.db.patch(existing._id, { status: 'revoked' });
     }
@@ -275,7 +293,11 @@ export const inviteGroup = mutation({
     await requireManager(ctx, args.eventId, user._id);
 
     const group = await ctx.db.get(args.groupId);
-    if (!group) throw new Error('Group not found');
+    // The caller must belong to the group too - otherwise anyone holding a
+    // group's id could email all its members and put their event on its page.
+    if (!group || !(await getMembership(ctx, args.groupId, user._id))) {
+      throw new Error('Group not found');
+    }
 
     const members = await ctx.db
       .query('groupMembers')
@@ -297,6 +319,22 @@ export const inviteGroup = mutation({
 
       await createInvite(ctx, args.eventId, memberUser.email.toLowerCase(), user._id, args.groupId);
       invited++;
+    }
+
+    // Record the group-level invite so the group page can show this event.
+    const existing = await ctx.db
+      .query('eventGroupInvites')
+      .withIndex('by_event_group', q => q.eq('eventId', args.eventId).eq('groupId', args.groupId))
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { invitedBy: user._id, invitedAt: Date.now() });
+    } else {
+      await ctx.db.insert('eventGroupInvites', {
+        eventId: args.eventId,
+        groupId: args.groupId,
+        invitedBy: user._id,
+        invitedAt: Date.now(),
+      });
     }
 
     return { invited, total: members.length };
@@ -346,7 +384,11 @@ export const removeAttendee = mutation({
 // themselves (or the only other manager) and leave the event with no one
 // able to manage it.
 export const setAttendeeRole = mutation({
-  args: { eventId: v.id('events'), attendeeId: v.id('eventAttendees'), role: v.union(v.literal('manager'), v.literal('guest')) },
+  args: {
+    eventId: v.id('events'),
+    attendeeId: v.id('eventAttendees'),
+    role: v.union(v.literal('manager'), v.literal('guest')),
+  },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
     await requireManager(ctx, args.eventId, user._id);

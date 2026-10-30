@@ -86,6 +86,29 @@ export default defineSchema({
     createdBy: v.string(),
   }).index('by_listId', ['listId']),
 
+  // One row per (item, person claiming it). `quantity` lets several people
+  // split an item the owner wants more than one of. The list owner must never
+  // see these - every read goes through convex/claims.ts, which hides them
+  // from the owner.
+  claims: defineTable({
+    itemId: v.id('items'),
+    listId: v.id('lists'), // denormalized from the item, for per-list cleanup
+    userId: v.string(), // Better Auth user id of the claimer
+    quantity: v.number(),
+  })
+    .index('by_item', ['itemId'])
+    .index('by_item_user', ['itemId', 'userId'])
+    .index('by_list', ['listId']),
+
+  // How many items on a list are fully claimed (claims >= the item's quantity).
+  // Kept in its own table, not on `lists`, so it can't leak to the owner
+  // through any query that returns their list document. Maintained only by
+  // `syncItemClaimed` in convex/claims.ts.
+  listClaimStats: defineTable({
+    listId: v.id('lists'),
+    claimedItemCount: v.number(),
+  }).index('by_list', ['listId']),
+
   events: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
@@ -136,7 +159,31 @@ export default defineSchema({
     name: v.string(),
     // Better Auth user id of whoever created the group.
     createdBy: v.string(),
-  }).index('by_createdBy', ['createdBy']),
+    // Token for the group's shareable join link (/invite/<token>). Anyone
+    // holding it can join, so it's never sent to clients that aren't allowed
+    // to share it - see groups.getInviteLink. Managers can rotate it to cut
+    // off an old link. Optional for groups created before links existed;
+    // they get one the first time a manager resets the link.
+    inviteToken: v.optional(v.string()),
+    // Whether plain members (not just managers) may copy the join link.
+    // Missing means false - only managers can.
+    membersCanInvite: v.optional(v.boolean()),
+  })
+    .index('by_createdBy', ['createdBy'])
+    .index('by_inviteToken', ['inviteToken']),
+
+  // A record that a group was invited to an event (events.inviteGroup), so the
+  // group page can list its events. One row per (event, group); re-inviting
+  // the same group updates it. It's only a record of the invite - the members
+  // still get individual eventInvites, and the event's roster stays separate.
+  eventGroupInvites: defineTable({
+    eventId: v.id('events'),
+    groupId: v.id('groups'),
+    invitedBy: v.string(), // Better Auth user id of who last invited the group
+    invitedAt: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_event_group', ['eventId', 'groupId']),
 
   // users <-> groups (many-to-many). One row per (group, user).
   groupMembers: defineTable({

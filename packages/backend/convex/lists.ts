@@ -192,7 +192,7 @@ export const unarchive = mutation({
 });
 
 // Deletes a list along with everything that hangs off it - its items and any
-// shares - so nothing orphaned is left behind.
+// shares and claims - so nothing orphaned is left behind.
 export const remove = mutation({
   args: { id: v.id('lists') },
   handler: async (ctx, args) => {
@@ -207,6 +207,12 @@ export const remove = mutation({
     }
     for await (const share of ctx.db.query('listShares').withIndex('by_list', q => q.eq('listId', list._id))) {
       await ctx.db.delete(share._id);
+    }
+    for await (const claim of ctx.db.query('claims').withIndex('by_list', q => q.eq('listId', list._id))) {
+      await ctx.db.delete(claim._id);
+    }
+    for await (const stats of ctx.db.query('listClaimStats').withIndex('by_list', q => q.eq('listId', list._id))) {
+      await ctx.db.delete(stats._id);
     }
     for await (const favorite of ctx.db
       .query('favorites')

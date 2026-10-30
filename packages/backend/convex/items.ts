@@ -3,6 +3,7 @@ import { mutation, query } from './_generated/server';
 import { authComponent } from './auth';
 import { priorityValidator } from './schema';
 import { hasListAccess } from './listShares';
+import { claimSnapshot, syncItemClaimed } from './claims';
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -88,6 +89,8 @@ export const update = mutation({
     }
 
     const { id, listId: newListId, ...fields } = args;
+    // A new quantity or list can change whether the item counts as fully claimed.
+    const claimsBefore = await claimSnapshot(ctx, item);
 
     if (newListId && newListId !== item.listId) {
       const newList = await ctx.db.get(newListId);
@@ -96,12 +99,16 @@ export const update = mutation({
       }
       await ctx.db.patch(oldList._id, { itemCount: Math.max(0, oldList.itemCount - 1) });
       await ctx.db.patch(newListId, { itemCount: newList.itemCount + 1 });
+      for await (const claim of ctx.db.query('claims').withIndex('by_item', q => q.eq('itemId', id))) {
+        await ctx.db.patch(claim._id, { listId: newListId });
+      }
     }
 
     // Optional fields left off by the client come through as `undefined`, and
     // patching a field to `undefined` clears it - so this both updates and
     // unsets (e.g. a link the user deleted).
     await ctx.db.patch(id, { ...fields, ...(newListId ? { listId: newListId } : {}) });
+    await syncItemClaimed(ctx, claimsBefore, await ctx.db.get(id));
   },
 });
 
@@ -140,7 +147,12 @@ export const remove = mutation({
       throw new Error('Item not found');
     }
 
+    const claimsBefore = await claimSnapshot(ctx, item);
+    for await (const claim of ctx.db.query('claims').withIndex('by_item', q => q.eq('itemId', args.id))) {
+      await ctx.db.delete(claim._id);
+    }
     await ctx.db.delete(args.id);
     await ctx.db.patch(list._id, { itemCount: Math.max(0, list.itemCount - 1) });
+    await syncItemClaimed(ctx, claimsBefore, null);
   },
 });

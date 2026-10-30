@@ -58,8 +58,10 @@ function InvitePage() {
   if (preview) lastPreview.current = preview;
   const effectivePreview = preview ?? lastPreview.current;
 
-  const emailMismatch = !!user && !!effectivePreview && user.email.toLowerCase() !== effectivePreview.email.toLowerCase();
-  const displayName = effectivePreview?.kind === 'group' ? effectivePreview.groupName : effectivePreview?.eventName;
+  // A group's shareable join link has no invited email - any account can use it.
+  const invitedEmail = effectivePreview && 'email' in effectivePreview ? effectivePreview.email : null;
+  const emailMismatch = !!user && !!invitedEmail && user.email.toLowerCase() !== invitedEmail.toLowerCase();
+  const displayName = effectivePreview?.kind === 'event' ? effectivePreview.eventName : effectivePreview?.groupName;
 
   // Auto-join: a logged-in user whose account matches the invited email
   // shouldn't need an extra click to accept - land straight on the destination.
@@ -88,7 +90,10 @@ function InvitePage() {
   if (emailMismatch) {
     return (
       <div className="max-w-sm mx-auto mt-16 space-y-4 text-center">
-        <BigTitle title="Wrong account" subtitle={`This invite was sent to ${effectivePreview.email}. Sign out and sign back in with that email to accept it.`} />
+        <BigTitle
+          title="Wrong account"
+          subtitle={`This invite was sent to ${invitedEmail}. Sign out and sign back in with that email to accept it.`}
+        />
         <Button
           onClick={async () => {
             await authClient.signOut();
@@ -102,7 +107,7 @@ function InvitePage() {
   }
 
   if (!user) {
-    return <InviteAuthForm token={token} email={effectivePreview.email} displayName={displayName!} />;
+    return <InviteAuthForm token={token} invitedEmail={invitedEmail} displayName={displayName!} />;
   }
 
   if (error) {
@@ -128,14 +133,16 @@ function InvitePage() {
 
 interface InviteAuthFormProps {
   token: string;
-  email: string;
+  // Null for a group join link, where the person types their own email.
+  invitedEmail: string | null;
   displayName: string;
 }
 
-function InviteAuthForm({ token, email, displayName }: InviteAuthFormProps) {
+function InviteAuthForm({ token, invitedEmail, displayName }: InviteAuthFormProps) {
   const navigate = useNavigate();
   const acceptInvite = useMutation({ mutationFn: useConvexMutation(api.invites.accept) });
   const [name, setName] = useState('');
+  const [email, setEmail] = useState(invitedEmail ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -165,11 +172,28 @@ function InviteAuthForm({ token, email, displayName }: InviteAuthFormProps) {
 
   return (
     <div className="max-w-sm mx-auto mt-16 space-y-4">
-      <BigTitle title={`Join ${displayName}`} subtitle={`Sign in, or fill in a name to create an account with ${email}.`} />
+      <BigTitle
+        title={`Join ${displayName}`}
+        subtitle={
+          invitedEmail
+            ? `Sign in, or fill in a name to create an account with ${invitedEmail}.`
+            : 'Sign in, or fill in a name to create an account.'
+        }
+      />
       <form onSubmit={handleSubmit} className="space-y-3">
         <Input placeholder="name (sign up only)" value={name} onChange={e => setName(e.target.value)} />
-        <Input value={email} readOnly disabled />
-        <Input placeholder="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        {invitedEmail ? (
+          <Input value={email} readOnly disabled />
+        ) : (
+          <Input placeholder="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        )}
+        <Input
+          placeholder="password"
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+        />
         <Button type="submit" disabled={submitting} className="w-full">
           {name ? 'Sign up & join' : 'Sign in & join'}
         </Button>

@@ -25,3 +25,9 @@ export function useListShares(listId: Id<'lists'>) {
 export function useMyConnections() {
   return useQuery(api.listShares.myConnections);
 }
+
+// Claim status per item, keyed by item id. Null for the list's owner (they
+// never see claims), so it doubles as a "viewing someone else's list" flag.
+export function useItemClaims(listId: Id<'lists'>) {
+  return useQuery(api.claims.forList, { listId });
+}

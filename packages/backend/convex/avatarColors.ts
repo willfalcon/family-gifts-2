@@ -1,15 +1,17 @@
 import { v, type Infer } from 'convex/values';
 
-// Fixed palette for member avatar placeholders. Keep this in sync with the
-// `groupMembers.color` validator below - it's a closed set, not free-form input.
+// Fixed palette for member avatar placeholders. Matches the `avatar-*` colors
+// in packages/design-tokens/index.js - change both together. Stored values are
+// checked against this list, so changing a hex here also means rewriting the
+// rows that already use the old one.
 export const AVATAR_COLORS = [
   { name: 'Navy', hex: '#1B2340' },
-  { name: 'Terracotta', hex: '#A85C3B' },
+  { name: 'Terracotta', hex: '#A0553A' },
   { name: 'Forest', hex: '#35614A' },
   { name: 'Teal', hex: '#24706E' },
   { name: 'Plum', hex: '#5B3A5E' },
   { name: 'Slate Blue', hex: '#48577A' },
-  { name: 'Ochre', hex: '#8C6B24' },
+  { name: 'Ochre', hex: '#8A6822' },
   { name: 'Berry', hex: '#7A3350' },
 ] as const;
 
