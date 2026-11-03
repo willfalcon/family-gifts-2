@@ -11,7 +11,7 @@ import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useGroup, useGroupEvents, useGroupInviteLink, useGroupInvites, useGroupMembers } from '@/hooks/groups';
 import { Icon } from '@/components/ui/icon';
 import GlassButton from '@/components/glass-button';
-import { ChevronRight, Ellipsis, Pencil } from 'lucide-react-native';
+import { ChevronRight, Ellipsis, Pencil, UserPlus } from 'lucide-react-native';
 import { capitalize, plural } from '@shared/utils';
 import MenuView from '@expo/ui/community/menu';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ export default function Group() {
   console.log('events', events);
   const isManager = inviteLink?.canManage ?? false;
   const membersCanInvite = inviteLink?.membersCanInvite ?? false;
+  const canInvite = isManager || membersCanInvite;
 
   const setMemberRole = useMutation(api.groups.setMemberRole);
   const removeMember = useMutation(api.groups.removeMember);
@@ -202,6 +203,14 @@ export default function Group() {
               </Text>
             )}
 
+            {canInvite && (
+              <Link href={`/groups/${id}/invite`} asChild style={{ height: 36 }}>
+                <GlassButton accessibilityLabel="Invite members">
+                  <Icon as={UserPlus} className="text-ink" size={17} />
+                </GlassButton>
+              </Link>
+            )}
+
             {isManager && (
               <Link href={`/groups/${id}/edit`} asChild style={{ height: 36 }}>
                 <GlassButton accessibilityLabel="Edit group">
@@ -290,6 +299,16 @@ export default function Group() {
                 </View>
               );
             })}
+            {canInvite && (
+              <Link href={`/groups/${id}/invite`} asChild>
+                <Pressable className="flex-row items-center gap-2" accessibilityRole="button">
+                  <View className="size-10 rounded-full items-center justify-center bg-fill">
+                    <Icon as={UserPlus} size={20} className="text-accent" />
+                  </View>
+                  <Text className="flex-1 text-accent">Invite people</Text>
+                </Pressable>
+              </Link>
+            )}
           </View>
         )}
 

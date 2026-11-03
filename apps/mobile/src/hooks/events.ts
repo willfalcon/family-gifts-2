@@ -54,8 +54,7 @@ export function useEventInviteLink(eventId: Id<'events'> | undefined) {
   return useQuery(api.events.getInviteLink, eventId ? { eventId } : 'skip');
 }
 
-// People the viewer shares a group or event with, most connections first,
-// leaving out anyone already on `eventId`. `search` matches name or email.
-export function useKnownPeople(eventId: Id<'events'> | undefined, search?: string) {
-  return useQuery(api.events.knownPeople, { eventId, search });
+// The viewer's unanswered event invites, soonest event first.
+export function useMyEventInvites() {
+  return useQuery(api.events.myInvites);
 }

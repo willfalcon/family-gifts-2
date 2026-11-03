@@ -21,7 +21,7 @@ function Checkbox({
     <CheckboxPrimitive.Root
       className={cn(
         'size-6 shrink-0 overflow-hidden rounded-full border border-input bg-background shadow-sm shadow-black/5 dark:bg-input/30',
-        props.checked && cn('border-good', checkedClassName),
+        props.checked && cn('border-accent', checkedClassName),
         props.disabled && 'opacity-50',
         className,
       )}
@@ -29,7 +29,7 @@ function Checkbox({
       {...props}
     >
       <CheckboxPrimitive.Indicator
-        className={cn('h-full w-full items-center justify-center bg-good', indicatorClassName)}
+        className={cn('h-full w-full items-center justify-center bg-accent', indicatorClassName)}
       >
         <Icon
           as={Check}

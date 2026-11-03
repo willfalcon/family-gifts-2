@@ -10,6 +10,7 @@ export default function Layout() {
       <Stack.Screen name="lists/[id]/index" />
       <Stack.Screen name="lists/[id]/items/[itemId]" options={THEIR_ITEM_SHEET_OPTIONS} />
       <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="change-password" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

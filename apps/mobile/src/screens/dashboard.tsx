@@ -4,6 +4,8 @@ import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MenuView } from '@expo/ui/community/menu';
 
+import InvitationCards from '@/components/invitation-card';
+import { GroupInvitationCards } from '@/components/group-invitation';
 import NextUp from '@/components/next-up';
 import ToDo from '@/components/to-do';
 import { useEvents } from '@/hooks/events';
@@ -50,6 +52,8 @@ export default function DashboardScreen() {
           </Link>
         </GlassView>
       </View>
+      <InvitationCards />
+      <GroupInvitationCards />
       <NextUp />
 
       <ToDo />

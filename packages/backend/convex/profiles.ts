@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
-import { authComponent } from './auth';
+import { authComponent, searchFields } from './auth';
 import { birthdayValidator, birthdayVisibilityValidator, notificationPreferenceValidator } from './schema';
 import { currencyValidator } from './currencies';
 import { canViewProfile, visibleProfile } from './permissions';
@@ -95,6 +95,7 @@ export const updateMine = mutation({
     currency: v.optional(currencyValidator),
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
+    discoverable: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -133,6 +134,7 @@ export const updateMine = mutation({
     if ('currency' in args) fields.currency = args.currency;
     if ('shirtSize' in args) fields.shirtSize = args.shirtSize?.trim() || undefined;
     if ('notes' in args) fields.notes = args.notes?.trim() || undefined;
+    if ('discoverable' in args) fields.discoverable = args.discoverable;
 
     const existing = await ctx.db
       .query('profiles')
@@ -142,7 +144,7 @@ export const updateMine = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, fields);
     } else {
-      await ctx.db.insert('profiles', { userId: user._id, ...fields });
+      await ctx.db.insert('profiles', { userId: user._id, ...searchFields(user), ...fields });
     }
   },
 });

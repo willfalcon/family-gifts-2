@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react-native';
 import { Platform, TextInput, View } from 'react-native';
 
-type InputProps = React.ComponentProps<typeof TextInput> &
-  React.RefAttributes<TextInput> & {
+// ComponentProps already includes TextInput's ref type.
+type InputProps = React.ComponentProps<typeof TextInput> & {
     prepend?: LucideIcon;
   };
 

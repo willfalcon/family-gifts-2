@@ -57,7 +57,19 @@ export default defineSchema({
     currency: v.optional(currencyValidator), // none = DEFAULT_CURRENCY
     shirtSize: v.optional(v.string()),
     notes: v.optional(v.string()),
-  }).index('by_userId', ['userId']),
+    // Whether people who don't share a group or event with this user can find
+    // them by name or email when inviting. Missing means hidden, and new
+    // accounts start hidden (see the user.onCreate trigger in convex/auth.ts).
+    discoverable: v.optional(v.boolean()),
+    // Copies of the Better Auth user's email (lowercased) and "name email",
+    // kept in sync by the user triggers in convex/auth.ts. Only used to find
+    // people - never sent to anyone else.
+    email: v.optional(v.string()),
+    searchText: v.optional(v.string()),
+  })
+    .index('by_userId', ['userId'])
+    .index('by_email', ['email'])
+    .searchIndex('search_searchText', { searchField: 'searchText', filterFields: ['discoverable'] }),
   lists: defineTable({
     title: v.string(),
     notes: v.optional(v.string()),
@@ -176,6 +188,7 @@ export default defineSchema({
     .index('by_user', ['userId'])
     .index('by_event_user', ['eventId', 'userId'])
     .index('by_event_email', ['eventId', 'email'])
+    .index('by_email_status', ['email', 'status'])
     .index('by_token', ['token']),
 
   groups: defineTable({
@@ -231,11 +244,12 @@ export default defineSchema({
     email: v.string(), // lowercased
     token: v.string(),
     invitedBy: v.string(), // Better Auth user id
-    status: v.union(v.literal('pending'), v.literal('accepted'), v.literal('revoked')),
+    status: v.union(v.literal('pending'), v.literal('accepted'), v.literal('declined'), v.literal('revoked')),
   })
     .index('by_token', ['token'])
     .index('by_group', ['groupId'])
-    .index('by_group_email', ['groupId', 'email']),
+    .index('by_group_email', ['groupId', 'email'])
+    .index('by_email_status', ['email', 'status']),
 
   // One Secret Santa round per event. `status` moves 'draft' -> 'sent' once
   // and never back - a manager who wants to redo it calls secretSanta.reset,
@@ -245,7 +259,45 @@ export default defineSchema({
     status: v.union(v.literal('draft'), v.literal('sent')),
     createdBy: v.string(), // Better Auth user id
     sentAt: v.optional(v.number()),
+    // Set by secretSanta.setup (the app's draw flow). Rounds from that flow
+    // are private: nobody, hosts included, is ever sent who drew whom.
+    private: v.optional(v.boolean()),
+    budget: v.optional(v.number()), // spending limit, in dollars
+    // When names get drawn, as a timestamp. Missing means they were drawn
+    // right at setup.
+    drawAt: v.optional(v.number()),
+    // Draw before `drawAt` as soon as everyone in the draw has replied.
+    drawEarly: v.optional(v.boolean()),
+    scheduledDrawId: v.optional(v.id('_scheduled_functions')),
+    // Why a scheduled draw couldn't happen (e.g. fewer than 2 people going).
+    drawError: v.optional(v.string()),
   }).index('by_event', ['eventId']),
+
+  // Who a host picked for a round set up with secretSanta.setup. Points at
+  // guest list rows rather than users, since people who haven't replied yet
+  // have no account linked. At draw time, the ones going become
+  // secretSantaParticipants.
+  secretSantaEntrants: defineTable({
+    secretSantaId: v.id('secretSantas'),
+    attendeeId: v.id('eventAttendees'),
+  }).index('by_secretSanta', ['secretSantaId']),
+
+  // "Keep these two apart" - neither draws the other. Becomes a pair of
+  // secretSantaExclusions at draw time.
+  secretSantaRules: defineTable({
+    secretSantaId: v.id('secretSantas'),
+    attendeeAId: v.id('eventAttendees'),
+    attendeeBId: v.id('eventAttendees'),
+  }).index('by_secretSanta', ['secretSantaId']),
+
+  // A keep-apart pair remembered for a group, suggested whenever a later
+  // event that the group is invited to sets up Secret Santa. `userAId` sorts
+  // before `userBId`, so a pair is only ever stored once.
+  groupKeepApartPairs: defineTable({
+    groupId: v.id('groups'),
+    userAId: v.string(), // Better Auth user id
+    userBId: v.string(),
+  }).index('by_group_userAId_userBId', ['groupId', 'userAId', 'userBId']),
 
   // Attendees opted into a given Secret Santa round. Rewritten wholesale by
   // secretSanta.generate on every (re)generation, rather than diffed.

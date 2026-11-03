@@ -79,6 +79,7 @@ export default function ProfileForm({ profile, groups, email }: ProfileFormProps
   const notificationPreference = profile?.notificationPreference ?? DEFAULT_NOTIFICATION_PREFERENCE;
   const shareNewLists = profile?.shareNewLists ?? [];
   const currency = profile?.currency ?? DEFAULT_CURRENCY;
+  const discoverable = profile?.discoverable === true;
   const [appearance, setAppearance] = useAppearance();
 
   // Every change saves right away. The screen already shows the new value, and
@@ -303,6 +304,25 @@ export default function ProfileForm({ profile, groups, email }: ProfileFormProps
         </FieldRow>
       </View>
       <View className="gap-2">
+        <Label>Privacy</Label>
+        <FieldRow>
+          <Label nativeID="discoverable" className="text-base text-ink font-normal">
+            Show me in search
+          </Label>
+          <Switch
+            nativeID="discoverable"
+            checked={discoverable}
+            onCheckedChange={on => save({ discoverable: on })}
+          />
+        </FieldRow>
+        <Text className="text-sm text-ink-muted">
+          {discoverable
+            ? 'Anyone can find you by name or email when inviting people to a group or event.'
+            : 'Only people who share a group or event with you can find you.'}
+        </Text>
+      </View>
+
+      <View className="gap-2">
         <Label>Account</Label>
         <FieldRow>
           <Label nativeID="email" className="text-base text-ink font-normal">
@@ -310,6 +330,19 @@ export default function ProfileForm({ profile, groups, email }: ProfileFormProps
           </Label>
           <Text>{email}</Text>
         </FieldRow>
+        <Link href="/change-password" asChild>
+          <Pressable accessibilityRole="button">
+            <FieldRow>
+              <Label nativeID="password" className="text-base text-ink font-normal">
+                Password
+              </Label>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-ink-muted">Change</Text>
+                <Icon as={ChevronRight} />
+              </View>
+            </FieldRow>
+          </Pressable>
+        </Link>
         <FieldRow>
           <Label nativeID="groups" className="text-base text-ink font-normal">
             Groups

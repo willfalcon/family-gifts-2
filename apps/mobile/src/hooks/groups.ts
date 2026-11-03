@@ -39,3 +39,8 @@ export function useGroupInviteLink(groupId: string) {
 export function useGroupEvents(groupId: string) {
   return useQuery(api.groups.listEvents, { groupId });
 }
+
+// The viewer's pending group invites, newest first.
+export function useMyGroupInvites() {
+  return useQuery(api.groups.myInvites);
+}

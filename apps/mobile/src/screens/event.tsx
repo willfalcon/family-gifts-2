@@ -5,8 +5,7 @@ import { GlassView } from 'expo-glass-effect';
 import { ConvexError } from 'convex/values';
 import { Link, router, useLocalSearchParams, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Check, ChevronRight, Ellipsis, MapPin, Pencil } from 'lucide-react-native';
-import { useState } from 'react';
+import { Check, ChevronRight, Ellipsis, Pencil, Plus } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,24 +14,22 @@ import GlassButton from '@/components/glass-button';
 import { FieldRow } from '@/components/profile-form';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import {
   useEvent,
   useEventAttendees,
   useEventInviteLink,
-  useEventInvites,
   useEventOccasionLists,
   useEventPendingInviteCount,
   useEventSharedLists,
 } from '@/hooks/events';
-import { useGroups } from '@/hooks/groups';
+import { useSecretSanta } from '@/hooks/secret-santa-setup';
 import { useUser } from '@/hooks/user';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { formatWhen, formatShortDate } from '@shared/event-dates';
 import { capitalize, plural } from '@shared/utils';
+import { format } from 'date-fns';
 
 // Shows the server's message for expected failures (ConvexError), a generic one otherwise.
 function showError(e: unknown) {
@@ -54,26 +51,17 @@ export default function Event() {
   const myRole = me?.role;
   const isOwner = myRole === 'owner';
   const isHost = isOwner || myRole === 'host';
-  const invites = useEventInvites(eventId, isHost);
   const pendingCount = useEventPendingInviteCount(eventId);
   const lists = useEventSharedLists(eventId);
   const occasionLists = useEventOccasionLists(eventId);
   const inviteLink = useEventInviteLink(eventId);
-  const groups = useGroups();
+  const secretSanta = useSecretSanta(eventId);
 
   const setAttendeeRole = useMutation(api.events.setAttendeeRole);
   const removeAttendee = useMutation(api.events.removeAttendee);
   const transferOwnership = useMutation(api.events.transferOwnership);
-  const inviteByEmail = useMutation(api.events.invite);
-  const inviteGroup = useMutation(api.events.inviteGroup);
-  const revokeInvite = useMutation(api.events.revokeInvite);
   const deleteEvent = useMutation(api.events.remove);
   const setMyStatus = useMutation(api.events.setMyStatus);
-  const setGuestsCanInvite = useMutation(api.events.setGuestsCanInvite);
-  const resetInviteLink = useMutation(api.events.resetInviteLink);
-
-  const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
 
   if (event === null) {
     return (
@@ -140,47 +128,11 @@ export default function Event() {
     ]);
   }
 
-  async function sendInvite() {
-    if (!event || !email.trim()) return;
-    setSending(true);
-    try {
-      await inviteByEmail({ eventId: event._id, email });
-      setEmail('');
-    } catch (e) {
-      showError(e);
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function sendGroupInvite(groupId: Id<'groups'>) {
-    if (!event) return;
-    try {
-      const { invited } = await inviteGroup({ eventId: event._id, groupId });
-      Alert.alert(
-        invited === 0 ? 'Everyone’s already here' : 'Invites sent',
-        invited === 0 ? 'Everyone in that group is already attending.' : `Sent ${plural(invited, 'invite')}.`,
-      );
-    } catch (e) {
-      showError(e);
-    }
-  }
-
-  // Links to the event's web page. Only attendees can open it, so it's for
-  // people already invited, not a way to invite someone new.
   // The join link: anyone with it can answer Going / Can't go on the web.
   async function copyLink() {
     if (!inviteLink?.url) return;
     await Clipboard.setStringAsync(inviteLink.url);
     Alert.alert('Link copied');
-  }
-
-  function confirmResetLink() {
-    if (!event) return;
-    Alert.alert('Reset invite link?', 'The current link will stop working. Everyone already on the event stays.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: () => run(() => resetInviteLink({ eventId: event._id })) },
-    ]);
   }
 
   function confirmCantGo() {
@@ -200,6 +152,8 @@ export default function Event() {
   }
 
   const menuActions = [
+    // Invites are host-only on the server.
+    ...(isHost ? [{ id: 'invite', title: 'Invite guests' }] : []),
     // Guests only see this while hosts let them share the link.
     ...(inviteLink?.url ? [{ id: 'copy-link', title: 'Copy invite link' }] : []),
     ...(me?.status === 'declined'
@@ -214,6 +168,15 @@ export default function Event() {
     pathname: inGroupsTab ? '/(app)/(groups)/events/[id]/edit' : '/(app)/(events)/events/[id]/edit',
     params: { id },
   } as const;
+  const inviteHref = {
+    pathname: inGroupsTab ? '/(app)/(groups)/events/[id]/invite' : '/(app)/(events)/events/[id]/invite',
+    params: { id },
+  } as const;
+  const secretSantaHref = {
+    pathname: inGroupsTab ? '/(app)/(groups)/events/[id]/secret-santa' : '/(app)/(events)/events/[id]/secret-santa',
+    params: { id },
+  } as const;
+  const going = attendees?.filter(a => a.status === 'going') ?? [];
 
   return (
     // No bottom edge: the scroll view runs behind the tab bar, and iOS insets
@@ -247,7 +210,8 @@ export default function Event() {
                 actions={menuActions}
                 onPressAction={e => {
                   const action = e.nativeEvent.event;
-                  if (action === 'copy-link') copyLink();
+                  if (action === 'invite') router.push(inviteHref);
+                  else if (action === 'copy-link') copyLink();
                   else if (action === 'cant-go') confirmCantGo();
                   else if (action === 'going' && event) run(() => setMyStatus({ eventId: event._id, status: 'going' }));
                   else if (action === 'delete') confirmDelete();
@@ -283,10 +247,20 @@ export default function Event() {
               </Text>
             </View>
             <View className="border-b border-line" />
-            <Text className="text-[13px] text-ink-muted">
-              {attendees.filter(a => a.status === 'going').length} going &middot; waiting on {pendingCount ?? 0}{' '}
-              &middot; {attendees.filter(a => a.status === 'declined').length} declined
-            </Text>
+            <View className="flex-row items-center gap-3">
+              <AvatarStack people={going.slice(0, MAX_AVATARS)} />
+              <Text className="flex-1 text-[13px] text-ink-muted">
+                {going.length} going &middot; {pendingCount ?? 0} waiting
+              </Text>
+              {isHost && (
+                <Link href={inviteHref} asChild>
+                  <Button variant="secondary" size="sm" className="rounded-pill">
+                    <Icon as={Plus} size={16} strokeWidth={2.5} className="text-accent" />
+                    <Text className="text-accent">Invite</Text>
+                  </Button>
+                </Link>
+              )}
+            </View>
           </View>
         )}
 
@@ -333,6 +307,29 @@ export default function Event() {
                 </Link>
               );
             })}
+          </View>
+        )}
+
+        {secretSanta && (secretSanta.exists || isHost) && (
+          <View className="gap-3">
+            <Text className="font-semibold text-ink-muted text-[15px]">Secret Santa</Text>
+            {!secretSanta.exists ? (
+              // Hosts set it up once; after that the row shows how it's going.
+              <Link href={secretSantaHref} asChild>
+                <Pressable className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
+                  <View className="gap-1">
+                    <Text className="text-[17px]">Draw names</Text>
+                    <Text className="text-[13px] text-ink-muted">Not set up</Text>
+                  </View>
+                  <Icon as={ChevronRight} size={20} className="text-ink-muted" />
+                </Pressable>
+              </Link>
+            ) : (
+              <View className="gap-1 border-b border-line pb-1">
+                <Text className="text-[17px]">{secretSantaSummary(secretSanta).title}</Text>
+                <Text className="text-[13px] text-ink-muted">{secretSantaSummary(secretSanta).detail}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -395,102 +392,7 @@ export default function Event() {
             })}
           </View>
         )}
-
-        {isHost && (
-          <View className="gap-2">
-            <Text className="font-semibold text-ink-muted text-[15px]">Invite</Text>
-            <View className="flex-row items-center gap-2">
-              <Input
-                className="flex-1 mb-0"
-                placeholder="Email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="send"
-                value={email}
-                onChangeText={setEmail}
-                onSubmitEditing={sendInvite}
-              />
-              <Button variant="secondary" onPress={sendInvite} disabled={sending || !email.trim()}>
-                <Text>Send</Text>
-              </Button>
-            </View>
-            {groups && groups.length > 0 && (
-              <MenuView
-                actions={groups.map(group => ({ id: group._id, title: group.name }))}
-                onPressAction={e => sendGroupInvite(e.nativeEvent.event as Id<'groups'>)}
-              >
-                <Button variant="link" className="px-0 justify-start">
-                  <Text className="text-accent font-normal">Invite a whole group</Text>
-                </Button>
-              </MenuView>
-            )}
-
-            {inviteLink && event && (
-              <View className="gap-2 pt-2">
-                <FieldRow>
-                  <View className="flex-1">
-                    <Text>Invite link</Text>
-                    <Text className="text-[13px] text-ink-muted">Anyone with the link can join</Text>
-                  </View>
-                  {inviteLink.url ? (
-                    <Button variant="secondary" onPress={copyLink}>
-                      <Text>Copy</Text>
-                    </Button>
-                  ) : (
-                    // Events from before links existed have none until a host makes one.
-                    <Button variant="secondary" onPress={() => run(() => resetInviteLink({ eventId: event._id }))}>
-                      <Text>Create</Text>
-                    </Button>
-                  )}
-                </FieldRow>
-                <FieldRow>
-                  <Text>Guests can invite</Text>
-                  <Switch
-                    aria-label="Guests can invite"
-                    checked={inviteLink.guestsCanInvite}
-                    onCheckedChange={value =>
-                      run(() => setGuestsCanInvite({ eventId: event._id, guestsCanInvite: value }))
-                    }
-                  />
-                </FieldRow>
-                {inviteLink.url && (
-                  <FieldRow>
-                    <Button variant="link" className="p-0" onPress={confirmResetLink}>
-                      <Text className="text-accent font-normal">Reset invite link</Text>
-                    </Button>
-                  </FieldRow>
-                )}
-                <Text className="text-[13px] text-ink-muted">
-                  {inviteLink.guestsCanInvite
-                    ? 'Anyone on the event can share the link.'
-                    : 'Only hosts can share the link.'}{' '}
-                  Resetting it stops the old link from working.
-                </Text>
-              </View>
-            )}
-
-            {invites && invites.length > 0 && (
-              <View className="gap-2 pt-2">
-                <Text className="text-[13px] text-ink-muted">Invited</Text>
-                {invites.map(invite => (
-                  <FieldRow key={invite._id}>
-                    <View className="flex-1">
-                      <Text>{invite.email}</Text>
-                      {invite.sourceGroupName && (
-                        <Text className="text-[13px] text-ink-muted">via {invite.sourceGroupName}</Text>
-                      )}
-                    </View>
-                    <Button variant="link" className="px-0" onPress={() => run(() => revokeInvite({ id: invite._id }))}>
-                      <Text className="text-destructive font-normal">Revoke</Text>
-                    </Button>
-                  </FieldRow>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
+        {/* 
         {lists && (
           <View className="gap-2">
             <Text className="font-semibold text-ink-muted text-[15px]">Lists</Text>
@@ -519,8 +421,48 @@ export default function Event() {
               ))
             )}
           </View>
-        )}
+        )} */}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+const MAX_AVATARS = 4;
+
+type SecretSantaState = Extract<NonNullable<ReturnType<typeof useSecretSanta>>, { exists: true }>;
+
+// The Secret Santa row once it's set up: the viewer's own match after the
+// draw, or when names will be drawn before it.
+function secretSantaSummary(state: SecretSantaState) {
+  const budget = state.budget != null ? `$${state.budget} limit` : null;
+  const withBudget = (text: string) => (budget ? `${text} · ${budget}` : text);
+
+  if (state.status === 'sent') {
+    if (state.myAssignment) return { title: `You're getting ${state.myAssignment.name}`, detail: withBudget('Names drawn') };
+    return { title: 'Names drawn', detail: withBudget('You’re not in the draw') };
+  }
+  const drawError = state.isManager ? state.drawError : null;
+  if (drawError) return { title: 'Names not drawn yet', detail: drawError };
+  if (state.drawAt) {
+    return { title: `Drawing names ${format(state.drawAt, 'EEE, MMM d')}`, detail: withBudget('Everyone gets a notification') };
+  }
+  return { title: 'Drawing names soon', detail: withBudget('Everyone gets a notification') };
+}
+
+// Overlapping avatars for a few of the people going.
+function AvatarStack({ people }: { people: { id: string; name: string; color: string }[] }) {
+  if (people.length === 0) return null;
+  return (
+    <View className="flex-row">
+      {people.map((person, i) => (
+        <View
+          key={person.id}
+          className="size-7 items-center justify-center rounded-full border-2 border-background"
+          style={{ backgroundColor: person.color, marginLeft: i === 0 ? 0 : -8, zIndex: people.length - i }}
+        >
+          <Text className="text-[12px] font-semibold text-on-avatar">{person.name.charAt(0).toUpperCase()}</Text>
+        </View>
+      ))}
+    </View>
   );
 }

@@ -10,6 +10,8 @@ export default function Layout() {
       <Stack.Screen name="events/new" options={{ presentation: 'modal' }} />
       <Stack.Screen name="events/[id]/index" />
       <Stack.Screen name="events/[id]/edit" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="events/[id]/invite" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="events/[id]/secret-santa" options={{ presentation: 'modal' }} />
       <Stack.Screen name="lists/[id]/index" />
       <Stack.Screen name="lists/[id]/items/[itemId]" options={THEIR_ITEM_SHEET_OPTIONS} />
     </Stack>

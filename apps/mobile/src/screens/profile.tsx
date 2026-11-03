@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { useProfile, useUser } from '@/hooks/user';
 import { useGroups } from '@/hooks/groups';
 import ProfileForm from '@/components/profile-form';
+import DevUserSwitcher from '@/components/dev-user-switcher';
 
 const AVATAR_SIZE = 76;
 
@@ -46,6 +47,7 @@ export default function Profile() {
         </View>
         <Text className="text-center display-name">{user?.name}</Text>
         <Text className="text-center !text-callout text-accent">Edit photo and name</Text>
+        <DevUserSwitcher currentEmail={user?.email} />
 
         {profile !== undefined && groups !== undefined && (
           <ProfileForm profile={profile} groups={groups} email={user?.email ?? null} />

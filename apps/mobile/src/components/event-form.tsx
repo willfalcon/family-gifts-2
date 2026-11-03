@@ -70,9 +70,7 @@ export default function EventForm({ id }: { id?: string }) {
   }, [isEdit, event]);
 
   // The event's fields, or an error message if the form isn't valid yet.
-  function readFields():
-    | { error: string }
-    | { fields: FunctionArgs<typeof api.events.create> } {
+  function readFields(): { error: string } | { fields: FunctionArgs<typeof api.events.create> } {
     if (!name.trim()) return { error: 'Give your event a name' };
     if (multiDay && date && endDate && endDate < date) return { error: 'The end date is before the start date' };
 
@@ -259,14 +257,16 @@ export default function EventForm({ id }: { id?: string }) {
 
             {groups && groups.length > 0 && (
               <View className="gap-1">
-                <Text className="text-base text-ink font-normal">Invite whole groups</Text>
+                <Text className="text-[13px] text-ink-muted font-semibold">Groups</Text>
                 {groups.map(group => (
                   <View
                     key={group._id}
-                    className="flex-row items-center justify-between gap-3 border-b border-line pb-2 px-4"
+                    className="flex-row items-center justify-between gap-3 border-b border-line pb-2"
                   >
                     <View className="flex-1">
-                      <Label nativeID={`invite-group-${group._id}`}>{group.name}</Label>
+                      <Label className="text-[17px] text-ink" nativeID={`invite-group-${group._id}`}>
+                        {group.name}
+                      </Label>
                       <Text className="text-[13px] text-ink-muted">
                         {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
                       </Text>

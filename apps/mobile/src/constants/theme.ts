@@ -9,7 +9,8 @@ export const TabColors = {
   backgroundElement: colors.secondary,
   text: colors.foreground,
   textSecondary: colors['muted-foreground'],
-  accent: colors.accent
+  accent: colors.accent,
+  accentForeground: colors['accent-foreground'],
 } as const;
 
 export const Spacing = {

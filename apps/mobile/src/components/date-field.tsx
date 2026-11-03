@@ -11,6 +11,10 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   invalid?: boolean;
+  /** Shown as the value when nothing is picked, e.g. "Now". Without it, a faint "Pick a date". */
+  emptyLabel?: string;
+  /** Earliest date the picker allows. */
+  minimumDate?: Date;
   'aria-labelledby'?: string;
 }
 
@@ -27,7 +31,7 @@ function toDate(value: string): Date | undefined {
  * The iOS calendar is returned as a sibling of the field (not nested in it), so the
  * parent decides where it goes. In a `flex-row flex-wrap` row it drops to its own line.
  */
-export function DateField({ value, onChange, invalid, ...props }: Props) {
+export function DateField({ value, onChange, invalid, emptyLabel, minimumDate, ...props }: Props) {
   const [iosOpen, setIosOpen] = useState(false);
   const date = toDate(value);
 
@@ -38,6 +42,7 @@ export function DateField({ value, onChange, invalid, ...props }: Props) {
       DateTimePickerAndroid.open({
         value: date ?? new Date(),
         mode: 'date',
+        minimumDate,
         onValueChange: (_event, picked) => pick(picked),
       });
     } else {
@@ -56,8 +61,8 @@ export function DateField({ value, onChange, invalid, ...props }: Props) {
           invalid && 'border border-destructive',
         )}
       >
-        <Text className={cn('text-base', date ? 'text-ink' : 'text-ink-faint', iosOpen && 'text-accent')}>
-          {date ? format(date, 'EEE, MMM d') : 'Pick a date'}
+        <Text className={cn('text-base', date || emptyLabel ? 'text-ink' : 'text-ink-faint', iosOpen && 'text-accent')}>
+          {date ? format(date, 'EEE, MMM d') : (emptyLabel ?? 'Pick a date')}
         </Text>
       </Pressable>
       {Platform.OS === 'ios' && iosOpen && (
@@ -65,6 +70,7 @@ export function DateField({ value, onChange, invalid, ...props }: Props) {
           value={date ?? new Date()}
           mode="date"
           display="inline"
+          minimumDate={minimumDate}
           accentColor={colors.accent}
           onValueChange={(_event, picked) => pick(picked)}
           style={{ width: '100%' }}

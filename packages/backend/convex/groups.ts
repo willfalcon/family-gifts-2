@@ -6,6 +6,8 @@ import { authComponent } from './auth';
 import { pickAvatarColor } from './avatarColors';
 import { getClaimedItemCount } from './claims';
 import { birthdayVisibleInGroup, nextOccasion, normalizeToday } from './occasions';
+import { getConnections } from './connections';
+import { isDiscoverable, searchDiscoverable } from './people';
 
 // Exported for convex/listShares.ts, which needs to check group membership
 // when resolving whether a group-shared list is visible to a given user.
@@ -39,6 +41,18 @@ async function requireOwner(ctx: QueryCtx, groupId: Id<'groups'>, userId: string
 
 function isManagerRole(role: Doc<'groupMembers'>['role']) {
   return role === 'owner' || role === 'manager';
+}
+
+// Throws unless `userId` may invite people to the group: a manager, or any
+// member while "members can invite" is on.
+async function requireInviter(ctx: QueryCtx, groupId: Id<'groups'>, userId: string) {
+  const group = await ctx.db.get(groupId);
+  const membership = await getMembership(ctx, groupId, userId);
+  if (!group || !membership) throw new Error('Group not found');
+  if (!isManagerRole(membership.role) && !group.membersCanInvite) {
+    throw new ConvexError('Only managers can invite people to this group.');
+  }
+  return membership;
 }
 
 // The join-link token lets anyone in, so it's stripped from every group doc
@@ -193,6 +207,11 @@ export const remove = mutation({
       .withIndex('by_favoritedGroupId', q => q.eq('favoritedGroupId', args.id))) {
       await ctx.db.delete(favorite._id);
     }
+    for await (const pair of ctx.db
+      .query('groupKeepApartPairs')
+      .withIndex('by_group_userAId_userBId', q => q.eq('groupId', args.id))) {
+      await ctx.db.delete(pair._id);
+    }
 
     await ctx.db.delete(args.id);
   },
@@ -329,34 +348,121 @@ export const invite = mutation({
   args: { groupId: v.id('groups'), email: v.string() },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireManager(ctx, args.groupId, user._id);
+    await requireInviter(ctx, args.groupId, user._id);
 
     const email = args.email.trim().toLowerCase();
     if (!email) {
-      throw new Error('Email is required');
+      throw new ConvexError('Email is required');
     }
+    return await createInvite(ctx, args.groupId, email, user._id);
+  },
+});
 
-    // Superseding any earlier pending invite to this address keeps at most one
-    // live link per (group, email), so an old link can't be used after a
-    // fresh one was sent.
-    for await (const existing of ctx.db
-      .query('groupInvites')
-      .withIndex('by_group_email', q => q.eq('groupId', args.groupId).eq('email', email))) {
-      if (existing.status === 'pending') {
-        await ctx.db.patch(existing._id, { status: 'revoked' });
-      }
+// Records an invite and schedules its email. Superseding any earlier pending
+// invite to this address keeps at most one live link per (group, email), so
+// an old link can't be used after a fresh one was sent.
+async function createInvite(ctx: MutationCtx, groupId: Id<'groups'>, email: string, invitedBy: string) {
+  for await (const existing of ctx.db
+    .query('groupInvites')
+    .withIndex('by_group_email', q => q.eq('groupId', groupId).eq('email', email))) {
+    if (existing.status === 'pending') {
+      await ctx.db.patch(existing._id, { status: 'revoked' });
     }
+  }
 
-    const inviteId = await ctx.db.insert('groupInvites', {
-      groupId: args.groupId,
-      email,
-      token: crypto.randomUUID(),
-      invitedBy: user._id,
-      status: 'pending',
-    });
+  const inviteId = await ctx.db.insert('groupInvites', {
+    groupId,
+    email,
+    token: crypto.randomUUID(),
+    invitedBy,
+    status: 'pending',
+  });
 
-    await ctx.scheduler.runAfter(0, internal.sendGroupInviteEmail.sendGroupInviteEmail, { inviteId });
-    return inviteId;
+  await ctx.scheduler.runAfter(0, internal.sendGroupInviteEmail.sendGroupInviteEmail, { inviteId });
+  return inviteId;
+}
+
+// People the user could invite to a group: everyone they share a group or
+// event with, most connections first, leaving out current members and anyone
+// with a pending invite. `search` matches a name, or an email - emails are
+// matched here and never sent back, since they're more sensitive than names.
+export const knownPeople = query({
+  args: { groupId: v.id('groups'), search: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireInviter(ctx, args.groupId, user._id);
+
+    const connections = await getConnections(ctx, user._id);
+    const members = await ctx.db
+      .query('groupMembers')
+      .withIndex('by_group', q => q.eq('groupId', args.groupId))
+      .collect();
+    const memberIds = new Set(members.map(m => m.userId));
+    const pendingEmails = new Set<string>();
+    for await (const invite of ctx.db.query('groupInvites').withIndex('by_group', q => q.eq('groupId', args.groupId))) {
+      if (invite.status === 'pending') pendingEmails.add(invite.email);
+    }
+    const search = args.search?.trim().toLowerCase() ?? '';
+
+    const people = await Promise.all(
+      [...connections].map(async ([userId, counts]) => {
+        if (memberIds.has(userId)) return null;
+        const person = await authComponent.getAnyUserById(ctx, userId);
+        if (!person) return null;
+        const email = person.email.toLowerCase();
+        if (pendingEmails.has(email)) return null;
+        if (search && !person.name.toLowerCase().includes(search) && !email.includes(search)) return null;
+        return {
+          userId,
+          name: person.name,
+          image: person.image ?? null,
+          color: counts.color,
+          sharedGroups: counts.sharedGroups,
+          sharedEvents: counts.sharedEvents,
+        };
+      }),
+    );
+
+    const known = people
+      .filter(person => person !== null)
+      .sort(
+        (a, b) => b.sharedGroups + b.sharedEvents - (a.sharedGroups + a.sharedEvents) || a.name.localeCompare(b.name),
+      );
+    if (!search) return known;
+
+    // While searching, also find people outside the viewer's circle who've
+    // chosen to be findable. They come after the people the viewer knows.
+    const others = await searchDiscoverable(
+      ctx,
+      user._id,
+      search,
+      (userId, email) => memberIds.has(userId) || pendingEmails.has(email) || connections.has(userId),
+    );
+    return [...known, ...others];
+  },
+});
+
+// Invites someone the user already knows (shares a group or event with), or
+// who has chosen to be findable, by their account, so the client never needs
+// their email address.
+export const inviteUser = mutation({
+  args: { groupId: v.id('groups'), userId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireInviter(ctx, args.groupId, user._id);
+
+    // Same "not found" for strangers and missing users, so this can't be used
+    // to probe who has an account.
+    const connections = await getConnections(ctx, user._id);
+    const canFind =
+      args.userId !== user._id && (connections.has(args.userId) || (await isDiscoverable(ctx, args.userId)));
+    const person = canFind ? await authComponent.getAnyUserById(ctx, args.userId) : null;
+    if (!person) throw new ConvexError('Person not found');
+
+    if (await getMembership(ctx, args.groupId, args.userId)) {
+      throw new ConvexError(`${person.name} is already in the group.`);
+    }
+    return await createInvite(ctx, args.groupId, person.email.toLowerCase(), user._id);
   },
 });
 
@@ -664,37 +770,87 @@ export const getInvitePreview = query({
   },
 });
 
-// Accepts an invite for the signed-in user. The invite's email must match the
-// caller's own account email - otherwise anyone holding the link (it travels
-// over email, which can be forwarded) could join on someone else's behalf.
+// Accepts or declines an invite for the signed-in user. The invite's email
+// must match the caller's own account email - otherwise anyone holding the
+// link (it travels over email, which can be forwarded) could join on someone
+// else's behalf. ConvexError (not a plain Error), since these messages are
+// shown to the user directly - plain Error messages are redacted to a generic
+// "Server Error" for the client.
+async function answerInvite(ctx: MutationCtx, invite: Doc<'groupInvites'> | null, accept: boolean) {
+  const user = await authComponent.getAuthUser(ctx);
+  if (!invite || invite.status !== 'pending') {
+    throw new ConvexError('This invite is no longer valid.');
+  }
+  if (invite.email !== user.email.toLowerCase()) {
+    throw new ConvexError(`This invite was sent to ${invite.email}. Sign in with that email to accept it.`);
+  }
+
+  if (accept && !(await getMembership(ctx, invite.groupId, user._id))) {
+    await addMember(ctx, invite.groupId, user._id, 'member');
+  }
+  await ctx.db.patch(invite._id, { status: accept ? 'accepted' : 'declined' });
+  return invite.groupId;
+}
+
 export const acceptInvite = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
     const invite = await ctx.db
       .query('groupInvites')
       .withIndex('by_token', q => q.eq('token', args.token))
       .unique();
-    if (!invite || invite.status !== 'pending') {
-      // ConvexError (not a plain Error), since these two messages are shown
-      // to the user directly on the invite page - plain Error messages are
-      // redacted to a generic "Server Error" for the client.
-      throw new ConvexError('This invite is no longer valid.');
-    }
-    if (invite.email !== user.email.toLowerCase()) {
-      throw new ConvexError(`This invite was sent to ${invite.email}. Sign in with that email to accept it.`);
-    }
+    return await answerInvite(ctx, invite, true);
+  },
+});
 
-    const existingMembership = await ctx.db
-      .query('groupMembers')
-      .withIndex('by_group_user', q => q.eq('groupId', invite.groupId).eq('userId', user._id))
-      .unique();
-    if (!existingMembership) {
-      await addMember(ctx, invite.groupId, user._id, 'member');
-    }
-    await ctx.db.patch(invite._id, { status: 'accepted' });
+// The signed-in user's pending group invites (matched on their email), newest
+// first, for the home screen and the People tab. Capped - nobody needs more
+// than a handful.
+export const myInvites = query({
+  args: {},
+  handler: async ctx => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) return [];
+    const rows = await ctx.db
+      .query('groupInvites')
+      .withIndex('by_email_status', q => q.eq('email', user.email.toLowerCase()).eq('status', 'pending'))
+      .order('desc')
+      .take(20);
 
-    return invite.groupId;
+    const invites = await Promise.all(
+      rows.map(async row => {
+        const group = await ctx.db.get(row.groupId);
+        if (!group) return null;
+        // Already in the group some other way (say, via the join link) - nothing to answer.
+        if (await getMembership(ctx, group._id, user._id)) return null;
+        const inviter = await authComponent.getAnyUserById(ctx, row.invitedBy);
+        const memberCount = (
+          await ctx.db
+            .query('groupMembers')
+            .withIndex('by_group', q => q.eq('groupId', group._id))
+            .collect()
+        ).length;
+        return {
+          _id: row._id,
+          invitedByName: inviter?.name ?? null,
+          group: { _id: group._id, name: group.name, memberCount },
+        };
+      }),
+    );
+    return invites.filter(invite => invite !== null);
+  },
+});
+
+// Joins or declines one of the signed-in user's own invites (from myInvites)
+// without needing the emailed link.
+export const answerMyInvite = mutation({
+  args: { id: v.id('groupInvites'), accept: v.boolean() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const invite = await ctx.db.get(args.id);
+    // Someone else's invite reads as invalid rather than naming their email.
+    const mine = invite?.email === user.email.toLowerCase() ? invite : null;
+    return await answerInvite(ctx, mine, args.accept);
   },
 });
 

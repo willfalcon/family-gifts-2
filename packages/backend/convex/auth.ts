@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth/minimal";
 import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { expo } from "@better-auth/expo";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import authConfig from "./auth.config";
 import { components, internal } from "./_generated/api";
 import { query } from "./_generated/server";
@@ -12,6 +13,13 @@ const siteUrl = process.env.SITE_URL!;
 // Points the component at the trigger mutations exported from this file.
 const authFunctions: AuthFunctions = internal.auth;
 
+// The profile fields that let someone be found by name or email, copied from
+// the Better Auth user by the triggers below.
+export function searchFields(user: { name: string; email: string }) {
+  const email = user.email.toLowerCase();
+  return { email, searchText: `${user.name} ${email}` };
+}
+
 // Talks to the Better Auth component tables that live in this Convex deployment.
 // Triggers run in the same transaction as the auth write, so a profile row
 // always exists for a user (and is cleaned up when the user is deleted).
@@ -20,7 +28,20 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, authUser) => {
-        await ctx.db.insert("profiles", { userId: authUser._id });
+        await ctx.db.insert("profiles", {
+          userId: authUser._id,
+          discoverable: false,
+          ...searchFields(authUser),
+        });
+      },
+      // Keeps the profile's search copies of name and email current.
+      onUpdate: async (ctx, authUser, oldUser) => {
+        if (authUser.name === oldUser.name && authUser.email === oldUser.email) return;
+        const profile = await ctx.db
+          .query("profiles")
+          .withIndex("by_userId", (q) => q.eq("userId", authUser._id))
+          .unique();
+        if (profile) await ctx.db.patch(profile._id, searchFields(authUser));
       },
       onDelete: async (ctx, authUser) => {
         const profile = await ctx.db
@@ -70,10 +91,30 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      // Sign the user out on other devices after a password reset.
+      revokeSessionsOnPasswordReset: true,
     },
     // Add social providers here later, e.g.:
     // socialProviders: { github: { clientId: ..., clientSecret: ... } },
-    plugins: [expo(), convex({ authConfig })],
+    plugins: [
+      expo(),
+      convex({ authConfig }),
+      // Password reset via a 6-digit emailed code instead of a link. The plugin
+      // stores the code in the verification table, expires it after 5 minutes,
+      // allows 3 attempts, and silently skips sending when no account exists.
+      emailOTP({
+        disableSignUp: true,
+        sendVerificationOTP: async ({ email, otp, type }) => {
+          // Only the password reset flow is wired up in the apps.
+          if (type !== "forget-password") return;
+          if (!("scheduler" in ctx)) throw new Error("Cannot send email from a query");
+          await ctx.scheduler.runAfter(0, internal.sendPasswordResetEmail.sendPasswordResetEmail, {
+            email,
+            code: otp,
+          });
+        },
+      }),
+    ],
   });
 
 // Convenience query for the client: current signed-in user, or null.

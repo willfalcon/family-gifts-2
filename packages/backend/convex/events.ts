@@ -4,7 +4,10 @@ import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { authComponent } from './auth';
 import { getMembership } from './groups';
+import { getConnections } from './connections';
+import { isDiscoverable, searchDiscoverable } from './people';
 import { pickAvatarColor } from './avatarColors';
+import { deleteSecretSanta, drawIfEveryoneReplied } from './secretSanta';
 
 // The user's row on the event, if they've accepted or declined an invite (or
 // created the event). Any such row grants access to the event - an emailed
@@ -72,7 +75,6 @@ async function requireOwner(ctx: QueryCtx, eventId: Id<'events'>, userId: string
   }
   return attendance;
 }
-
 
 // Lists events the current user attends - as owner, host, or guest, not
 // just ones they created - so an invited attendee sees the event too.
@@ -196,28 +198,7 @@ export const remove = mutation({
       await ctx.db.delete(favorite._id);
     }
 
-    const secretSanta = await ctx.db
-      .query('secretSantas')
-      .withIndex('by_event', q => q.eq('eventId', args.id))
-      .unique();
-    if (secretSanta) {
-      for await (const row of ctx.db
-        .query('secretSantaParticipants')
-        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
-        await ctx.db.delete(row._id);
-      }
-      for await (const row of ctx.db
-        .query('secretSantaExclusions')
-        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
-        await ctx.db.delete(row._id);
-      }
-      for await (const row of ctx.db
-        .query('secretSantaAssignments')
-        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
-        await ctx.db.delete(row._id);
-      }
-      await ctx.db.delete(secretSanta._id);
-    }
+    await deleteSecretSanta(ctx, args.id);
 
     await ctx.db.delete(args.id);
   },
@@ -292,9 +273,7 @@ export const pendingInviteCount = query({
     if (!attendance) return null;
 
     let count = 0;
-    for await (const row of ctx.db
-      .query('eventAttendees')
-      .withIndex('by_event', q => q.eq('eventId', args.eventId))) {
+    for await (const row of ctx.db.query('eventAttendees').withIndex('by_event', q => q.eq('eventId', args.eventId))) {
       if (row.status === 'invited') count++;
     }
     return count;
@@ -421,48 +400,6 @@ export const inviteGroup = mutation({
   },
 });
 
-// Everyone the user shares a group or an event with, keyed by user id, with
-// how many groups and events they share. Events only count people who've
-// answered (an unanswered invite has no account linked yet).
-async function getConnections(ctx: QueryCtx, userId: string) {
-  const people = new Map<
-    string,
-    { sharedGroups: number; sharedEvents: number; color: Doc<'groupMembers'>['color'] }
-  >();
-  const note = (otherId: string, kind: 'sharedGroups' | 'sharedEvents', color: Doc<'groupMembers'>['color']) => {
-    if (otherId === userId) return;
-    const person = people.get(otherId) ?? { sharedGroups: 0, sharedEvents: 0, color };
-    person[kind]++;
-    people.set(otherId, person);
-  };
-
-  const memberships = await ctx.db
-    .query('groupMembers')
-    .withIndex('by_user', q => q.eq('userId', userId))
-    .collect();
-  for (const membership of memberships) {
-    for await (const member of ctx.db
-      .query('groupMembers')
-      .withIndex('by_group', q => q.eq('groupId', membership.groupId))) {
-      note(member.userId, 'sharedGroups', member.color);
-    }
-  }
-
-  const attendances = await ctx.db
-    .query('eventAttendees')
-    .withIndex('by_user', q => q.eq('userId', userId))
-    .collect();
-  for (const attendance of attendances) {
-    for await (const attendee of ctx.db
-      .query('eventAttendees')
-      .withIndex('by_event', q => q.eq('eventId', attendance.eventId))) {
-      if (attendee.userId) note(attendee.userId, 'sharedEvents', attendee.color);
-    }
-  }
-
-  return people;
-}
-
 // People the user could invite to an event: everyone they share a group or
 // event with, most connections first. With `eventId`, anyone already on that
 // event (or with an open invite) is left out. `search` matches a name, or an
@@ -502,17 +439,28 @@ export const knownPeople = query({
       }),
     );
 
-    return people
+    const known = people
       .filter(person => person !== null)
       .sort(
-        (a, b) =>
-          b.sharedGroups + b.sharedEvents - (a.sharedGroups + a.sharedEvents) || a.name.localeCompare(b.name),
+        (a, b) => b.sharedGroups + b.sharedEvents - (a.sharedGroups + a.sharedEvents) || a.name.localeCompare(b.name),
       );
+    if (!search) return known;
+
+    // While searching, also find people outside the viewer's circle who've
+    // chosen to be findable. They come after the people the viewer knows.
+    const others = await searchDiscoverable(
+      ctx,
+      user._id,
+      search,
+      (userId, email) => onEvent.has(userId) || onEvent.has(email) || connections.has(userId),
+    );
+    return [...known, ...others];
   },
 });
 
-// Invites someone the host already knows (shares a group or event with) by
-// their account, so the client never needs their email address.
+// Invites someone the host already knows (shares a group or event with), or
+// who has chosen to be findable, by their account, so the client never needs
+// their email address.
 export const inviteUser = mutation({
   args: { eventId: v.id('events'), userId: v.string() },
   handler: async (ctx, args) => {
@@ -522,7 +470,9 @@ export const inviteUser = mutation({
     // Same "not found" for strangers and missing users, so this can't be used
     // to probe who has an account.
     const connections = await getConnections(ctx, user._id);
-    const person = connections.has(args.userId) ? await authComponent.getAnyUserById(ctx, args.userId) : null;
+    const canFind =
+      args.userId !== user._id && (connections.has(args.userId) || (await isDiscoverable(ctx, args.userId)));
+    const person = canFind ? await authComponent.getAnyUserById(ctx, args.userId) : null;
     if (!person) throw new ConvexError('Person not found');
 
     if (await getAttendance(ctx, args.eventId, args.userId)) {
@@ -545,6 +495,7 @@ export const revokeInvite = mutation({
     await requireHost(ctx, invite.eventId, user._id);
 
     await ctx.db.delete(args.id);
+    await drawIfEveryoneReplied(ctx, invite.eventId);
   },
 });
 
@@ -582,6 +533,7 @@ export const removeAttendee = mutation({
     }
 
     await ctx.db.delete(args.attendeeId);
+    await drawIfEveryoneReplied(ctx, args.eventId);
   },
 });
 
@@ -741,9 +693,14 @@ export const getInvitePreview = query({
 // own account email - otherwise anyone holding the link (it travels over
 // email, which can be forwarded) could answer on someone else's behalf.
 export async function answerInvite(ctx: MutationCtx, token: string, status: 'going' | 'declined') {
+  return await answerOpenInvite(ctx, await getOpenInvite(ctx, token), status);
+}
+
+// Answers an unanswered invite row as the signed-in user, who must be the
+// email it was sent to.
+async function answerOpenInvite(ctx: MutationCtx, invite: Doc<'eventAttendees'> | null, status: 'going' | 'declined') {
   const user = await authComponent.getAuthUser(ctx);
-  const invite = await getOpenInvite(ctx, token);
-  if (!invite) {
+  if (!invite || invite.status !== 'invited') {
     throw new ConvexError('This invite is no longer valid.');
   }
   if (invite.email !== user.email.toLowerCase()) {
@@ -759,8 +716,50 @@ export async function answerInvite(ctx: MutationCtx, token: string, status: 'goi
   } else {
     await ctx.db.patch(invite._id, { userId: user._id, status, token: undefined });
   }
+  await drawIfEveryoneReplied(ctx, invite.eventId);
   return invite.eventId;
 }
+
+// The signed-in user's unanswered invites (matched on their email), soonest
+// event first, for the home screen. Capped - nobody needs more than a handful.
+export const myInvites = query({
+  args: {},
+  handler: async ctx => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) return [];
+    const rows = await ctx.db
+      .query('eventAttendees')
+      .withIndex('by_email_status', q => q.eq('email', user.email.toLowerCase()).eq('status', 'invited'))
+      .take(20);
+
+    const invites = await Promise.all(
+      rows.map(async row => {
+        const event = await ctx.db.get(row.eventId);
+        if (!event) return null;
+        // Already on the event some other way - nothing to answer.
+        if (await getAttendance(ctx, event._id, user._id)) return null;
+        const inviter = row.invitedBy ? await authComponent.getAnyUserById(ctx, row.invitedBy) : null;
+        return { _id: row._id, invitedByName: inviter?.name ?? null, event: toClientEvent(event) };
+      }),
+    );
+    return invites
+      .filter(invite => invite !== null)
+      .sort((a, b) => (a.event.date ?? '\uffff').localeCompare(b.event.date ?? '\uffff'));
+  },
+});
+
+// Answers one of the signed-in user's own invites (from myInvites) without
+// needing the emailed link.
+export const answerMyInvite = mutation({
+  args: { id: v.id('eventAttendees'), status: v.union(v.literal('going'), v.literal('declined')) },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const invite = await ctx.db.get(args.id);
+    // Someone else's invite reads as invalid rather than naming their email.
+    const mine = invite?.email === user.email.toLowerCase() ? invite : null;
+    return await answerOpenInvite(ctx, mine, args.status);
+  },
+});
 
 export const acceptInvite = mutation({
   args: { token: v.string() },

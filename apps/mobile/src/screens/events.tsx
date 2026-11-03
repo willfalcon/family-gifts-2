@@ -6,10 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigTitle } from '@/components/big-title';
 import EventListItem from '@/components/event-list-item';
+import InvitationListItem from '@/components/invitation-list-item';
 import GlassButton from '@/components/glass-button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { localToday, useEvents } from '@/hooks/events';
+import { localToday, useEvents, useMyEventInvites } from '@/hooks/events';
 import type { Doc } from '@convex/_generated/dataModel';
 
 type EventDoc = Doc<'events'>;
@@ -44,6 +45,7 @@ function MonthHeading({ children }: { children: string }) {
 
 export default function Events() {
   const events = useEvents();
+  const invites = useMyEventInvites();
   const [showPast, setShowPast] = useState(false);
 
   // An event is past once its last day is behind us. Undated events stay in
@@ -69,7 +71,7 @@ export default function Events() {
         </Link>
       </View>
 
-      {events && events.length === 0 ? (
+      {events && events.length === 0 && !invites?.length ? (
         <View className="gap-2 pt-8 items-center">
           <Text className="font-semibold text-lg">No events yet</Text>
           <Text className="text-ink-muted text-center">
@@ -78,6 +80,15 @@ export default function Events() {
         </View>
       ) : (
         <ScrollView contentContainerClassName="gap-2 pb-8">
+          {!!invites?.length && (
+            <View className="gap-2">
+              <MonthHeading>{`Invitations · ${invites.length}`}</MonthHeading>
+              {invites.map(invite => (
+                <InvitationListItem key={invite._id} invite={invite} />
+              ))}
+            </View>
+          )}
+
           {groupByMonth(upcoming).map(section => (
             <View key={section.key} className="gap-2">
               <MonthHeading>{section.title}</MonthHeading>

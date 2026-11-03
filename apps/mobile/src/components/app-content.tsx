@@ -9,11 +9,16 @@ export default function AppContent() {
 
   return (
     <Stack>
-      <Stack.Protected guard={!!user}>
+      {/* Without redirectTo, expo-router falls back to the first unguarded route
+          alphabetically, which is sign-in. */}
+      <Stack.Protected guard={!!user} redirectTo="/welcome">
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

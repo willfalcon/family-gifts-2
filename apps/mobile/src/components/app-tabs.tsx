@@ -1,12 +1,19 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 
+import { useMyEventInvites } from '@/hooks/events';
+import { useMyGroupInvites } from '@/hooks/groups';
 import { TabColors } from '../constants/theme';
 
 export default function AppTabs() {
+  // Pending invites show as a count on the Events and People tabs.
+  const inviteCount = useMyEventInvites()?.length ?? 0;
+  const groupInviteCount = useMyGroupInvites()?.length ?? 0;
   return (
     <NativeTabs
       backgroundColor={TabColors.background}
       indicatorColor={TabColors.backgroundElement}
+      badgeBackgroundColor={TabColors.accent}
+      badgeTextColor={TabColors.accentForeground}
       labelStyle={{ selected: { color: TabColors.text } }}
     >
       <NativeTabs.Trigger name="(dashboard)">
@@ -21,10 +28,18 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="(groups)">
         <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>People</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2' }} selectedColor={TabColors.accent} />
+        {/* `hidden` is ignored whenever the badge has text, so pass none at zero. */}
+        <NativeTabs.Trigger.Badge hidden={groupInviteCount === 0}>
+          {groupInviteCount > 0 ? String(groupInviteCount) : undefined}
+        </NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(events)">
         <NativeTabs.Trigger.Label selectedStyle={{ color: TabColors.accent }}>Events</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} selectedColor={TabColors.accent} />
+        {/* `hidden` is ignored whenever the badge has text, so pass none at zero. */}
+        <NativeTabs.Trigger.Badge hidden={inviteCount === 0}>
+          {inviteCount > 0 ? String(inviteCount) : undefined}
+        </NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

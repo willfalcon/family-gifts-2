@@ -30,6 +30,7 @@ export function useUpdateProfile() {
     if ('currency' in args) next.currency = args.currency;
     if ('shirtSize' in args) next.shirtSize = args.shirtSize?.trim() || undefined;
     if ('notes' in args) next.notes = args.notes?.trim() || undefined;
+    if ('discoverable' in args) next.discoverable = args.discoverable;
     store.setQuery(api.profiles.getMine, {}, next);
   });
 }
