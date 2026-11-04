@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/back-button';
 import GlassButton from '@/components/glass-button';
-import { FieldRow } from '@/components/profile-form';
 import SwipeAction from '@/components/swipe-action';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -23,7 +22,6 @@ import {
   useEventInvitees,
   useEventOccasionLists,
   useEventPendingInviteCount,
-  useEventSharedLists,
 } from '@/hooks/events';
 import { useEventActions } from '@/hooks/event-actions';
 import { useSecretSanta } from '@/hooks/secret-santa-setup';
@@ -56,7 +54,6 @@ export default function Event() {
   const isHost = isOwner || myRole === 'host';
   const pendingCount = useEventPendingInviteCount(eventId);
   const invitees = useEventInvitees(eventId);
-  const lists = useEventSharedLists(eventId);
   const occasionLists = useEventOccasionLists(eventId);
   const inviteLink = useEventInviteLink(eventId);
   const secretSanta = useSecretSanta(eventId);
@@ -223,6 +220,23 @@ export default function Event() {
   } as const;
   const going = attendees?.filter(a => a.status === 'going') ?? [];
 
+  // Everyone's lists for this event, keyed by owner, so each attendee row can show theirs.
+  const listsByOwner = new Map<string, NonNullable<typeof occasionLists>>();
+  for (const list of occasionLists ?? []) {
+    listsByOwner.set(list.ownerId, [...(listsByOwner.get(list.ownerId) ?? []), list]);
+  }
+  // Going, by name, then you, then anyone who can't go.
+  const rank = (a: NonNullable<typeof attendees>[number]) =>
+    a.userId === user?._id ? 1 : a.status === 'declined' ? 2 : 0;
+  const sortedAttendees = [...(attendees ?? [])].sort(
+    (a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name),
+  );
+  const listHref = (listId: string) =>
+    ({
+      pathname: inGroupsTab ? '/(app)/(groups)/lists/[id]' : '/(app)/(events)/lists/[id]',
+      params: { id: listId },
+    }) as const;
+
   return (
     // No bottom edge: the scroll view runs behind the tab bar, and iOS insets
     // its content so the last row can still scroll clear of it.
@@ -326,52 +340,6 @@ export default function Event() {
           </View>
         )}
 
-        {occasionLists && occasionLists.length > 0 && (
-          <View className="gap-3">
-            <Text className="font-semibold text-ink-muted text-[15px]">Gift lists</Text>
-            {occasionLists.map(list => {
-              const isMine = list.ownerId === user?._id;
-              const color = attendees?.find(a => a.userId === list.ownerId)?.color;
-              const claimed = list.claimedItemCount ?? 0;
-              const summary = isMine
-                ? plural(list.itemCount, 'idea')
-                : claimed === 0
-                  ? `${list.itemCount} open`
-                  : `${claimed} of ${list.itemCount} taken`;
-              return (
-                <Link
-                  key={list._id}
-                  href={{
-                    pathname: inGroupsTab ? '/(app)/(groups)/lists/[id]' : '/(app)/(events)/lists/[id]',
-                    params: { id: list._id },
-                  }}
-                  asChild
-                >
-                  <Pressable className="flex-row items-center gap-2">
-                    <View
-                      className="size-10 rounded-full items-center justify-center bg-muted"
-                      style={color ? { backgroundColor: color } : undefined}
-                    >
-                      <Text className="text-center text-lg font-semibold text-on-avatar">
-                        {list.ownerName.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text>
-                        {list.ownerName}
-                        {isMine && <Text className="text-ink-muted"> (you)</Text>}
-                      </Text>
-                      <Text className="text-subhead text-ink-muted">{list.title}</Text>
-                    </View>
-                    <Text className="text-subhead text-ink-muted">{summary}</Text>
-                    <Icon as={ChevronRight} size={20} className="text-ink-muted" />
-                  </Pressable>
-                </Link>
-              );
-            })}
-          </View>
-        )}
-
         {secretSanta && (secretSanta.exists || isHost) && !event?.secretSantaOff && (
           <View className="gap-3">
             <Text className="font-semibold text-ink-muted text-[15px]">Secret Santa</Text>
@@ -436,7 +404,7 @@ export default function Event() {
         {attendees && attendees.length > 0 && (
           <View className="gap-3">
             <Text className="font-semibold text-ink-muted text-[15px]">Attendees &middot; {attendees.length}</Text>
-            {attendees.map(attendee => {
+            {sortedAttendees.map(attendee => {
               const isSelf = attendee.userId === user?._id;
               const canManageThem = isHost && !isSelf && attendee.role !== 'owner';
               const actions = [
@@ -446,47 +414,87 @@ export default function Event() {
                 ...(isOwner && attendee.role === 'host' ? [{ id: 'transfer', title: 'Make owner' }] : []),
                 { id: 'remove', title: 'Remove from event', attributes: { destructive: true } },
               ];
+              const [firstList, ...moreLists] = listsByOwner.get(attendee.userId) ?? [];
+              // Role only when it's not the usual guest, then their list.
+              const prefix = [
+                attendee.role !== 'guest' && capitalize(attendee.role),
+                attendee.status === 'declined' && 'Can’t go',
+              ].filter(Boolean);
+              const subtitle = [...prefix, firstList ? firstList.title : !isSelf && 'No list yet']
+                .filter(Boolean)
+                .join(' · ');
               return (
-                <View key={attendee.id} className="flex-row items-center gap-2">
-                  <View
-                    className="size-10 rounded-full items-center justify-center"
-                    style={{ backgroundColor: attendee.color }}
+                <View key={attendee.id} className="gap-2">
+                  <Pressable
+                    className="flex-row items-center gap-2"
+                    disabled={!firstList}
+                    onPress={() => firstList && router.push(listHref(firstList._id))}
                   >
-                    <Text className="text-center text-lg font-semibold text-on-avatar">
-                      {attendee.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text>
-                      {attendee.name}
-                      {isSelf && <Text className="text-ink-muted"> (you)</Text>}
-                    </Text>
-                    <Text className="text-subhead text-ink-muted">
-                      {capitalize(attendee.role)}
-                      {attendee.status === 'declined' && ' · Can\u2019t go'}
-                    </Text>
-                  </View>
-                  {canManageThem && (
-                    <MenuView
-                      actions={actions}
-                      onPressAction={e => {
-                        if (!event) return;
-                        const action = e.nativeEvent.event;
-                        if (action === 'promote' || action === 'demote') {
-                          const role = action === 'promote' ? 'host' : 'guest';
-                          run(() => setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role }));
-                        } else if (action === 'transfer') {
-                          confirmTransfer(attendee.id, attendee.name);
-                        } else if (action === 'remove') {
-                          confirmRemove(attendee.id, attendee.name);
-                        }
-                      }}
+                    <View
+                      className="size-10 rounded-full items-center justify-center"
+                      style={{ backgroundColor: attendee.color }}
                     >
-                      <GlassButton accessibilityLabel={`Options for ${attendee.name}`}>
-                        <Icon as={Ellipsis} />
-                      </GlassButton>
-                    </MenuView>
-                  )}
+                      <Text className="text-center text-lg font-semibold text-on-avatar">
+                        {attendee.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text>
+                        {attendee.name}
+                        {isSelf && <Text className="text-ink-muted"> (you)</Text>}
+                      </Text>
+                      {subtitle !== '' && <Text className="text-subhead text-ink-muted">{subtitle}</Text>}
+                    </View>
+                    {firstList ? (
+                      <>
+                        <Text className="text-subhead text-ink-muted">{listSummary(firstList, isSelf)}</Text>
+                        <Icon as={ChevronRight} size={20} className="text-ink-muted" />
+                      </>
+                    ) : (
+                      isSelf &&
+                      !cancelled && (
+                        <Link href={{ pathname: '/(app)/(my-lists)/lists/new', params: { eventId: id } }} asChild>
+                          <Button variant="secondary" size="sm" className="rounded-pill">
+                            <Icon as={Plus} size={16} strokeWidth={2.5} className="text-accent" />
+                            <Text className="text-accent">Make a list</Text>
+                          </Button>
+                        </Link>
+                      )
+                    )}
+                    {canManageThem && (
+                      <MenuView
+                        actions={actions}
+                        onPressAction={e => {
+                          if (!event) return;
+                          const action = e.nativeEvent.event;
+                          if (action === 'promote' || action === 'demote') {
+                            const role = action === 'promote' ? 'host' : 'guest';
+                            run(() => setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role }));
+                          } else if (action === 'transfer') {
+                            confirmTransfer(attendee.id, attendee.name);
+                          } else if (action === 'remove') {
+                            confirmRemove(attendee.id, attendee.name);
+                          }
+                        }}
+                      >
+                        <GlassButton accessibilityLabel={`Options for ${attendee.name}`}>
+                          <Icon as={Ellipsis} />
+                        </GlassButton>
+                      </MenuView>
+                    )}
+                  </Pressable>
+                  {/* Any further lists they have for this event, tucked under their row. */}
+                  {moreLists.map(list => (
+                    <Pressable
+                      key={list._id}
+                      className="ml-12 flex-row items-center gap-2"
+                      onPress={() => router.push(listHref(list._id))}
+                    >
+                      <Text className="flex-1 text-subhead text-ink-muted">{list.title}</Text>
+                      <Text className="text-subhead text-ink-muted">{listSummary(list, isSelf)}</Text>
+                      <Icon as={ChevronRight} size={20} className="text-ink-muted" />
+                    </Pressable>
+                  ))}
                 </View>
               );
             })}
@@ -542,42 +550,19 @@ export default function Event() {
             )}
           </View>
         )}
-        {/*
-        {lists && (
-          <View className="gap-2">
-            <Text className="font-semibold text-ink-muted text-[15px]">Lists</Text>
-            {lists.length === 0 ? (
-              <Text className="text-ink-muted">When someone shares a list with this event, it'll show up here.</Text>
-            ) : (
-              lists.map(list => (
-                <Link
-                  key={list._id}
-                  href={{
-                    pathname: inGroupsTab ? '/(app)/(groups)/lists/[id]' : '/(app)/(events)/lists/[id]',
-                    params: { id: list._id },
-                  }}
-                  asChild
-                >
-                  <Pressable>
-                    <FieldRow>
-                      <View className="flex-1">
-                        <Text>{list.title}</Text>
-                        <Text className="text-[13px] text-ink-muted">{list.owner.name}</Text>
-                      </View>
-                      <Icon as={ChevronRight} size={20} />
-                    </FieldRow>
-                  </Pressable>
-                </Link>
-              ))
-            )}
-          </View>
-        )} */}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const MAX_AVATARS = 4;
+
+// Your own list counts ideas; claims stay hidden from the owner, so others' lists show how much is taken.
+function listSummary(list: { itemCount: number; claimedItemCount: number | null }, isMine: boolean) {
+  if (isMine) return plural(list.itemCount, 'idea');
+  const claimed = list.claimedItemCount ?? 0;
+  return claimed === 0 ? `${list.itemCount} open` : `${claimed} of ${list.itemCount} taken`;
+}
 
 type SecretSantaState = Extract<NonNullable<ReturnType<typeof useSecretSanta>>, { exists: true }>;
 

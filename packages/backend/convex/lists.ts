@@ -76,6 +76,10 @@ export const forEvent = query({
         });
         continue;
       }
+      // Lists from people a host removed stay off the event page. Can't go
+      // attendees keep their row, so their lists still show.
+      const ownerAttendance = await getAttendance(ctx, args.eventId, list.createdBy);
+      if (ownerAttendance?.status !== 'going' && ownerAttendance?.status !== 'declined') continue;
       const owner = await authComponent.getAnyUserById(ctx, list.createdBy);
       others.push({
         _id: list._id,

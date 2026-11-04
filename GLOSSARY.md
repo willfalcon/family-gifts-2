@@ -24,7 +24,7 @@ An event one attendee moved into the Archived section of their own events list. 
 ## Lists
 
 **Occasion**
-What a list is for: an event, Christmas, the owner's birthday, another date, or none ("Just ideas"). Everyone attending an event can see the lists whose occasion is that event.
+What a list is for: an event, Christmas, the owner's birthday, another date, or none ("Just ideas"). Everyone attending an event can see the lists whose occasion is that event. That includes lists from Attendees who can't go. It doesn't include lists from people a host removed from the event.
 
 **Claim**
 Marking that you'll get an item from someone else's list. Several people can split an item the owner wants more than one of. The list's owner never sees claims.
