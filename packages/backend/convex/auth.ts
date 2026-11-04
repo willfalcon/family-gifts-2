@@ -7,6 +7,7 @@ import authConfig from "./auth.config";
 import { components, internal } from "./_generated/api";
 import { query } from "./_generated/server";
 import type { DataModel } from "./_generated/dataModel";
+import { fullName, nameFields, splitName } from "./names";
 
 const siteUrl = process.env.SITE_URL!;
 
@@ -20,6 +21,11 @@ export function searchFields(user: { name: string; email: string }) {
   return { email, searchText: `${user.name} ${email}` };
 }
 
+function guessedNameFields(name: string) {
+  const { firstName, lastName } = splitName(name);
+  return nameFields(firstName, lastName);
+}
+
 // Talks to the Better Auth component tables that live in this Convex deployment.
 // Triggers run in the same transaction as the auth write, so a profile row
 // always exists for a user (and is cleaned up when the user is deleted).
@@ -28,20 +34,30 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, authUser) => {
+        // The name parts are a guess here. A sign-up form that sent the real
+        // ones replaces them right after (see `databaseHooks` below).
         await ctx.db.insert("profiles", {
           userId: authUser._id,
           discoverable: false,
+          ...guessedNameFields(authUser.name),
           ...searchFields(authUser),
         });
       },
-      // Keeps the profile's search copies of name and email current.
+      // Keeps the profile's search copies of name and email current. If the
+      // name was changed without going through profiles.updateName, the
+      // saved parts no longer match it, so they're guessed again.
       onUpdate: async (ctx, authUser, oldUser) => {
         if (authUser.name === oldUser.name && authUser.email === oldUser.email) return;
         const profile = await ctx.db
           .query("profiles")
           .withIndex("by_userId", (q) => q.eq("userId", authUser._id))
           .unique();
-        if (profile) await ctx.db.patch(profile._id, searchFields(authUser));
+        if (!profile) return;
+        const partsMatch = !!profile.firstName && fullName(profile.firstName, profile.lastName) === authUser.name;
+        await ctx.db.patch(profile._id, {
+          ...searchFields(authUser),
+          ...(partsMatch ? {} : guessedNameFields(authUser.name)),
+        });
       },
       onDelete: async (ctx, authUser) => {
         const profile = await ctx.db
@@ -93,6 +109,26 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
       requireEmailVerification: false,
       // Sign the user out on other devices after a password reset.
       revokeSessionsOnPasswordReset: true,
+    },
+    // Sign-up forms send `firstName` and `lastName` alongside `name` (their
+    // two joined). Better Auth has nowhere to keep them, so they're saved on
+    // the profile, replacing the guess the user.onCreate trigger made.
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user, context) => {
+            const body = context?.body as Record<string, unknown> | undefined;
+            const firstName = body?.firstName;
+            const lastName = body?.lastName;
+            if (typeof firstName !== "string" || !("runMutation" in ctx)) return;
+            await ctx.runMutation(internal.profiles.setSignUpNameParts, {
+              userId: user.id,
+              firstName,
+              lastName: typeof lastName === "string" ? lastName : "",
+            });
+          },
+        },
+      },
     },
     // Add social providers here later, e.g.:
     // socialProviders: { github: { clientId: ..., clientSecret: ... } },

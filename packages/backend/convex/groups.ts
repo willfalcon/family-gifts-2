@@ -419,6 +419,7 @@ export const knownPeople = query({
           color: counts.color,
           sharedGroups: counts.sharedGroups,
           sharedEvents: counts.sharedEvents,
+          emailMatch: email === search,
         };
       }),
     );

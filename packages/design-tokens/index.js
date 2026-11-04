@@ -137,4 +137,22 @@ const blur = {
   glass: 22,
 };
 
-module.exports = { colors, fontFamily, borderRadius, boxShadow, blur };
+// Mobile type scale. Each entry is [fontSize, { lineHeight }] like Tailwind's
+// built-in text-* sizes, so text-body sets both. Values must be strings with
+// units — NativeWind drops unitless numbers.
+const fontSize = {
+  greeting: ['36px', { lineHeight: '43px' }],
+  title: ['30px', { lineHeight: '36px' }],
+  detail: ['28px', { lineHeight: '34px' }],
+  name: ['26px', { lineHeight: '32px' }],
+  headline: ['20px', { lineHeight: '25px' }],
+  body: ['17px', { lineHeight: '22px' }],
+  'button-lg': ['17px', { lineHeight: '22px' }],
+  callout: ['15px', { lineHeight: '20px' }],
+  label: ['15px', { lineHeight: '20px' }],
+  subhead: ['14px', { lineHeight: '19px' }],
+  footnote: ['13px', { lineHeight: '18px' }],
+  'tab-label': ['10px', { lineHeight: '12px' }],
+};
+
+module.exports = { colors, fontFamily, fontSize, borderRadius, boxShadow, blur };

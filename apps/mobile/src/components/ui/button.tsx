@@ -40,7 +40,7 @@ const buttonTextVariants = cva('text-sm font-semibold text-foreground', {
     size: {
       default: '',
       sm: '',
-      lg: '',
+      lg: 'text-[17px]',
       icon: '',
     },
   },

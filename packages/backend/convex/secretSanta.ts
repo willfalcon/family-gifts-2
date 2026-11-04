@@ -3,8 +3,13 @@ import { mutation, query, internalQuery, internalMutation, type MutationCtx, typ
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { authComponent } from './auth';
+import { AVATAR_COLORS } from './avatarColors';
 import { getAttendance, isHostRole, requireHost } from './events';
 import { getMembership } from './groups';
+import { hasListAccess } from './listShares';
+import { getFirstName } from './profiles';
+import { swapProblem } from '../../shared/secret-santa';
+import { addSecretSantaDrawnNotices, addSecretSantaUndoneNotice, clearSecretSantaDrawnNotices } from './notices';
 
 // Random derangement respecting one-directional exclusions ("giver must not
 // receive excludedUserId"). Tries plain random shuffles first (cheap, and
@@ -13,10 +18,11 @@ import { getMembership } from './groups';
 // one exists. Returns null only when the exclusions make that impossible.
 function computeAssignments(
   participantIds: string[],
-  exclusions: { userId: string; excludedUserId: string }[]
+  exclusions: { userId: string; excludedUserId: string }[],
 ): { giverUserId: string; receiverUserId: string }[] | null {
   const excludedPairs = new Set(exclusions.map(e => `${e.userId}|${e.excludedUserId}`));
-  const isAllowed = (giver: string, receiver: string) => giver !== receiver && !excludedPairs.has(`${giver}|${receiver}`);
+  const isAllowed = (giver: string, receiver: string) =>
+    giver !== receiver && !excludedPairs.has(`${giver}|${receiver}`);
 
   for (let attempt = 0; attempt < 500; attempt++) {
     const shuffled = shuffle(participantIds);
@@ -66,21 +72,28 @@ async function getSecretSanta(ctx: QueryCtx, eventId: Id<'events'>) {
 }
 
 async function deleteSecretSantaChildren(ctx: MutationCtx, secretSantaId: Id<'secretSantas'>) {
-  for await (const row of ctx.db.query('secretSantaParticipants').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
+  for await (const row of ctx.db
+    .query('secretSantaParticipants')
+    .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
     await ctx.db.delete(row._id);
   }
-  for await (const row of ctx.db.query('secretSantaExclusions').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
+  for await (const row of ctx.db
+    .query('secretSantaExclusions')
+    .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
     await ctx.db.delete(row._id);
   }
-  for await (const row of ctx.db.query('secretSantaAssignments').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
+  for await (const row of ctx.db
+    .query('secretSantaAssignments')
+    .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
     await ctx.db.delete(row._id);
   }
 }
 
 // The whole Secret Santa state for an event, shaped differently depending on
-// the viewer's role: a host gets the full roster/exclusions/assignments
-// (they already saw everything while setting it up), while a regular
-// attendee only ever gets their own assignment - never anyone else's.
+// the viewer's role: a host gets the roster and rules, plus every Match in a
+// Reviewed draw, while a regular attendee only ever gets their own Match -
+// never anyone else's. To guests a Reviewed draw that hasn't been sent yet
+// looks the same as one that hasn't been drawn.
 export const getState = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
@@ -106,25 +119,56 @@ export const getState = query({
         .withIndex('by_secretSanta_giver', q => q.eq('secretSantaId', secretSanta._id).eq('giverUserId', user._id))
         .unique();
       if (assignment) {
-        const receiver = await authComponent.getAnyUserById(ctx, assignment.receiverUserId);
-        myAssignment = { userId: assignment.receiverUserId, name: receiver?.name ?? 'Unknown', image: receiver?.image ?? null };
+        const [receiver, receiverAttendance] = await Promise.all([
+          authComponent.getAnyUserById(ctx, assignment.receiverUserId),
+          getAttendance(ctx, args.eventId, assignment.receiverUserId),
+        ]);
+        myAssignment = {
+          userId: assignment.receiverUserId,
+          name: receiver?.name ?? 'Unknown',
+          image: receiver?.image ?? null,
+          // Their avatar color on this event, so it matches the guest list.
+          color: receiverAttendance?.color ?? AVATAR_COLORS[0].hex,
+          giftReady: !!assignment.giftReady,
+        };
+      }
+    }
+
+    const mode = secretSanta.mode ?? 'secret';
+
+    // How many in the draw are Gift ready, for people in the draw and for
+    // hosts of a sent Reviewed draw. Only the count: hosts of a Reviewed draw
+    // also see who (in `assignments` below), since they already know every
+    // Match. Nobody else ever does.
+    let giftProgress: { ready: number; total: number } | null = null;
+    if (myAssignment || (isManager && mode === 'reviewed' && secretSanta.status === 'sent')) {
+      giftProgress = { ready: 0, total: 0 };
+      for await (const row of ctx.db
+        .query('secretSantaAssignments')
+        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
+        giftProgress.total++;
+        if (row.giftReady) giftProgress.ready++;
       }
     }
 
     // Shown to everyone on the event.
     const details = {
+      mode,
       budget: secretSanta.budget ?? null,
       drawAt: secretSanta.drawAt ?? null,
       sentAt: secretSanta.sentAt ?? null,
+      // A host undid a draw whose names had been sent, and hasn't drawn again yet.
+      undone: secretSanta.status === 'draft' && !!secretSanta.undoneAt,
     };
 
     if (!isManager) {
       return {
         exists: true as const,
         isManager: false as const,
-        status: secretSanta.status,
+        status: secretSanta.status === 'drawn' ? ('draft' as const) : secretSanta.status,
         isParticipant: !!myParticipation,
         myAssignment,
+        giftProgress,
         ...details,
       };
     }
@@ -154,10 +198,24 @@ export const getState = query({
     const hydrated = new Map(
       await Promise.all(
         [...userIds].map(async userId => {
-          const hydratedUser = await authComponent.getAnyUserById(ctx, userId);
-          return [userId, { userId, name: hydratedUser?.name ?? 'Unknown', image: hydratedUser?.image ?? null }] as const;
-        })
-      )
+          const [hydratedUser, userAttendance] = await Promise.all([
+            authComponent.getAnyUserById(ctx, userId),
+            getAttendance(ctx, args.eventId, userId),
+          ]);
+          const name = hydratedUser?.name ?? 'Unknown';
+          return [
+            userId,
+            {
+              userId,
+              name,
+              firstName: hydratedUser ? await getFirstName(ctx, userId, name) : name,
+              image: hydratedUser?.image ?? null,
+              // Their avatar color on this event, so it matches the guest list.
+              color: userAttendance?.color ?? AVATAR_COLORS[0].hex,
+            },
+          ] as const;
+        }),
+      ),
     );
 
     return {
@@ -167,97 +225,173 @@ export const getState = query({
       status: secretSanta.status,
       isParticipant: !!myParticipation,
       myAssignment,
+      giftProgress,
       ...details,
-      private: !!secretSanta.private,
+      drawnAt: secretSanta.drawnAt ?? null,
       drawEarly: !!secretSanta.drawEarly,
       drawError: secretSanta.drawError ?? null,
       participants: participants.map(p => hydrated.get(p.userId)!),
       exclusions: exclusions.map(e => ({ userId: e.userId, excludedUserId: e.excludedUserId })),
-      // In a private round nobody sees who drew whom, hosts included.
-      assignments: (secretSanta.private ? [] : assignments).map(a => ({
+      // In a Secret draw nobody sees who drew whom, hosts included. First
+      // names only, to keep the review list short.
+      assignments: (mode === 'reviewed' ? assignments : []).map(a => ({
         giverUserId: a.giverUserId,
-        giverName: hydrated.get(a.giverUserId)?.name ?? 'Unknown',
+        giverName: hydrated.get(a.giverUserId)?.firstName ?? 'Unknown',
+        giverColor: hydrated.get(a.giverUserId)?.color ?? AVATAR_COLORS[0].hex,
         receiverUserId: a.receiverUserId,
-        receiverName: hydrated.get(a.receiverUserId)?.name ?? 'Unknown',
+        receiverName: hydrated.get(a.receiverUserId)?.firstName ?? 'Unknown',
+        receiverColor: hydrated.get(a.receiverUserId)?.color ?? AVATAR_COLORS[0].hex,
+        giftReady: !!a.giftReady,
       })),
     };
   },
 });
 
-// Sets (or resets) the roster and exclusions and generates a fresh set of
-// matchups in one shot. Always a full replace rather than an incremental
-// edit - re-running this after changing who's in is simpler and safer than
-// trying to patch a previous round's participants/exclusions/assignments in
-// place. Only usable while the round is still a draft.
-export const generate = mutation({
-  args: {
-    eventId: v.id('events'),
-    participantUserIds: v.array(v.string()),
-    exclusions: v.array(v.object({ userId: v.string(), excludedUserId: v.string() })),
-  },
+const MATCH_ITEM_COUNT = 3;
+
+type MatchItemStatus = 'mine' | 'available' | 'overBudget' | 'claimed';
+const STATUS_RANK: Record<MatchItemStatus, number> = { mine: 0, available: 1, overBudget: 2, claimed: 3 };
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 } as const;
+
+// A list's items with where each stands for the viewer: claimed by them,
+// still available, over the budget, or fully claimed by others.
+async function matchItemsForList(ctx: QueryCtx, list: Doc<'lists'>, viewerId: string, budget: number | null) {
+  const claims = new Map<string, { total: number; mine: number; others: string[] }>();
+  for await (const claim of ctx.db.query('claims').withIndex('by_list', q => q.eq('listId', list._id))) {
+    const entry = claims.get(claim.itemId) ?? { total: 0, mine: 0, others: [] };
+    entry.total += claim.quantity;
+    if (claim.userId === viewerId) entry.mine += claim.quantity;
+    else entry.others.push(claim.userId);
+    claims.set(claim.itemId, entry);
+  }
+
+  const items = await ctx.db
+    .query('items')
+    .withIndex('by_listId', q => q.eq('listId', list._id))
+    .collect();
+  return items.map(item => {
+    const claim = claims.get(item._id);
+    const fullyClaimed = (claim?.total ?? 0) >= Math.max(1, item.quantity ?? 1);
+    // An item with no price can't be said to be over the budget.
+    const overBudget = budget != null && item.price != null && item.price > budget;
+    const status: MatchItemStatus = claim?.mine
+      ? 'mine'
+      : fullyClaimed
+        ? 'claimed'
+        : overBudget
+          ? 'overBudget'
+          : 'available';
+    return { item, list, status, claimerIds: claim?.others ?? [] };
+  });
+}
+
+type MatchItem = Awaited<ReturnType<typeof matchItemsForList>>[number];
+
+// Your own claims first, then what you could still get, then what's over the
+// budget, then what's taken. Within each: highest priority, then the price
+// closest to the budget (unpriced items last), then oldest first.
+function compareMatchItems(budget: number | null) {
+  const distance = (price: number | undefined) =>
+    budget == null ? 0 : price == null ? Infinity : Math.abs(budget - price);
+  return (a: MatchItem, b: MatchItem) =>
+    STATUS_RANK[a.status] - STATUS_RANK[b.status] ||
+    PRIORITY_RANK[a.item.priority ?? 'medium'] - PRIORITY_RANK[b.item.priority ?? 'medium'] ||
+    distance(a.item.price) - distance(b.item.price) ||
+    a.item._creationTime - b.item._creationTime;
+}
+
+const isGettable = (row: MatchItem) => row.status === 'mine' || row.status === 'available';
+
+// A few items to suggest for your Match, once names are drawn. From their list
+// for this event when they have one (several: the one with the most you could
+// still get, newest on a tie), including ones you can't get, so you see why.
+// Otherwise only items you could get, from their other lists you can see.
+// Null if you have no Match.
+export const matchItems = query({
+  args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
-    await requireHost(ctx, args.eventId, user._id);
+    const secretSanta = await getSecretSanta(ctx, args.eventId);
+    if (!secretSanta || secretSanta.status !== 'sent') return null;
+    const assignment = await ctx.db
+      .query('secretSantaAssignments')
+      .withIndex('by_secretSanta_giver', q => q.eq('secretSantaId', secretSanta._id).eq('giverUserId', user._id))
+      .unique();
+    if (!assignment) return null;
+    const matchId = assignment.receiverUserId;
+    const budget = secretSanta.budget ?? null;
+    const compare = compareMatchItems(budget);
 
-    const participantIds = [...new Set(args.participantUserIds)];
-    if (participantIds.length < 2) {
-      throw new ConvexError('Pick at least 2 participants.');
-    }
+    const eventLists = (
+      await ctx.db
+        .query('lists')
+        .withIndex('by_occasion_event', q => q.eq('occasion.eventId', args.eventId))
+        .collect()
+    ).filter(list => list.createdBy === matchId && list.archivedAt === undefined);
 
-    const attendees = await ctx.db
-      .query('eventAttendees')
-      .withIndex('by_event', q => q.eq('eventId', args.eventId))
-      .collect();
-    // Only people who are going can be drawn.
-    const goingIds = new Set(attendees.flatMap(a => (a.userId && a.status === 'going' ? [a.userId] : [])));
-    if (!participantIds.every(id => goingIds.has(id))) {
-      throw new ConvexError('Everyone in Secret Santa has to be going to the event.');
-    }
-
-    for (const { userId, excludedUserId } of args.exclusions) {
-      if (userId === excludedUserId || !participantIds.includes(userId) || !participantIds.includes(excludedUserId)) {
-        throw new ConvexError('Exclusions must be between two different selected participants.');
+    let rows: MatchItem[];
+    let eventList: Doc<'lists'> | null = null;
+    if (eventLists.length > 0) {
+      const perList = await Promise.all(eventLists.map(list => matchItemsForList(ctx, list, user._id, budget)));
+      let best = 0;
+      perList.forEach((listRows, i) => {
+        const gettable = listRows.filter(isGettable).length;
+        const bestGettable = perList[best].filter(isGettable).length;
+        if (
+          gettable > bestGettable ||
+          (gettable === bestGettable && eventLists[i]._creationTime > eventLists[best]._creationTime)
+        ) {
+          best = i;
+        }
+      });
+      eventList = eventLists[best];
+      rows = perList[best];
+    } else {
+      const lists = await ctx.db
+        .query('lists')
+        .withIndex('by_createdBy_archivedAt', q => q.eq('createdBy', matchId).eq('archivedAt', undefined))
+        .collect();
+      const visible = [];
+      for (const list of lists) {
+        if (await hasListAccess(ctx, list, user._id)) visible.push(list);
       }
+      rows = (await Promise.all(visible.map(list => matchItemsForList(ctx, list, user._id, budget))))
+        .flat()
+        .filter(isGettable);
     }
 
-    const assignments = computeAssignments(participantIds, args.exclusions);
-    if (!assignments) {
-      throw new ConvexError("Couldn't find a valid set of matches with these exclusions - try removing one.");
-    }
+    const top = rows.sort(compare).slice(0, MATCH_ITEM_COUNT);
+    const names = new Map<string, string>();
+    const nameOf = async (userId: string) => {
+      if (!names.has(userId)) {
+        names.set(userId, (await authComponent.getAnyUserById(ctx, userId))?.name ?? 'Someone');
+      }
+      return names.get(userId)!;
+    };
 
-    let secretSanta = await getSecretSanta(ctx, args.eventId);
-    if (secretSanta && secretSanta.status === 'sent') {
-      throw new ConvexError('Secret Santa has already been sent - reset it to start over.');
-    }
-    if (secretSanta?.private) {
-      throw new ConvexError('This Secret Santa was set up in the app - reset it to start over.');
-    }
-    if (!secretSanta) {
-      const secretSantaId = await ctx.db.insert('secretSantas', { eventId: args.eventId, status: 'draft', createdBy: user._id });
-      secretSanta = await ctx.db.get(secretSantaId);
-    }
-    const secretSantaId = secretSanta!._id;
-
-    await deleteSecretSantaChildren(ctx, secretSantaId);
-
-    for (const userId of participantIds) {
-      await ctx.db.insert('secretSantaParticipants', { secretSantaId, userId });
-    }
-    for (const { userId, excludedUserId } of args.exclusions) {
-      await ctx.db.insert('secretSantaExclusions', { secretSantaId, userId, excludedUserId });
-    }
-    for (const { giverUserId, receiverUserId } of assignments) {
-      await ctx.db.insert('secretSantaAssignments', { secretSantaId, giverUserId, receiverUserId });
-    }
-
-    return secretSantaId;
+    return {
+      eventList: eventList && { _id: eventList._id, title: eventList.title },
+      items: await Promise.all(
+        top.map(async ({ item, list, status, claimerIds }) => ({
+          _id: item._id,
+          listId: list._id,
+          listTitle: list.title,
+          name: item.name,
+          price: item.price ?? null,
+          priority: item.priority ?? null,
+          imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null,
+          status,
+          claimedBy: await Promise.all(claimerIds.map(nameOf)),
+        })),
+      ),
+    };
   },
 });
 
-// Swaps two givers' assigned recipients. Swapping (rather than reassigning
-// one giver freely) keeps the result a valid permutation by construction -
-// the only thing left to check is that neither swapped pairing breaks an
-// exclusion or assigns someone to themselves.
+// Swaps two givers' Matches, while a Reviewed draw is Drawn, not sent.
+// Swapping (rather than reassigning one giver freely) keeps everyone giving
+// and receiving exactly once - the only thing left to check is that nobody
+// ends up giving to themselves or to someone they're kept apart from.
 export const swap = mutation({
   args: { eventId: v.id('events'), giverAUserId: v.string(), giverBUserId: v.string() },
   handler: async (ctx, args) => {
@@ -269,18 +403,22 @@ export const swap = mutation({
     }
 
     const secretSanta = await getSecretSanta(ctx, args.eventId);
-    if (!secretSanta || secretSanta.status !== 'draft' || secretSanta.private) {
-      throw new ConvexError('Generate matches before making changes.');
+    if (!secretSanta || secretSanta.status !== 'drawn') {
+      throw new ConvexError('Matches can only be changed before the names are sent.');
     }
 
     const [assignmentA, assignmentB] = await Promise.all([
       ctx.db
         .query('secretSantaAssignments')
-        .withIndex('by_secretSanta_giver', q => q.eq('secretSantaId', secretSanta._id).eq('giverUserId', args.giverAUserId))
+        .withIndex('by_secretSanta_giver', q =>
+          q.eq('secretSantaId', secretSanta._id).eq('giverUserId', args.giverAUserId),
+        )
         .unique(),
       ctx.db
         .query('secretSantaAssignments')
-        .withIndex('by_secretSanta_giver', q => q.eq('secretSantaId', secretSanta._id).eq('giverUserId', args.giverBUserId))
+        .withIndex('by_secretSanta_giver', q =>
+          q.eq('secretSantaId', secretSanta._id).eq('giverUserId', args.giverBUserId),
+        )
         .unique(),
     ]);
     if (!assignmentA || !assignmentB) {
@@ -291,27 +429,43 @@ export const swap = mutation({
       .query('secretSantaExclusions')
       .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))
       .collect();
-    const isExcluded = (giver: string, receiver: string) => exclusions.some(e => e.userId === giver && e.excludedUserId === receiver);
+    const problem = swapProblem(assignmentA, assignmentB, exclusions);
+    if (problem) {
+      throw new ConvexError(
+        problem.kind === 'self'
+          ? 'Can’t swap these two. Someone would be giving to themselves.'
+          : 'Can’t swap these two. It would match two people who are kept apart.',
+      );
+    }
 
     const newReceiverForA = assignmentB.receiverUserId;
     const newReceiverForB = assignmentA.receiverUserId;
-    if (
-      newReceiverForA === args.giverAUserId ||
-      newReceiverForB === args.giverBUserId ||
-      isExcluded(args.giverAUserId, newReceiverForA) ||
-      isExcluded(args.giverBUserId, newReceiverForB)
-    ) {
-      throw new ConvexError("Can't swap these two - it would break an exclusion or match someone with themselves.");
-    }
-
     await ctx.db.patch(assignmentA._id, { receiverUserId: newReceiverForA });
     await ctx.db.patch(assignmentB._id, { receiverUserId: newReceiverForB });
   },
 });
 
-// Locks in the round and schedules each participant's assignment email. Each
-// giver only ever learns their own recipient - the email is sent
-// individually per assignment, never as a shared list.
+// Marks whether you have your Match's gift ("Gift ready"). Only your own row,
+// and only once names are drawn.
+export const setGiftReady = mutation({
+  args: { eventId: v.id('events'), giftReady: v.boolean() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const secretSanta = await getSecretSanta(ctx, args.eventId);
+    if (!secretSanta || secretSanta.status !== 'sent') {
+      throw new ConvexError('Names haven’t been drawn yet.');
+    }
+    const assignment = await ctx.db
+      .query('secretSantaAssignments')
+      .withIndex('by_secretSanta_giver', q => q.eq('secretSantaId', secretSanta._id).eq('giverUserId', user._id))
+      .unique();
+    if (!assignment) throw new ConvexError('You’re not in this Secret Santa.');
+    await ctx.db.patch(assignment._id, { giftReady: args.giftReady });
+  },
+});
+
+// Sends the names for a Reviewed draw: each person in the draw is emailed
+// their own Match - individually, never as a shared list.
 export const send = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
@@ -320,25 +474,22 @@ export const send = mutation({
 
     const secretSanta = await getSecretSanta(ctx, args.eventId);
     if (!secretSanta) throw new ConvexError('Set up Secret Santa first.');
-    if (secretSanta.status === 'sent') throw new ConvexError('Secret Santa has already been sent.');
-    if (secretSanta.private) throw new ConvexError('Names are drawn automatically for this Secret Santa.');
+    if (secretSanta.status === 'sent') throw new ConvexError('The names have already been sent.');
+    if (secretSanta.status !== 'drawn') throw new ConvexError('Names haven’t been drawn yet.');
 
-    const assignments = await ctx.db
-      .query('secretSantaAssignments')
-      .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))
-      .collect();
-    if (assignments.length === 0) throw new ConvexError('Generate matches first.');
-
-    await ctx.db.patch(secretSanta._id, { status: 'sent', sentAt: Date.now() });
-    await ctx.scheduler.runAfter(0, internal.sendSecretSantaAssignmentEmail.sendSecretSantaAssignmentEmails, {
-      secretSantaId: secretSanta._id,
-    });
+    await sendNames(ctx, secretSanta);
+    await clearSecretSantaDrawnNotices(ctx, args.eventId);
   },
 });
 
-// Wipes the round so a host can start over from scratch - the only way
-// back once notifications have gone out, since `generate` refuses to touch a
-// 'sent' round.
+async function sendNames(ctx: MutationCtx, secretSanta: Doc<'secretSantas'>) {
+  await ctx.db.patch(secretSanta._id, { status: 'sent', sentAt: Date.now() });
+  await ctx.scheduler.runAfter(0, internal.sendSecretSantaAssignmentEmail.sendSecretSantaAssignmentEmails, {
+    secretSantaId: secretSanta._id,
+  });
+}
+
+// Wipes the round so a host can start over from scratch.
 export const reset = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
@@ -346,6 +497,46 @@ export const reset = mutation({
     await requireHost(ctx, args.eventId, user._id);
 
     await deleteSecretSanta(ctx, args.eventId);
+  },
+});
+
+// Takes back a draw: everyone's match is cleared, but who's in, the
+// keep-apart rules and the budget are kept so the host can draw again from
+// the setup screen. If the names had been sent, everyone who was in the draw
+// (other than this host) gets a notice on their home screen that their old
+// match no longer counts. If they hadn't, nobody knew, so nobody is told.
+export const undoDraw = mutation({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireHost(ctx, args.eventId, user._id);
+
+    const secretSanta = await getSecretSanta(ctx, args.eventId);
+    if (!secretSanta) throw new ConvexError('There’s no Secret Santa on this event.');
+    if (secretSanta.status === 'draft') throw new ConvexError('Names haven’t been drawn yet.');
+    const wasSent = secretSanta.status === 'sent';
+
+    if (wasSent) {
+      for await (const participant of ctx.db
+        .query('secretSantaParticipants')
+        .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
+        if (participant.userId !== user._id) {
+          await addSecretSantaUndoneNotice(ctx, participant.userId, args.eventId);
+        }
+      }
+    }
+    await clearSecretSantaDrawnNotices(ctx, args.eventId);
+
+    await deleteSecretSantaChildren(ctx, secretSanta._id);
+    await ctx.db.patch(secretSanta._id, {
+      status: 'draft',
+      drawnAt: undefined,
+      sentAt: undefined,
+      drawAt: undefined,
+      drawEarly: undefined,
+      drawError: undefined,
+      undoneAt: wasSent ? Date.now() : secretSanta.undoneAt,
+    });
   },
 });
 
@@ -374,7 +565,7 @@ export const getAssignmentEmailData = internalQuery({
           toName: giver.name ?? 'there',
           assigneeName: receiver?.name ?? 'Unknown',
         };
-      })
+      }),
     );
 
     return { eventId: event._id, eventName: event.name, emails: emails.filter(e => e !== null) };
@@ -382,10 +573,11 @@ export const getAssignmentEmailData = internalQuery({
 });
 
 // ---------------------------------------------------------------------------
-// The app's draw flow: a host picks who's in, a budget, keep-apart rules and
-// when to draw (secretSanta.setup). Names are then drawn right away, at the
-// chosen time, or as soon as everyone has replied. These rounds are private -
-// nobody, hosts included, can see who drew whom.
+// The draw flow: a host picks who's in, a budget, keep-apart rules, whether
+// it's a Secret or Reviewed draw, and when to draw (secretSanta.setup). Names
+// are then drawn right away, at the chosen time, or as soon as everyone has
+// replied. A Secret draw sends the names as it draws; a Reviewed draw waits
+// for a host to send them.
 // ---------------------------------------------------------------------------
 
 // Deletes an event's round and everything under it, and cancels a pending
@@ -396,13 +588,23 @@ export async function deleteSecretSanta(ctx: MutationCtx, eventId: Id<'events'>)
 
   await cancelScheduledDraw(ctx, secretSanta);
   await deleteSecretSantaChildren(ctx, secretSanta._id);
-  for await (const row of ctx.db.query('secretSantaEntrants').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
-    await ctx.db.delete(row._id);
-  }
-  for await (const row of ctx.db.query('secretSantaRules').withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))) {
-    await ctx.db.delete(row._id);
-  }
+  await deleteEntrantsAndRules(ctx, secretSanta._id);
+  await clearSecretSantaDrawnNotices(ctx, eventId);
   await ctx.db.delete(secretSanta._id);
+}
+
+// Who the host picked and the keep-apart rules - what secretSanta.setup writes.
+async function deleteEntrantsAndRules(ctx: MutationCtx, secretSantaId: Id<'secretSantas'>) {
+  for await (const row of ctx.db
+    .query('secretSantaEntrants')
+    .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
+    await ctx.db.delete(row._id);
+  }
+  for await (const row of ctx.db
+    .query('secretSantaRules')
+    .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSantaId))) {
+    await ctx.db.delete(row._id);
+  }
 }
 
 // Only cancels a draw that hasn't started - cancelling the draw that's
@@ -413,22 +615,29 @@ async function cancelScheduledDraw(ctx: MutationCtx, secretSanta: Doc<'secretSan
   if (job?.state.kind === 'pending') await ctx.scheduler.cancel(secretSanta.scheduledDrawId);
 }
 
-// The round's entrants' guest list rows, leaving out anyone since removed.
+// The round's entrants' guest list rows, leaving out anyone since removed or
+// whose invite was revoked.
 async function getEntrantRows(ctx: QueryCtx, secretSanta: Doc<'secretSantas'>) {
   const entrants = await ctx.db
     .query('secretSantaEntrants')
     .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))
     .collect();
   const rows = await Promise.all(entrants.map(e => ctx.db.get(e.attendeeId)));
-  return rows.flatMap(row => (row && row.eventId === secretSanta.eventId ? [row] : []));
+  return rows.flatMap(row => (row && row.eventId === secretSanta.eventId && row.status !== 'revoked' ? [row] : []));
 }
 
-// Draws names: entrants who are going become the participants, keep-apart
-// rules become exclusions both ways, and everyone is emailed their match.
+// Draws names: entrants who are going become the participants and keep-apart
+// rules become exclusions both ways. A Secret draw then sends the names. A
+// Reviewed draw waits for a host; with `notifyHosts` (a draw nobody was
+// watching happen) every host gets an email and a home-screen notice.
 // Returns why it couldn't draw, writing nothing in that case.
-async function draw(ctx: MutationCtx, secretSanta: Doc<'secretSantas'>): Promise<string | null> {
+async function draw(
+  ctx: MutationCtx,
+  secretSanta: Doc<'secretSantas'>,
+  { notifyHosts }: { notifyHosts: boolean },
+): Promise<string | null> {
   const going = (await getEntrantRows(ctx, secretSanta)).flatMap(row =>
-    row.status === 'going' && row.userId ? [{ attendeeId: row._id, userId: row.userId }] : []
+    row.status === 'going' && row.userId ? [{ attendeeId: row._id, userId: row.userId }] : [],
   );
   const userIdByAttendee = new Map(going.map(g => [g.attendeeId as string, g.userId]));
   const participantIds = [...new Set(going.map(g => g.userId))];
@@ -469,29 +678,67 @@ async function draw(ctx: MutationCtx, secretSanta: Doc<'secretSantas'>): Promise
 
   await cancelScheduledDraw(ctx, secretSanta);
   await ctx.db.patch(secretSanta._id, {
-    status: 'sent',
-    sentAt: Date.now(),
+    status: 'drawn',
+    drawnAt: Date.now(),
     scheduledDrawId: undefined,
     drawError: undefined,
+    undoneAt: undefined,
   });
-  await ctx.scheduler.runAfter(0, internal.sendSecretSantaAssignmentEmail.sendSecretSantaAssignmentEmails, {
-    secretSantaId: secretSanta._id,
-  });
+
+  if ((secretSanta.mode ?? 'secret') === 'secret') {
+    await sendNames(ctx, secretSanta);
+  } else if (notifyHosts) {
+    const hostUserIds = (
+      await ctx.db
+        .query('eventAttendees')
+        .withIndex('by_event', q => q.eq('eventId', secretSanta.eventId))
+        .collect()
+    ).flatMap(row => (row.userId && isHostRole(row.role) ? [row.userId] : []));
+    await addSecretSantaDrawnNotices(ctx, secretSanta.eventId, hostUserIds);
+    await ctx.scheduler.runAfter(0, internal.sendSecretSantaDrawnEmail.sendSecretSantaDrawnEmails, {
+      secretSantaId: secretSanta._id,
+    });
+  }
   return null;
 }
+
+// Feeds the email telling hosts a Reviewed draw is waiting to be sent.
+export const getDrawnEmailData = internalQuery({
+  args: { secretSantaId: v.id('secretSantas') },
+  handler: async (ctx, args) => {
+    const secretSanta = await ctx.db.get(args.secretSantaId);
+    if (!secretSanta || secretSanta.status !== 'drawn') return null;
+    const event = await ctx.db.get(secretSanta.eventId);
+    if (!event) return null;
+
+    const rows = await ctx.db
+      .query('eventAttendees')
+      .withIndex('by_event', q => q.eq('eventId', event._id))
+      .collect();
+    const hosts = await Promise.all(
+      rows.map(async row => {
+        if (!row.userId || !isHostRole(row.role)) return null;
+        const host = await authComponent.getAnyUserById(ctx, row.userId);
+        return host ? { toEmail: host.email.toLowerCase(), toName: host.name ?? 'there' } : null;
+      }),
+    );
+    return { eventId: event._id, eventName: event.name, hosts: hosts.filter(h => h !== null) };
+  },
+});
 
 // For a round set to draw early: draws once nobody in it is still to reply.
 // Called whenever an event's guest list changes (an invite answered,
 // revoked or removed). Never throws - a failed draw is saved on the round
 // for hosts to see, and the scheduled draw still tries again later.
-export async function drawIfEveryoneReplied(ctx: MutationCtx, eventId: Id<'events'>) {
+// `notifyHosts` is off when the host is the one who just saved the round.
+export async function drawIfEveryoneReplied(ctx: MutationCtx, eventId: Id<'events'>, { notifyHosts = true } = {}) {
   const secretSanta = await getSecretSanta(ctx, eventId);
   if (!secretSanta || secretSanta.status !== 'draft' || !secretSanta.drawEarly) return;
 
   const rows = await getEntrantRows(ctx, secretSanta);
   if (rows.some(row => row.status === 'invited')) return;
 
-  const error = await draw(ctx, secretSanta);
+  const error = await draw(ctx, secretSanta, { notifyHosts });
   if (error) await ctx.db.patch(secretSanta._id, { drawError: error });
 }
 
@@ -500,7 +747,7 @@ export const drawScheduled = internalMutation({
   handler: async (ctx, args) => {
     const secretSanta = await ctx.db.get(args.secretSantaId);
     if (!secretSanta || secretSanta.status !== 'draft') return null;
-    const error = await draw(ctx, secretSanta);
+    const error = await draw(ctx, secretSanta, { notifyHosts: true });
     if (error) await ctx.db.patch(secretSanta._id, { drawError: error, scheduledDrawId: undefined });
     return null;
   },
@@ -516,8 +763,10 @@ async function getGroupMemberUsers(ctx: QueryCtx, groupId: Id<'groups'>) {
   const users = await Promise.all(
     members.map(async member => {
       const memberUser = await authComponent.getAnyUserById(ctx, member.userId);
-      return memberUser ? { userId: member.userId, email: memberUser.email.toLowerCase(), name: memberUser.name } : null;
-    })
+      return memberUser
+        ? { userId: member.userId, email: memberUser.email.toLowerCase(), name: memberUser.name }
+        : null;
+    }),
   );
   return users.filter(u => u !== null);
 }
@@ -544,10 +793,12 @@ export const setupOptions = query({
     const attendance = await getAttendance(ctx, args.eventId, user._id);
     if (!attendance || !isHostRole(attendance.role)) return null;
 
-    const rows = await ctx.db
-      .query('eventAttendees')
-      .withIndex('by_event', q => q.eq('eventId', args.eventId))
-      .collect();
+    const rows = (
+      await ctx.db
+        .query('eventAttendees')
+        .withIndex('by_event', q => q.eq('eventId', args.eventId))
+        .collect()
+    ).filter(row => row.status !== 'revoked');
 
     // Only groups the host is in - remembering a pair for a group needs that.
     const groupInvites = await ctx.db
@@ -560,7 +811,7 @@ export const setupOptions = query({
           const group = await ctx.db.get(invite.groupId);
           if (!group || !(await getMembership(ctx, group._id, user._id))) return null;
           return { group, members: await getGroupMemberUsers(ctx, group._id) };
-        })
+        }),
       )
     ).filter(g => g !== null);
     const knownUsers = groups.flatMap(g => g.members);
@@ -579,11 +830,15 @@ export const setupOptions = query({
           status: row.status,
           isMe: row.userId === user._id,
         };
-      })
+      }),
     );
     const attendeeIdByUser = new Map(people.flatMap(p => (p.userId ? [[p.userId, p.attendeeId] as const] : [])));
 
-    const suggestedRules: { attendeeAId: Id<'eventAttendees'>; attendeeBId: Id<'eventAttendees'>; groupId: Id<'groups'> }[] = [];
+    const suggestedRules: {
+      attendeeAId: Id<'eventAttendees'>;
+      attendeeBId: Id<'eventAttendees'>;
+      groupId: Id<'groups'>;
+    }[] = [];
     const seen = new Set<string>();
     for (const { group } of groups) {
       for await (const pair of ctx.db
@@ -599,8 +854,33 @@ export const setupOptions = query({
       }
     }
 
+    // A round that hasn't been drawn yet (e.g. after an undo) pre-fills the form.
+    const secretSanta = await getSecretSanta(ctx, args.eventId);
+    let saved = null;
+    if (secretSanta?.status === 'draft') {
+      const [entrants, rules] = await Promise.all([
+        ctx.db
+          .query('secretSantaEntrants')
+          .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))
+          .collect(),
+        ctx.db
+          .query('secretSantaRules')
+          .withIndex('by_secretSanta', q => q.eq('secretSantaId', secretSanta._id))
+          .collect(),
+      ]);
+      saved = {
+        attendeeIds: entrants.map(e => e.attendeeId),
+        rules: rules.map(r => ({ attendeeAId: r.attendeeAId, attendeeBId: r.attendeeBId })),
+        mode: secretSanta.mode ?? 'secret',
+        budget: secretSanta.budget ?? null,
+        drawAt: secretSanta.drawAt ?? null,
+        drawEarly: !!secretSanta.drawEarly,
+      };
+    }
+
     return {
       people,
+      saved,
       groups: groups.map(({ group, members }) => {
         const memberIds = new Set(members.map(m => m.userId));
         return {
@@ -621,7 +901,7 @@ async function rememberPair(
   groupId: Id<'groups'>,
   hostUserId: string,
   rowA: Doc<'eventAttendees'>,
-  rowB: Doc<'eventAttendees'>
+  rowB: Doc<'eventAttendees'>,
 ) {
   if (!(await getMembership(ctx, groupId, hostUserId))) return;
   const members = await getGroupMemberUsers(ctx, groupId);
@@ -639,9 +919,11 @@ async function rememberPair(
 }
 
 // Sets up Secret Santa for an event. With no `drawAt` (or one already
-// past), names are drawn now - only people going are in. Otherwise the draw
+// past), names are drawn now - only people going are in. In a Reviewed draw
+// nobody is told until a host sends the names. Otherwise the draw
 // is scheduled, and with `drawEarly` happens as soon as everyone picked has
-// replied.
+// replied. A round that hasn't been drawn yet (scheduled, or undone) is
+// replaced; one that has been drawn must be undone first.
 export const setup = mutation({
   args: {
     eventId: v.id('events'),
@@ -652,8 +934,9 @@ export const setup = mutation({
         attendeeAId: v.id('eventAttendees'),
         attendeeBId: v.id('eventAttendees'),
         rememberForGroupId: v.optional(v.id('groups')),
-      })
+      }),
     ),
+    mode: v.union(v.literal('secret'), v.literal('reviewed')),
     drawAt: v.optional(v.number()),
     drawEarly: v.boolean(),
   },
@@ -661,15 +944,17 @@ export const setup = mutation({
     const user = await authComponent.getAuthUser(ctx);
     await requireHost(ctx, args.eventId, user._id);
 
-    if (await getSecretSanta(ctx, args.eventId)) {
-      throw new ConvexError('Secret Santa is already set up for this event.');
+    const existing = await getSecretSanta(ctx, args.eventId);
+    if (existing && existing.status !== 'draft') {
+      throw new ConvexError('Names have already been drawn. Undo the draw to change it.');
     }
 
     const attendeeIds = [...new Set(args.attendeeIds)];
     const rows = new Map<string, Doc<'eventAttendees'>>();
     for (const id of attendeeIds) {
       const row = await ctx.db.get(id);
-      if (!row || row.eventId !== args.eventId) throw new ConvexError('Someone in the draw is no longer on the event.');
+      if (!row || row.eventId !== args.eventId || row.status === 'revoked')
+        throw new ConvexError('Someone in the draw is no longer on the event.');
       rows.set(id, row);
     }
     if (attendeeIds.length < 2) throw new ConvexError('Pick at least 2 people.');
@@ -685,15 +970,32 @@ export const setup = mutation({
     }
 
     const drawLater = args.drawAt !== undefined && args.drawAt > Date.now();
-    const secretSantaId = await ctx.db.insert('secretSantas', {
-      eventId: args.eventId,
-      status: 'draft',
-      createdBy: user._id,
-      private: true,
+    const fields = {
+      mode: args.mode,
       budget: args.budget,
       drawAt: drawLater ? args.drawAt : undefined,
       drawEarly: drawLater ? args.drawEarly : undefined,
-    });
+    };
+    let secretSantaId: Id<'secretSantas'>;
+    if (existing) {
+      secretSantaId = existing._id;
+      await cancelScheduledDraw(ctx, existing);
+      await deleteSecretSantaChildren(ctx, secretSantaId);
+      await deleteEntrantsAndRules(ctx, secretSantaId);
+      await ctx.db.patch(secretSantaId, {
+        ...fields,
+        scheduledDrawId: undefined,
+        drawError: undefined,
+        undoneAt: undefined,
+      });
+    } else {
+      secretSantaId = await ctx.db.insert('secretSantas', {
+        eventId: args.eventId,
+        status: 'draft',
+        createdBy: user._id,
+        ...fields,
+      });
+    }
 
     for (const attendeeId of attendeeIds) {
       await ctx.db.insert('secretSantaEntrants', { secretSantaId, attendeeId });
@@ -706,16 +1008,18 @@ export const setup = mutation({
     }
 
     if (!drawLater) {
-      const error = await draw(ctx, (await ctx.db.get(secretSantaId))!);
+      const error = await draw(ctx, (await ctx.db.get(secretSantaId))!, { notifyHosts: false });
       // Throwing rolls back the whole setup, so the host can fix it and retry.
       if (error) throw new ConvexError(error);
       return secretSantaId;
     }
 
-    const scheduledDrawId = await ctx.scheduler.runAt(args.drawAt!, internal.secretSanta.drawScheduled, { secretSantaId });
+    const scheduledDrawId = await ctx.scheduler.runAt(args.drawAt!, internal.secretSanta.drawScheduled, {
+      secretSantaId,
+    });
     await ctx.db.patch(secretSantaId, { scheduledDrawId });
     // Everyone may already have replied.
-    await drawIfEveryoneReplied(ctx, args.eventId);
+    await drawIfEveryoneReplied(ctx, args.eventId, { notifyHosts: false });
     return secretSantaId;
   },
 });

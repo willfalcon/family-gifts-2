@@ -60,6 +60,13 @@ export default function InviteGuests() {
     }
   }
 
+  function confirmRevoke(inviteId: Id<'eventAttendees'>, email: string) {
+    Alert.alert('Revoke invite?', `The invite sent to ${email} will stop working. You can invite them again later.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Revoke', style: 'destructive', onPress: () => run(() => revokeInvite({ id: inviteId })) },
+    ]);
+  }
+
   async function shareInviteLink() {
     if (!eventId) return;
     setSharing(true);
@@ -180,10 +187,10 @@ export default function InviteGuests() {
                   <View className="flex-1">
                     <Text>{invite.email}</Text>
                     {invite.sourceGroupName && (
-                      <Text className="text-[13px] text-ink-muted">via {invite.sourceGroupName}</Text>
+                      <Text className="text-[13px] text-ink-muted">From {invite.sourceGroupName}</Text>
                     )}
                   </View>
-                  <Button variant="link" className="px-0" onPress={() => run(() => revokeInvite({ id: invite._id }))}>
+                  <Button variant="link" className="px-0" onPress={() => confirmRevoke(invite._id, invite.email)}>
                     <Text className="text-destructive font-normal">Revoke</Text>
                   </Button>
                 </FieldRow>

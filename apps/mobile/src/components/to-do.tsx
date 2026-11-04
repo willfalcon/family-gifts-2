@@ -8,7 +8,6 @@ export default function ToDo() {
   return (
     <View>
       <Text className="font-semibold text-muted-foreground">To do</Text>
-      <ToDoItem id="vest" title="Buy Sarah's running vest" subtitle="Christmas - you claimed it" />
       <ToDoItem id="secret-santa" title="Set up Secret Santa" subtitle="Family Christmas Party - Dec 25" />
       <ToDoItem id="add-items" title="Add a few ideas to your list" subtitle="Your family can see 2 so far" />
     </View>

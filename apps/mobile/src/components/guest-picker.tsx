@@ -131,9 +131,15 @@ export function GuestPicker({
     setAddingNew(false);
   }
 
+  // A typed email can be invited directly unless one of the results is the
+  // person with exactly that email. Other results are loose text matches
+  // (e.g. "gmail"), so they don't count.
   const typedEmail = query.toLowerCase();
   const canInviteTyped =
-    EMAIL_PATTERN.test(typedEmail) && !picked.has(typedEmail) && results !== undefined && results.length === 0;
+    EMAIL_PATTERN.test(typedEmail) &&
+    !picked.has(typedEmail) &&
+    results !== undefined &&
+    !results.some(person => person.emailMatch);
 
   return (
     <>
@@ -159,14 +165,6 @@ export function GuestPicker({
       {query ? (
         // Searching replaces the rest of the screen with matches.
         <View className="gap-2">
-          {results?.map(person => (
-            <PersonRow
-              key={person.userId}
-              person={person}
-              checked={picked.has(person.userId)}
-              onToggle={() => togglePerson(person)}
-            />
-          ))}
           {canInviteTyped && (
             <Pressable
               onPress={() => {
@@ -182,6 +180,14 @@ export function GuestPicker({
               </FieldRow>
             </Pressable>
           )}
+          {results?.map(person => (
+            <PersonRow
+              key={person.userId}
+              person={person}
+              checked={picked.has(person.userId)}
+              onToggle={() => togglePerson(person)}
+            />
+          ))}
           {results?.length === 0 && !canInviteTyped && !picked.has(typedEmail) && (
             <Text className="text-ink-muted">No one found. Type a full email to invite someone new.</Text>
           )}

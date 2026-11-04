@@ -15,11 +15,11 @@ export function normalizeToday(today: string) {
   return ISO_DATE.test(today) ? today : new Date().toISOString().slice(0, 10);
 }
 
-function toISO(year: number, month: number, day: number) {
+export function toISO(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function daysBetween(from: string, to: string) {
+export function daysBetween(from: string, to: string) {
   const [fy, fm, fd] = from.split('-').map(Number);
   const [ty, tm, td] = to.split('-').map(Number);
   return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
@@ -31,7 +31,7 @@ function isLeapYear(year: number) {
 
 // The next time a yearly month/day falls on or after `today`. Feb 29 lands
 // on Feb 28 in non-leap years.
-function nextYearly(month: number, day: number, today: string) {
+export function nextYearly(month: number, day: number, today: string) {
   const year = Number(today.slice(0, 4));
   for (const y of [year, year + 1]) {
     const d = month === 2 && day === 29 && !isLeapYear(y) ? 28 : day;
@@ -39,6 +39,12 @@ function nextYearly(month: number, day: number, today: string) {
     if (date >= today) return date;
   }
   return toISO(year + 1, month, day);
+}
+
+// `date` moved by `days` (negative for earlier).
+export function addDays(date: string, days: number) {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
 // Whether `profile`'s birthday may be shown to members of `groupId`.

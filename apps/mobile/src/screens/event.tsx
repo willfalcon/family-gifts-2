@@ -19,10 +19,12 @@ import {
   useEvent,
   useEventAttendees,
   useEventInviteLink,
+  useEventInvitees,
   useEventOccasionLists,
   useEventPendingInviteCount,
   useEventSharedLists,
 } from '@/hooks/events';
+import { useEventActions } from '@/hooks/event-actions';
 import { useSecretSanta } from '@/hooks/secret-santa-setup';
 import { useUser } from '@/hooks/user';
 import { api } from '@convex/_generated/api';
@@ -52,6 +54,7 @@ export default function Event() {
   const isOwner = myRole === 'owner';
   const isHost = isOwner || myRole === 'host';
   const pendingCount = useEventPendingInviteCount(eventId);
+  const invitees = useEventInvitees(eventId);
   const lists = useEventSharedLists(eventId);
   const occasionLists = useEventOccasionLists(eventId);
   const inviteLink = useEventInviteLink(eventId);
@@ -59,9 +62,12 @@ export default function Event() {
 
   const setAttendeeRole = useMutation(api.events.setAttendeeRole);
   const removeAttendee = useMutation(api.events.removeAttendee);
+  const revokeInvite = useMutation(api.events.revokeInvite);
   const transferOwnership = useMutation(api.events.transferOwnership);
-  const deleteEvent = useMutation(api.events.remove);
   const setMyStatus = useMutation(api.events.setMyStatus);
+  const undoDraw = useMutation(api.secretSanta.undoDraw);
+  const eventActions = useEventActions(event, exitEvent);
+  const cancelled = event?.cancelledAt !== undefined;
 
   if (event === null) {
     return (
@@ -75,29 +81,6 @@ export default function Event() {
   function exitEvent() {
     if (router.canGoBack()) router.back();
     else router.replace('/(app)/(events)/events');
-  }
-
-  function confirmDelete() {
-    if (!event) return;
-    Alert.alert(
-      `Delete ${event.name}?`,
-      'This removes the event for everyone, along with its invites and Secret Santa. Lists shared with it are kept. This can’t be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteEvent({ id: event._id });
-              exitEvent();
-            } catch (e) {
-              showError(e);
-            }
-          },
-        },
-      ],
-    );
   }
 
   async function run(action: () => Promise<unknown>) {
@@ -120,12 +103,39 @@ export default function Event() {
     ]);
   }
 
+  function confirmRevoke(inviteId: Id<'eventAttendees'>, name: string) {
+    Alert.alert('Revoke invite?', `The invite sent to ${name} will stop working. You can invite them again later.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Revoke', style: 'destructive', onPress: () => run(() => revokeInvite({ id: inviteId })) },
+    ]);
+  }
+
   function confirmTransfer(attendeeId: Id<'eventAttendees'>, name: string) {
     if (!event) return;
     Alert.alert(`Make ${name} the owner?`, 'You’ll become a host. Only the owner can delete the event.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Transfer', onPress: () => run(() => transferOwnership({ eventId: event._id, attendeeId })) },
     ]);
+  }
+
+  function confirmUndoDraw() {
+    if (!event || !secretSanta?.exists) return;
+    // Before the names are sent nobody knew their match, so nobody is told.
+    const sent = secretSanta.status === 'sent';
+    Alert.alert(
+      'Undo the draw?',
+      `Everyone’s match is cleared. Who’s in and the keep-apart rules are kept, so you can draw again.${
+        sent ? ' Everyone in the draw gets a notice that their old match no longer counts.' : ''
+      }`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Undo draw',
+          style: 'destructive',
+          onPress: () => run(() => undoDraw({ eventId: event._id })),
+        },
+      ],
+    );
   }
 
   // The join link: anyone with it can answer Going / Can't go on the web.
@@ -153,14 +163,22 @@ export default function Event() {
 
   const menuActions = [
     // Invites are host-only on the server.
-    ...(isHost ? [{ id: 'invite', title: 'Invite guests' }] : []),
+    ...(isHost && !cancelled ? [{ id: 'invite', title: 'Invite guests' }] : []),
     // Guests only see this while hosts let them share the link.
-    ...(inviteLink?.url ? [{ id: 'copy-link', title: 'Copy invite link' }] : []),
+    ...(inviteLink?.url && !cancelled ? [{ id: 'copy-link', title: 'Copy invite link' }] : []),
     ...(me?.status === 'declined'
       ? [{ id: 'going', title: 'I can go after all' }]
       : me
         ? [{ id: 'cant-go', title: 'Can\u2019t go anymore', attributes: { destructive: true } }]
         : []),
+    event?.archived ? { id: 'unarchive', title: 'Unarchive' } : { id: 'archive', title: 'Archive' },
+    ...(isHost
+      ? [
+          cancelled
+            ? { id: 'restore', title: 'Restore event' }
+            : { id: 'cancel', title: 'Cancel event', attributes: { destructive: true } },
+        ]
+      : []),
     ...(isOwner ? [{ id: 'delete', title: 'Delete event', attributes: { destructive: true } }] : []),
   ];
 
@@ -174,6 +192,12 @@ export default function Event() {
   } as const;
   const secretSantaHref = {
     pathname: inGroupsTab ? '/(app)/(groups)/events/[id]/secret-santa' : '/(app)/(events)/events/[id]/secret-santa',
+    params: { id },
+  } as const;
+  const secretSantaSetupHref = {
+    pathname: inGroupsTab
+      ? '/(app)/(groups)/events/[id]/secret-santa/setup'
+      : '/(app)/(events)/events/[id]/secret-santa/setup',
     params: { id },
   } as const;
   const going = attendees?.filter(a => a.status === 'going') ?? [];
@@ -214,7 +238,11 @@ export default function Event() {
                   else if (action === 'copy-link') copyLink();
                   else if (action === 'cant-go') confirmCantGo();
                   else if (action === 'going' && event) run(() => setMyStatus({ eventId: event._id, status: 'going' }));
-                  else if (action === 'delete') confirmDelete();
+                  else if (action === 'archive') eventActions.archive();
+                  else if (action === 'unarchive') eventActions.unarchive();
+                  else if (action === 'cancel') eventActions.confirmCancel();
+                  else if (action === 'restore') eventActions.restore();
+                  else if (action === 'delete') eventActions.confirmDelete();
                 }}
               >
                 <Button variant="ghost" size="icon" accessibilityLabel="Event options">
@@ -232,6 +260,19 @@ export default function Event() {
             </Text>
           )}
         </View>
+
+        {cancelled && (
+          <View className="flex-row items-center gap-3 rounded-xl bg-fill p-3">
+            <Text className="flex-1 text-ink-muted">
+              This event was cancelled. Its invites and link don’t work until a host restores it.
+            </Text>
+            {isHost && (
+              <Button variant="secondary" size="sm" className="rounded-pill" onPress={eventActions.restore}>
+                <Text className="text-accent">Restore</Text>
+              </Button>
+            )}
+          </View>
+        )}
 
         {event?.description && <Text>{event.description}</Text>}
 
@@ -252,7 +293,7 @@ export default function Event() {
               <Text className="flex-1 text-[13px] text-ink-muted">
                 {going.length} going &middot; {pendingCount ?? 0} waiting
               </Text>
-              {isHost && (
+              {isHost && !cancelled && (
                 <Link href={inviteHref} asChild>
                   <Button variant="secondary" size="sm" className="rounded-pill">
                     <Icon as={Plus} size={16} strokeWidth={2.5} className="text-accent" />
@@ -313,21 +354,56 @@ export default function Event() {
         {secretSanta && (secretSanta.exists || isHost) && (
           <View className="gap-3">
             <Text className="font-semibold text-ink-muted text-[15px]">Secret Santa</Text>
-            {!secretSanta.exists ? (
-              // Hosts set it up once; after that the row shows how it's going.
-              <Link href={secretSantaHref} asChild>
+            {!secretSanta.exists || (isHost && secretSanta.status === 'draft') ? (
+              // Until names are drawn, hosts can open the setup to change it
+              // (or draw again after an undo); after that the row shows how it's going.
+              <Link href={secretSantaSetupHref} asChild>
                 <Pressable className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
-                  <View className="gap-1">
-                    <Text className="text-[17px]">Draw names</Text>
-                    <Text className="text-[13px] text-ink-muted">Not set up</Text>
+                  <View className="flex-1 gap-1">
+                    <Text className="text-[17px]">
+                      {secretSanta.exists ? secretSantaSummary(secretSanta).title : 'Draw names'}
+                    </Text>
+                    <Text className="text-[13px] text-ink-muted">
+                      {secretSanta.exists ? secretSantaSummary(secretSanta).detail : 'Not set up'}
+                    </Text>
                   </View>
                   <Icon as={ChevronRight} size={20} className="text-ink-muted" />
                 </Pressable>
               </Link>
             ) : (
-              <View className="gap-1 border-b border-line pb-1">
-                <Text className="text-[17px]">{secretSantaSummary(secretSanta).title}</Text>
-                <Text className="text-[13px] text-ink-muted">{secretSantaSummary(secretSanta).detail}</Text>
+              <View className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
+                {(secretSanta.status === 'sent' && secretSanta.myAssignment) ||
+                (secretSanta.isManager && secretSanta.mode === 'reviewed') ? (
+                  // Once names are sent, anyone in the draw opens the Secret
+                  // Santa page to reveal their Match. In a Reviewed draw,
+                  // hosts open it to see every Match (and send the names).
+                  <Link href={secretSantaHref} asChild>
+                    <Pressable className="flex-1 flex-row items-center gap-2">
+                      <View className="flex-1 gap-1">
+                        <Text className="text-[17px]">{secretSantaSummary(secretSanta).title}</Text>
+                        <Text className="text-[13px] text-ink-muted">{secretSantaSummary(secretSanta).detail}</Text>
+                      </View>
+                      <Icon as={ChevronRight} size={20} className="text-ink-muted" />
+                    </Pressable>
+                  </Link>
+                ) : (
+                  <View className="flex-1 gap-1">
+                    <Text className="text-[17px]">{secretSantaSummary(secretSanta).title}</Text>
+                    <Text className="text-[13px] text-ink-muted">{secretSantaSummary(secretSanta).detail}</Text>
+                  </View>
+                )}
+                {isHost && secretSanta.status !== 'draft' && (
+                  <MenuView
+                    actions={[{ id: 'undo-draw', title: 'Undo draw', attributes: { destructive: true } }]}
+                    onPressAction={e => {
+                      if (e.nativeEvent.event === 'undo-draw') confirmUndoDraw();
+                    }}
+                  >
+                    <GlassButton accessibilityLabel="Secret Santa options">
+                      <Icon as={Ellipsis} />
+                    </GlassButton>
+                  </MenuView>
+                )}
               </View>
             )}
           </View>
@@ -392,7 +468,57 @@ export default function Event() {
             })}
           </View>
         )}
-        {/* 
+
+        {invitees && invitees.invitees.length + invitees.withoutAccount > 0 && (
+          <View className="gap-3">
+            <Text className="font-semibold text-ink-muted text-[15px]">
+              Waiting on {invitees.invitees.length + invitees.withoutAccount}
+            </Text>
+            {invitees.invitees.map(invitee => {
+              const label = invitee.name ?? invitee.email ?? '';
+              // Hosts see where the invite came from: the group, or else the email it went to.
+              const details = invitee.fromGroupName
+                ? `From ${invitee.fromGroupName}`
+                : invitee.name
+                  ? (invitee.email ?? '')
+                  : '';
+              return (
+                <View key={invitee.id} className="flex-row items-center gap-2">
+                  <View
+                    className="size-10 rounded-full items-center justify-center"
+                    style={{ backgroundColor: invitee.color }}
+                  >
+                    <Text className="text-center text-lg font-semibold text-on-avatar">
+                      {label.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="">{label}</Text>
+                    {details !== '' && <Text className="text-subhead text-ink-muted">{details}</Text>}
+                  </View>
+                  {isHost && (
+                    <MenuView
+                      actions={[{ id: 'revoke', title: 'Revoke invite', attributes: { destructive: true } }]}
+                      onPressAction={e => {
+                        if (e.nativeEvent.event === 'revoke') confirmRevoke(invitee.id, label);
+                      }}
+                    >
+                      <GlassButton accessibilityLabel={`Options for ${label}`}>
+                        <Icon as={Ellipsis} />
+                      </GlassButton>
+                    </MenuView>
+                  )}
+                </View>
+              );
+            })}
+            {invitees.withoutAccount > 0 && (
+              <Text className="text-ink-muted">
+                {invitees.withoutAccount} {invitees.withoutAccount === 1 ? 'person' : 'people'} without an account
+              </Text>
+            )}
+          </View>
+        )}
+        {/*
         {lists && (
           <View className="gap-2">
             <Text className="font-semibold text-ink-muted text-[15px]">Lists</Text>
@@ -431,21 +557,35 @@ const MAX_AVATARS = 4;
 
 type SecretSantaState = Extract<NonNullable<ReturnType<typeof useSecretSanta>>, { exists: true }>;
 
-// The Secret Santa row once it's set up: the viewer's own match after the
-// draw, or when names will be drawn before it.
+// The Secret Santa row once it's set up: whether names are drawn (the Match
+// itself only shows on the Secret Santa page), or when they will be.
 function secretSantaSummary(state: SecretSantaState) {
   const budget = state.budget != null ? `$${state.budget} limit` : null;
   const withBudget = (text: string) => (budget ? `${text} · ${budget}` : text);
 
+  const reviewedHost = state.isManager && state.mode === 'reviewed';
+  if (state.status === 'drawn') return { title: 'Names drawn', detail: withBudget('Not sent yet') };
   if (state.status === 'sent') {
-    if (state.myAssignment) return { title: `You're getting ${state.myAssignment.name}`, detail: withBudget('Names drawn') };
+    if (state.myAssignment) return { title: 'Names drawn', detail: withBudget('Tap to see who you’re giving to') };
+    if (reviewedHost) return { title: 'Names sent', detail: withBudget('Tap to see the matches') };
     return { title: 'Names drawn', detail: withBudget('You’re not in the draw') };
+  }
+  if (state.undone) {
+    return state.isManager
+      ? { title: 'Draw undone', detail: withBudget('Tap to draw names again') }
+      : { title: 'Names being drawn again', detail: withBudget('Your old match no longer counts') };
   }
   const drawError = state.isManager ? state.drawError : null;
   if (drawError) return { title: 'Names not drawn yet', detail: drawError };
+  const notified = reviewedHost ? 'Nobody is told until you send the names' : 'Everyone gets a notification';
   if (state.drawAt) {
-    return { title: `Drawing names ${format(state.drawAt, 'EEE, MMM d')}`, detail: withBudget('Everyone gets a notification') };
+    return {
+      title: `Drawing names ${format(state.drawAt, 'EEE, MMM d')}`,
+      detail: withBudget(notified),
+    };
   }
+  // Nothing scheduled: e.g. a Reviewed draw undone before it was sent.
+  if (state.isManager) return { title: 'Names not drawn yet', detail: withBudget('Tap to draw names') };
   return { title: 'Drawing names soon', detail: withBudget('Everyone gets a notification') };
 }
 

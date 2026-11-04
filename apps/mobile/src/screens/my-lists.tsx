@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Gift, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { ListRow, NativeList } from '@/components/native-list';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useArchivedLists, useLists } from '@/hooks/lists';
+import { Button } from '@/components/ui/button';
 
 export default function MyLists() {
   const lists = useLists();
@@ -29,7 +30,7 @@ export default function MyLists() {
       </View>
 
       {lists && lists.length === 0 ? (
-        <Text>Empty</Text>
+        <NoLists />
       ) : (
         <NativeList rowSpacing={8}>
           {lists && lists.map(list => <ListListItem key={list._id} {...list} />)}
@@ -63,5 +64,24 @@ export default function MyLists() {
         </NativeList>
       )}
     </SafeAreaView>
+  );
+}
+
+function NoLists() {
+  return (
+    <View className="flex-1 items-center justify-center gap-4">
+      <View className="bg-fill size-16 rounded-2xl items-center justify-center">
+        <Icon as={Gift} size={32} className="text-ink-muted" />
+      </View>
+      <Text className="font-semibold text-xl">Start your first list</Text>
+      <Text className="text-ink-muted text-center" pretty>
+        Add things you'd love from any store, or just type them in. Share the list with family when you're ready.
+      </Text>
+      <Link href="/lists/new" asChild className="w-full mt-4">
+        <Button size="lg">
+          <Text>Create a list</Text>
+        </Button>
+      </Link>
+    </View>
   );
 }

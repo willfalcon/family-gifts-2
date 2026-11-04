@@ -27,9 +27,10 @@ export const seed = internalAction({
     // One at a time: each sign-up hashes a password and fires the profile trigger.
     for (const user of MOCK_USERS) {
       try {
-        await auth.api.signUpEmail({
-          body: { name: user.name, email: user.email, password: MOCK_USER_PASSWORD },
-        });
+        // The name parts aren't in Better Auth's types, but the sign-up hook in
+        // convex/auth.ts reads them off the body.
+        const body = { name: user.name, firstName: user.firstName, lastName: user.lastName, email: user.email, password: MOCK_USER_PASSWORD };
+        await auth.api.signUpEmail({ body });
         created.push(user.email);
       } catch (error) {
         // Better Auth throws when the email is taken; anything else is a real failure.

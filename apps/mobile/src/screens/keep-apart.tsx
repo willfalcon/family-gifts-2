@@ -80,10 +80,8 @@ export default function KeepApart() {
             <Icon as={Ampersand} size={32} className="text-ink-muted" />
             <PickCard person={second ? byId.get(second) : undefined} />
           </View>
-          <Text className="text-center text-[15px] text-ink-muted">
-            They won’t draw each other, in either direction.
-          </Text>
-          <View className="rounded-xl bg-fill p-3">
+          <Text className="text-[15px] text-ink-muted">They won’t draw each other, in either direction.</Text>
+          <View className="rounded-xl bg-fill p-4">
             <Text className="text-[14px] text-ink">Pick two people. Tap someone again to take them out.</Text>
           </View>
         </View>
@@ -142,10 +140,10 @@ function PickCard({ person }: { person: SetupPerson | undefined }) {
         </>
       ) : (
         <>
-          <View className="size-12 items-center justify-center rounded-full border-2 border-accent">
-            <Icon as={Plus} size={22} className="text-accent" />
+          <View className="size-12 items-center justify-center rounded-full bg-fill">
+            <Icon as={Plus} strokeWidth={3} className="text-ink-muted" />
           </View>
-          <Text className="text-center text-ink-muted">Pick someone</Text>
+          <Text className="text-center text-ink-muted text-semibold">Pick someone</Text>
         </>
       )}
     </View>

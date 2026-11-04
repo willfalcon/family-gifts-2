@@ -4,6 +4,7 @@ import { authClient } from '../lib/auth-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BigTitle } from '@/components/ui/big-title';
+import { fullName } from '@convex/names';
 import { Wordmark } from '@/components/ui/wordmark';
 
 export const Route = createFileRoute('/signup')({
@@ -11,7 +12,8 @@ export const Route = createFileRoute('/signup')({
 });
 
 function RouteComponent() {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,15 @@ function RouteComponent() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } = await authClient.signUp.email({ email, password, name });
+    // `name` is the full name the app shows. The parts go along too and are
+    // saved on the profile (see databaseHooks in convex/auth.ts).
+    const { error } = await authClient.signUp.email({
+      email,
+      password,
+      name: fullName(firstName, lastName),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+    });
     if (error) {
       setError(error.message ?? 'Something went wrong');
       setSubmitting(false);
@@ -38,7 +48,21 @@ function RouteComponent() {
         <div className="w-full max-w-sm">
           <BigTitle title="Family Gifts" subtitle="Create an account to start a list." />
           <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-            <Input placeholder="name" value={name} onChange={e => setName(e.target.value)} required />
+            <div className="flex gap-3">
+              <Input
+                placeholder="first name"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                required
+              />
+              <Input
+                placeholder="last name"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+              />
+            </div>
             <Input placeholder="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             <Input placeholder="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             <Button type="submit" disabled={submitting} className="w-full">

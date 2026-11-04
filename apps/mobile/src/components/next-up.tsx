@@ -6,7 +6,7 @@ import { Text } from './ui/text';
 export default function NextUp() {
   const events = useEvents();
 
-  const nextEvent = events?.length ? events[0] : null;
+  const nextEvent = events?.find(e => e.cancelledAt === undefined) ?? null;
 
   const when = nextEvent?.date ? formatRelativeDay(nextEvent.date) : undefined;
   const date =

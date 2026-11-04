@@ -12,16 +12,30 @@ import { FieldRow } from '@/components/profile-form';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Icon } from '@/components/ui/icon';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { localToday, useEvent } from '@/hooks/events';
-import { useSecretSantaSetup, type SetupPerson } from '@/hooks/secret-santa-setup';
+import { useSecretSantaSetup, type DrawMode, type SetupPerson } from '@/hooks/secret-santa-setup';
 import { api } from '@convex/_generated/api';
 import { colors } from '@family-gifts/design-tokens';
 import { formatShortDate, formatWhen } from '@shared/event-dates';
 
 // Scheduled draws happen at this hour, local time, on the chosen day.
 const DRAW_HOUR = 9;
+
+const MODE_OPTIONS: { mode: DrawMode; label: string; description: string }[] = [
+  {
+    mode: 'secret',
+    label: 'Keep matches secret',
+    description: 'Everyone is told their person right away after the draw. Nobody sees who has whom, including you.',
+  },
+  {
+    mode: 'reviewed',
+    label: 'Let me see the matches',
+    description: 'Review and swap matches first. Nobody is told until you send the names.',
+  },
+];
 
 export function statusLabel(person: SetupPerson) {
   if (person.status === 'declined') return 'Not going';
@@ -53,14 +67,27 @@ export function PersonAvatar({ person, size = 40 }: { person: Pick<SetupPerson, 
 }
 
 // Sets up Secret Santa for an event: who's in, the budget, who to keep
-// apart, and when names get drawn. Hosts only.
+// apart, whether hosts see the matches, and when names get drawn. Hosts only.
 export default function SecretSantaSetup() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const inGroupsTab = useSegments().includes('(groups)');
   const event = useEvent(id);
   const setup = useSecretSantaSetup();
-  const { options, picked, togglePicked, budget, setBudget, rules, removeRule, drawDate, setDrawDate, drawEarly, setDrawEarly } =
-    setup;
+  const {
+    options,
+    picked,
+    togglePicked,
+    budget,
+    setBudget,
+    rules,
+    removeRule,
+    mode,
+    setMode,
+    drawDate,
+    setDrawDate,
+    drawEarly,
+    setDrawEarly,
+  } = setup;
   const createSecretSanta = useMutation(api.secretSanta.setup);
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,6 +95,9 @@ export default function SecretSantaSetup() {
   const byId = new Map(people.map(p => [p.attendeeId as string, p]));
   const drawNow = !drawDate;
   const today = localToday();
+  const reviewed = mode === 'reviewed';
+  // The host doing the setup, if they're in Who's in.
+  const meInDraw = people.find(p => p.isMe && picked.includes(p.attendeeId));
 
   // Picked people who won't be in a draw that happens now.
   const leftOut = people.filter(p => picked.includes(p.attendeeId) && p.status !== 'going');
@@ -100,10 +130,13 @@ export default function SecretSantaSetup() {
         attendeeIds: picked,
         budget: amount,
         rules: rules.map(r => ({ attendeeAId: r.a, attendeeBId: r.b, rememberForGroupId: r.rememberForGroupId })),
+        mode,
         drawAt,
         drawEarly,
       });
-      router.back();
+      // A Reviewed draw done now goes straight to the matches to review.
+      if (drawNow && reviewed) router.replace(secretSantaHref);
+      else router.back();
     } catch (e) {
       Alert.alert(
         drawNow ? 'Couldn’t draw names' : 'Couldn’t set up Secret Santa',
@@ -113,10 +146,15 @@ export default function SecretSantaSetup() {
     }
   }
 
+  const secretSantaHref = {
+    pathname: inGroupsTab ? '/(app)/(groups)/events/[id]/secret-santa' : '/(app)/(events)/events/[id]/secret-santa',
+    params: { id },
+  } as const;
+
   const keepApartHref = {
     pathname: inGroupsTab
-      ? '/(app)/(groups)/events/[id]/secret-santa/keep-apart'
-      : '/(app)/(events)/events/[id]/secret-santa/keep-apart',
+      ? '/(app)/(groups)/events/[id]/secret-santa/setup/keep-apart'
+      : '/(app)/(events)/events/[id]/secret-santa/setup/keep-apart',
     params: { id },
   } as const;
 
@@ -128,7 +166,7 @@ export default function SecretSantaSetup() {
       }`
     : `Names are drawn on ${format(parseISO(drawDate), 'EEE, MMM d')}${
         drawEarly ? ', or sooner if everyone replies first' : ''
-      }. Everyone gets a notification.`;
+      }. ${reviewed ? 'You’ll get a notification to review them.' : 'Everyone gets a notification.'}`;
 
   return (
     <View className="flex-1 bg-background">
@@ -138,13 +176,6 @@ export default function SecretSantaSetup() {
         </GlassButton>
         <View className="flex-1 items-center">
           <Text className="text-center text-lg font-bold">Secret Santa</Text>
-          {event && (
-            <Text className="text-center text-footnote text-ink-muted" numberOfLines={1}>
-              {event.name}
-              {(event.date || event.startTime) &&
-                ` · ${event.date ? formatShortDate(event.date, event.startTime) : formatWhen(event)}`}
-            </Text>
-          )}
         </View>
         <GlassButton
           className="w-20"
@@ -166,7 +197,15 @@ export default function SecretSantaSetup() {
         automaticallyAdjustKeyboardInsets
       >
         <View className="gap-2">
+          {event && (
+            <Text className="text-footnote text-ink-muted" numberOfLines={1}>
+              {event.name}
+              {(event.date || event.startTime) &&
+                ` · ${event.date ? formatShortDate(event.date, event.startTime) : formatWhen(event)}`}
+            </Text>
+          )}
           <View>
+            <Text className="text-base font-semibold text-ink-muted">Who's in &middot; {picked.length}</Text>
             {people.map(person => {
               const checked = picked.includes(person.attendeeId);
               return (
@@ -259,6 +298,36 @@ export default function SecretSantaSetup() {
         </View>
 
         <View className="gap-2">
+          <Text nativeID="draw-mode" className="font-semibold text-ink-muted text-[15px]">
+            Matches
+          </Text>
+          <RadioGroup aria-labelledby="draw-mode" value={mode} onValueChange={value => setMode(value as DrawMode)}>
+            {MODE_OPTIONS.map(option => (
+              // The whole row is tappable, not just the checkmark.
+              <Pressable
+                key={option.mode}
+                onPress={() => setMode(option.mode)}
+                className="flex-row items-center justify-between gap-3 border-b border-line py-2"
+              >
+                <View className="flex-1">
+                  <Text>{option.label}</Text>
+                  <Text className="text-footnote text-ink-muted">{option.description}</Text>
+                </View>
+                <RadioGroupItem value={option.mode} aria-label={option.label} />
+              </Pressable>
+            ))}
+          </RadioGroup>
+          {reviewed && meInDraw && (
+            <View className="items-start gap-3 rounded-xl bg-surface p-4">
+              <Text>You’re in the draw, so you’ll also see who’s giving to you.</Text>
+              <Button variant="secondary" onPress={() => togglePicked(meInDraw.attendeeId)}>
+                <Text>Leave me out of the draw</Text>
+              </Button>
+            </View>
+          )}
+        </View>
+
+        <View className="gap-2">
           <Text className="font-semibold text-ink-muted text-[15px]">When to draw</Text>
           <FieldRow>
             <Text>Draw names</Text>
@@ -275,8 +344,9 @@ export default function SecretSantaSetup() {
           )}
           <Text className="text-footnote text-ink-muted">{drawFootnote}</Text>
           <Text className="text-footnote text-ink-muted">
-            Nobody sees who drew whom, not even hosts. Each person only sees their own match, and gets a notification
-            when names are drawn.
+            {reviewed
+              ? 'Hosts see who drew whom. Nobody else is told their match until you send the names.'
+              : 'Nobody sees who drew whom, not even hosts. Each person only sees their own match, and gets a notification when names are drawn.'}
           </Text>
         </View>
       </ScrollView>

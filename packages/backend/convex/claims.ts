@@ -124,6 +124,21 @@ export const unclaim = mutation({
   },
 });
 
+// Marks your own claim on an item as Bought, or not. Only the claimer ever
+// sees this, so it needs no list access check beyond owning the claim.
+export const setBought = mutation({
+  args: { itemId: v.id('items'), bought: v.boolean() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const mine = await ctx.db
+      .query('claims')
+      .withIndex('by_item_user', q => q.eq('itemId', args.itemId).eq('userId', user._id))
+      .unique();
+    if (!mine) throw new ConvexError('You haven’t claimed this.');
+    await ctx.db.patch(mine._id, { bought: args.bought || undefined });
+  },
+});
+
 // Claim status for every item on a list, for someone shopping from it.
 // Returns null for the list's owner - they never see claims - and for anyone
 // who can't see the list. `listId` comes from a URL param, so it's normalized.

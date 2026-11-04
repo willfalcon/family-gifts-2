@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@convex/_generated/api';
-import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +18,8 @@ const SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
 // Blank strings mean "not set" - the mutation clears those fields, and the
 // name update is skipped when it hasn't changed.
 const profileSchema = z.object({
-  name: z.string().trim().min(1, 'Add your name').max(100, 'Keep it under 100 characters'),
+  firstName: z.string().trim().min(1, 'Add your first name').max(50, 'Keep it under 50 characters'),
+  lastName: z.string().trim().max(50, 'Keep it under 50 characters'),
   birthday: z.string(),
   shirtSize: z.string(),
   bio: z.string().trim().max(1000, 'Keep your bio under 1000 characters'),
@@ -28,7 +28,8 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export interface ProfileDefaults {
-  name: string;
+  firstName: string;
+  lastName: string;
   birthday?: string;
   shirtSize?: string;
   notes?: string;
@@ -40,11 +41,13 @@ interface Props {
 
 export function ProfileForm({ defaults }: Props) {
   const updateProfile = useMutation({ mutationFn: useConvexMutation(api.profiles.updateMine) });
+  const updateName = useMutation({ mutationFn: useConvexMutation(api.profiles.updateName) });
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: defaults.name ?? '',
+      firstName: defaults.firstName,
+      lastName: defaults.lastName,
       birthday: defaults.birthday ?? '',
       shirtSize: defaults.shirtSize ?? '',
       bio: defaults.notes ?? '',
@@ -52,14 +55,14 @@ export function ProfileForm({ defaults }: Props) {
   });
 
   async function onSubmit(values: ProfileFormValues) {
-    const name = values.name.trim();
+    const firstName = values.firstName.trim();
+    const lastName = values.lastName.trim();
 
-    // Name lives on the Better Auth user record (the whole app reads it from
-    // there), so it updates through the auth client, not our mutation.
-    if (name !== defaults.name) {
-      const res = await authClient.updateUser({ name });
-      if (res.error) {
-        form.setError('name', { message: res.error.message ?? 'Could not save your name' });
+    if (firstName !== defaults.firstName || lastName !== defaults.lastName) {
+      try {
+        await updateName.mutateAsync({ firstName, lastName });
+      } catch {
+        form.setError('firstName', { message: 'Could not save your name' });
         return;
       }
     }
@@ -71,25 +74,41 @@ export function ProfileForm({ defaults }: Props) {
     });
 
     // Re-baseline the form so it's no longer "dirty" against the saved values.
-    form.reset({ ...values, name });
+    form.reset({ ...values, firstName, lastName });
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="my-4 flex max-w-md flex-col gap-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input autoFocus {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex flex-row gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>First name</FormLabel>
+                <FormControl>
+                  <Input autoFocus autoComplete="given-name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Last name</FormLabel>
+                <FormControl>
+                  <Input autoComplete="family-name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex flex-row gap-4">
           <FormField

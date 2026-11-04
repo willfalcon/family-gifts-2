@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/hooks/auth';
 import { initials } from '@/lib/utils';
 import { BigTitle } from '@/components/ui/big-title';
 import { ProfileForm } from '@/components/profile-form';
+import { nameParts } from '@convex/names';
 
 export const Route = createFileRoute('/dashboard/profile')({
   loader: async ({ context }) => {
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/dashboard/profile')({
 function RouteComponent() {
   const { user } = useCurrentUser();
   const { data: profile } = useQuery(convexQuery(api.profiles.getMine, {}));
+  const { firstName, lastName } = nameParts(profile, user?.name ?? '');
 
   return (
     <div className="space-y-4">
@@ -65,7 +67,8 @@ function RouteComponent() {
             pre-filled with the current values. */}
         <ProfileForm
           defaults={{
-            name: user?.name ?? '',
+            firstName,
+            lastName,
             birthday: profile?.birthday,
             shirtSize: profile?.shirtSize,
             notes: profile?.notes,

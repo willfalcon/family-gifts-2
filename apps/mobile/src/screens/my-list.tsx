@@ -16,7 +16,6 @@ import { ListRow, NativeList } from '@/components/native-list';
 import { StatusBar } from 'expo-status-bar';
 import { occasionParts } from '@/lib/occasion';
 
-
 export default function MyList() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const listId = id as Id<'lists'>;
@@ -94,24 +93,34 @@ export default function MyList() {
       )}
 
       {items && items.length > 0 && (
-        <NativeList>
-          {items.map(item => (
-            <ListItem
-              key={item._id}
-              item={item}
-              claim={claims ? (claims[item._id] ?? { claimedQuantity: 0, myQuantity: 0, otherClaimers: [] }) : undefined}
-            />
-          ))}
-          <ListRow>
-            <Link href={{ pathname: '/(app)/(my-lists)/lists/[id]/add-item', params: { id: listId } }} asChild>
-              <Button variant="link" className="items-center justify-start">
-                <Icon as={Plus} className="text-accent" />
+        <>
+          <NativeList>
+            {items.map(item => (
+              <ListItem
+                key={item._id}
+                item={item}
+                claim={
+                  claims ? (claims[item._id] ?? { claimedQuantity: 0, myQuantity: 0, otherClaimers: [] }) : undefined
+                }
+              />
+            ))}
+            <ListRow>
+              <Link href={{ pathname: '/(app)/(my-lists)/lists/[id]/add-item', params: { id: listId } }} asChild>
+                <Button variant="link" className="items-center justify-start">
+                  <Icon as={Plus} className="text-accent" />
 
-                <Text className="text-accent">Add an idea</Text>
-              </Button>
-            </Link>
-          </ListRow>
-        </NativeList>
+                  <Text className="text-accent">Add an idea</Text>
+                </Button>
+              </Link>
+            </ListRow>
+            <ListRow>
+              <Text className="text-ink-muted text-[13px] leading-4 mt-4">
+                Tap an idea to edit it, or press and hold for more. You won't see what's been claimed or bought, so
+                nothing gets spoiled.
+              </Text>
+            </ListRow>
+          </NativeList>
+        </>
       )}
     </SafeAreaView>
   );

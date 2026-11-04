@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, pretty as prettyText } from '@/lib/utils';
 import { Slot } from '@rn-primitives/slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
@@ -74,17 +74,31 @@ function resolveDisplayWeight(className: string) {
   return [...rest, DISPLAY_WEIGHT_CLASS[weight]].join(' ');
 }
 
+// Only the last string child can hold the paragraph's final words.
+function prettyChildren(children: React.ReactNode): React.ReactNode {
+  if (typeof children === 'string') return prettyText(children);
+  if (!Array.isArray(children)) return children;
+  const last = children.length - 1;
+  return typeof children[last] === 'string'
+    ? [...children.slice(0, last), prettyText(children[last])]
+    : children;
+}
+
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
 function Text({
   className,
   asChild = false,
   variant = 'default',
+  pretty = false,
+  children,
   ...props
 }: React.ComponentProps<typeof RNText> &
   React.RefAttributes<typeof RNText> &
   TextVariantProps & {
     asChild?: boolean;
+    /** Avoid a lone word on the last line, like CSS `text-wrap: pretty`. */
+    pretty?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot : RNText;
@@ -93,8 +107,12 @@ function Text({
       className={resolveDisplayWeight(cn(textVariants({ variant }), textClass, className))}
       role={variant ? ROLE[variant] : undefined}
       aria-level={variant ? ARIA_LEVEL[variant] : undefined}
-      {...props}
-    />
+      // push-out alone doesn't reliably stop orphans (e.g. short centered
+      // text), so the non-breaking space is applied on every platform too.
+      lineBreakStrategyIOS={pretty ? 'push-out' : undefined}
+      {...props}>
+      {pretty ? prettyChildren(children) : children}
+    </Component>
   );
 }
 

@@ -26,7 +26,13 @@ export default function DevUserSwitcher({ currentEmail }: { currentEmail?: strin
       if (!signIn.error) return;
 
       // Most likely the account doesn't exist yet, so make it.
-      const signUp = await authClient.signUp.email({ email: user.email, password: MOCK_USER_PASSWORD, name: user.name });
+      const signUp = await authClient.signUp.email({
+        email: user.email,
+        password: MOCK_USER_PASSWORD,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      });
       if (signUp.error) setError(signUp.error.message ?? signIn.error.message ?? 'Could not sign in');
     } finally {
       setPending(null);
@@ -54,7 +60,7 @@ export default function DevUserSwitcher({ currentEmail }: { currentEmail?: strin
               onPress={() => switchTo(user)}
             >
               <Text className={`text-[13px] ${isCurrent ? 'text-paper' : 'text-ink'}`}>
-                {pending === user.email ? '…' : user.name.split(' ')[0]}
+                {pending === user.email ? '…' : user.firstName}
               </Text>
             </Pressable>
           );

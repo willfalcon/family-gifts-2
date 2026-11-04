@@ -8,6 +8,7 @@ import { getConnections } from './connections';
 import { isDiscoverable, searchDiscoverable } from './people';
 import { pickAvatarColor } from './avatarColors';
 import { deleteSecretSanta, drawIfEveryoneReplied } from './secretSanta';
+import { deleteEventNotices } from './notices';
 
 // The user's row on the event, if they've accepted or declined an invite (or
 // created the event). Any such row grants access to the event - an emailed
@@ -52,7 +53,9 @@ async function getOpenInvite(ctx: QueryCtx, token: string) {
     .query('eventAttendees')
     .withIndex('by_token', q => q.eq('token', token))
     .unique();
-  return row && row.status === 'invited' ? row : null;
+  if (!row || row.status !== 'invited') return null;
+  const event = await ctx.db.get(row.eventId);
+  return event && event.cancelledAt === undefined ? row : null;
 }
 
 // Throws unless `userId` is the event's owner or a host. Mirrors
@@ -77,7 +80,9 @@ async function requireOwner(ctx: QueryCtx, eventId: Id<'events'>, userId: string
 }
 
 // Lists events the current user attends - as owner, host, or guest, not
-// just ones they created - so an invited attendee sees the event too.
+// just ones they created - so an invited attendee sees the event too. Each
+// comes with the viewer's role and whether they've archived it, so lists can
+// offer the right actions.
 export const myEvents = query({
   args: {},
   handler: async ctx => {
@@ -87,8 +92,14 @@ export const myEvents = query({
       .withIndex('by_user', q => q.eq('userId', user._id))
       .collect();
 
-    const events = await Promise.all(attendances.map(attendance => ctx.db.get(attendance.eventId)));
-    return events.filter(event => event !== null).map(toClientEvent);
+    const events = await Promise.all(
+      attendances.map(async attendance => {
+        const event = await ctx.db.get(attendance.eventId);
+        if (!event) return null;
+        return { ...toClientEvent(event), myRole: attendance.role, archived: attendance.archivedAt !== undefined };
+      }),
+    );
+    return events.filter(event => event !== null);
   },
 });
 
@@ -111,7 +122,7 @@ export const get = query({
     const attendance = await getAttendance(ctx, event._id, user._id);
     if (!attendance) return null;
 
-    return toClientEvent(event);
+    return { ...toClientEvent(event), archived: attendance.archivedAt !== undefined };
   },
 });
 
@@ -170,6 +181,54 @@ export const update = mutation({
   },
 });
 
+// Cancels the event for everyone. It stays on attendees' lists marked as
+// cancelled, and its invites and join link stop working, but nothing is
+// deleted - a host can restore it.
+export const cancel = mutation({
+  args: { id: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireHost(ctx, args.id, user._id);
+    const event = await ctx.db.get(args.id);
+    if (!event || event.cancelledAt !== undefined) return;
+    await ctx.db.patch(args.id, { cancelledAt: Date.now() });
+  },
+});
+
+// Undoes `cancel`.
+export const restore = mutation({
+  args: { id: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireHost(ctx, args.id, user._id);
+    await ctx.db.patch(args.id, { cancelledAt: undefined });
+  },
+});
+
+// Moves the event into the Archived section of the caller's own events list.
+// Any attendee can do this; it changes nothing for anyone else.
+export const archive = mutation({
+  args: { id: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const attendance = await getAttendance(ctx, args.id, user._id);
+    if (!attendance) throw new Error('Event not found');
+    if (attendance.archivedAt !== undefined) return;
+    await ctx.db.patch(attendance._id, { archivedAt: Date.now() });
+  },
+});
+
+// Undoes `archive`.
+export const unarchive = mutation({
+  args: { id: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const attendance = await getAttendance(ctx, args.id, user._id);
+    if (!attendance) throw new Error('Event not found');
+    await ctx.db.patch(attendance._id, { archivedAt: undefined });
+  },
+});
+
 // Deletes an event along with everything that hangs off it - its guest list
 // (invites included), and any list shares pointed at it - so nothing
 // orphaned is left behind.
@@ -199,6 +258,7 @@ export const remove = mutation({
     }
 
     await deleteSecretSanta(ctx, args.id);
+    await deleteEventNotices(ctx, args.id);
 
     await ctx.db.delete(args.id);
   },
@@ -280,10 +340,67 @@ export const pendingInviteCount = query({
   },
 });
 
+// Invitees (invited, no reply yet) as any attendee may see them. Someone with
+// an account shows by full name if they're discoverable or a connection of
+// the viewer, and by first name otherwise. Invitees with no account are only
+// counted for guests; hosts also get each invitee's email and source group.
+// Returns null if the viewer isn't on the event.
+export const listInvitees = query({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const viewerAttendance = await getAttendance(ctx, args.eventId, user._id);
+    if (!viewerAttendance) return null;
+    const isHost = isHostRole(viewerAttendance.role);
+
+    const rows = await ctx.db
+      .query('eventAttendees')
+      .withIndex('by_event', q => q.eq('eventId', args.eventId))
+      .collect();
+    const invites = rows.filter(row => row.status === 'invited' && row.email);
+    if (invites.length === 0) return { invitees: [], withoutAccount: 0 };
+
+    const connections = await getConnections(ctx, user._id);
+    const resolved = await Promise.all(
+      invites.map(async invite => {
+        const email = invite.email!;
+        const profile = await ctx.db
+          .query('profiles')
+          .withIndex('by_email', q => q.eq('email', email))
+          .first();
+        const person = profile ? await authComponent.getAnyUserById(ctx, profile.userId) : null;
+        let name: string | null = null;
+        if (profile && person) {
+          const showFullName = profile.discoverable === true || connections.has(profile.userId);
+          name = showFullName ? person.name : person.name.split(' ')[0];
+        }
+        const sourceGroup = isHost && invite.sourceGroupId ? await ctx.db.get(invite.sourceGroupId) : null;
+        return {
+          id: invite._id,
+          name,
+          color: invite.color,
+          email: isHost ? email : null,
+          fromGroupName: sourceGroup?.name ?? null,
+        };
+      }),
+    );
+
+    // Guests never see an email, so invitees without an account are only counted.
+    const visible = isHost ? resolved : resolved.filter(invitee => invitee.name !== null);
+    visible.sort((a, b) => {
+      if (a.name !== null && b.name !== null) return a.name.localeCompare(b.name);
+      if (a.name !== null) return -1;
+      if (b.name !== null) return 1;
+      return (a.email ?? '').localeCompare(b.email ?? '');
+    });
+    return { invitees: visible, withoutAccount: resolved.length - visible.length };
+  },
+});
+
 // Invites an email to the event and schedules the invite email. Returns null
 // (and sends nothing) if that email has already answered. Inviting an email
 // that's still unanswered sends a fresh link and retires the old one, so at
-// most one link per (event, email) ever works.
+// most one link per (event, email) ever works. A revoked invite is reopened.
 async function createInvite(
   ctx: MutationCtx,
   eventId: Id<'events'>,
@@ -291,13 +408,17 @@ async function createInvite(
   invitedBy: string,
   sourceGroupId?: Id<'groups'>,
 ) {
+  const event = await ctx.db.get(eventId);
+  if (event?.cancelledAt !== undefined) {
+    throw new ConvexError('This event is cancelled. Restore it to invite people.');
+  }
   const existing = await ctx.db
     .query('eventAttendees')
     .withIndex('by_event_email', q => q.eq('eventId', eventId).eq('email', email))
     .first();
-  if (existing && existing.status !== 'invited') return null;
+  if (existing && existing.status !== 'invited' && existing.status !== 'revoked') return null;
 
-  const fields = { token: crypto.randomUUID(), invitedBy, sourceGroupId };
+  const fields = { status: 'invited' as const, token: crypto.randomUUID(), invitedBy, sourceGroupId };
   let inviteId: Id<'eventAttendees'>;
   if (existing) {
     await ctx.db.patch(existing._id, fields);
@@ -307,7 +428,6 @@ async function createInvite(
       eventId,
       email,
       role: 'guest',
-      status: 'invited',
       color: await nextColor(ctx, eventId),
       ...fields,
     });
@@ -366,16 +486,23 @@ export const inviteGroup = mutation({
       .query('eventAttendees')
       .withIndex('by_event', q => q.eq('eventId', args.eventId))
       .collect();
-    const attendeeUserIds = new Set(existingAttendees.flatMap(a => (a.userId ? [a.userId] : [])));
+    // Members already on the event - answered, or invited and not yet
+    // answered - are skipped, so they don't get another email. Revoked
+    // invitees are invited again.
+    const alreadyOnEvent = new Set(
+      existingAttendees.flatMap(a => (a.status === 'revoked' ? [] : [a.userId, a.email].filter(Boolean))),
+    );
 
     let invited = 0;
     for (const member of members) {
-      if (attendeeUserIds.has(member.userId)) continue;
+      if (alreadyOnEvent.has(member.userId)) continue;
 
       const memberUser = await authComponent.getAnyUserById(ctx, member.userId);
       if (!memberUser) continue;
+      const email = memberUser.email.toLowerCase();
+      if (alreadyOnEvent.has(email)) continue;
 
-      if (await createInvite(ctx, args.eventId, memberUser.email.toLowerCase(), user._id, args.groupId)) {
+      if (await createInvite(ctx, args.eventId, email, user._id, args.groupId)) {
         invited++;
       }
     }
@@ -402,7 +529,7 @@ export const inviteGroup = mutation({
 
 // People the user could invite to an event: everyone they share a group or
 // event with, most connections first. With `eventId`, anyone already on that
-// event (or with an open invite) is left out. `search` matches a name, or an
+// event (or with an open invite) is left out; a revoked invitee isn't. `search` matches a name, or an
 // email - emails are matched here and never sent back, since they're more
 // sensitive than names.
 export const knownPeople = query({
@@ -418,7 +545,10 @@ export const knownPeople = query({
           .withIndex('by_event', q => q.eq('eventId', args.eventId!))
           .collect()
       : [];
-    const onEvent = new Set(eventRows.flatMap(row => [row.userId, row.email].filter(Boolean)));
+    // A revoked invitee can be suggested again.
+    const onEvent = new Set(
+      eventRows.flatMap(row => (row.status === 'revoked' ? [] : [row.userId, row.email].filter(Boolean))),
+    );
     const search = args.search?.trim().toLowerCase() ?? '';
 
     const people = await Promise.all(
@@ -435,6 +565,7 @@ export const knownPeople = query({
           color: counts.color,
           sharedGroups: counts.sharedGroups,
           sharedEvents: counts.sharedEvents,
+          emailMatch: email === search,
         };
       }),
     );
@@ -484,8 +615,8 @@ export const inviteUser = mutation({
   },
 });
 
-// Lets a host take back an invite nobody has answered yet. The row goes away
-// entirely, which also kills its link.
+// Lets a host take back an invite nobody has answered yet. The row is kept,
+// marked 'revoked', and its token is cleared so the emailed link stops working.
 export const revokeInvite = mutation({
   args: { id: v.id('eventAttendees') },
   handler: async (ctx, args) => {
@@ -494,7 +625,7 @@ export const revokeInvite = mutation({
     if (!invite || invite.status !== 'invited') throw new ConvexError('Invite not found');
     await requireHost(ctx, invite.eventId, user._id);
 
-    await ctx.db.delete(args.id);
+    await ctx.db.patch(args.id, { status: 'revoked', token: undefined });
     await drawIfEveryoneReplied(ctx, invite.eventId);
   },
 });
@@ -639,11 +770,13 @@ export const resetInviteLink = mutation({
 
 // Looks up an event by its join-link token. Shared by invites.getPreview and
 // invites.accept, which handle every kind of invite token.
+// A cancelled event's link doesn't work.
 export async function getEventByInviteToken(ctx: QueryCtx, token: string) {
-  return await ctx.db
+  const event = await ctx.db
     .query('events')
     .withIndex('by_inviteToken', q => q.eq('inviteToken', token))
     .unique();
+  return event && event.cancelledAt === undefined ? event : null;
 }
 
 // Answers an event's join link as the signed-in user: puts them on the guest
@@ -735,7 +868,7 @@ export const myInvites = query({
     const invites = await Promise.all(
       rows.map(async row => {
         const event = await ctx.db.get(row.eventId);
-        if (!event) return null;
+        if (!event || event.cancelledAt !== undefined) return null;
         // Already on the event some other way - nothing to answer.
         if (await getAttendance(ctx, event._id, user._id)) return null;
         const inviter = row.invitedBy ? await authComponent.getAnyUserById(ctx, row.invitedBy) : null;

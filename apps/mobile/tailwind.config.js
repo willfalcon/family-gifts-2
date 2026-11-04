@@ -1,5 +1,5 @@
 const { hairlineWidth } = require('nativewind/theme');
-const { colors, fontFamily, borderRadius, boxShadow } = require('@family-gifts/design-tokens');
+const { colors, fontFamily, fontSize, borderRadius, boxShadow } = require('@family-gifts/design-tokens');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -13,29 +13,8 @@ module.exports = {
       borderRadius,
       boxShadow,
       fontSize: {
-        // '4xl': 36,
-        // '3xl': 30,
-        // '2xl': 28,
-        // xl: 26,
-        // lg: 20,
-        // md: 18,
-        // base: 17,
-        sm: 15,
-        // xs: 14,
-        // '2xs': 13,
-        // '3xs': 10,
-        greeting: 36,
-        title: 30,
-        detail: 28,
-        name: 26,
-        headline: 20,
-        body: 17,
-        'button-lg': 17,
-        callout: 15,
-        label: 15,
-        subhead: 14,
-        footnote: 13,
-        'tab-label': 10,
+        ...fontSize,
+        sm: ['15px', { lineHeight: '20px' }],
       },
       borderWidth: {
         hairline: hairlineWidth(),

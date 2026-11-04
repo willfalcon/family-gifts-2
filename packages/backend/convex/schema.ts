@@ -49,6 +49,12 @@ export default defineSchema({
   // Created automatically by the `user.onCreate` trigger in convex/auth.ts.
   profiles: defineTable({
     userId: v.string(), // Better Auth user id
+    // The parts of the user's name. The Better Auth user's `name` is always
+    // these two joined (see convex/names.ts). Missing on accounts from before
+    // names were split - read them through `nameParts`, which falls back to
+    // splitting the full name.
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     birthday: v.optional(birthdayValidator),
     birthdayVisibility: v.optional(birthdayVisibilityValidator),
     birthdayGroupIds: v.optional(v.array(v.id('groups'))), // only for 'someGroups'
@@ -109,10 +115,14 @@ export default defineSchema({
     listId: v.id('lists'), // denormalized from the item, for per-list cleanup
     userId: v.string(), // Better Auth user id of the claimer
     quantity: v.number(),
+    // The claimer has marked that they've got it ("Bought"). Only the claimer
+    // ever sees it - not the owner, not anyone else splitting the item.
+    bought: v.optional(v.boolean()),
   })
     .index('by_item', ['itemId'])
     .index('by_item_user', ['itemId', 'userId'])
-    .index('by_list', ['listId']),
+    .index('by_list', ['listId'])
+    .index('by_user', ['userId']),
 
   // A gift idea someone jots down for another person. Only its author ever
   // sees it - every read and write goes through convex/privateIdeas.ts, which
@@ -158,6 +168,10 @@ export default defineSchema({
     // Whether guests (not just hosts) may see and share the join link.
     // Missing means false.
     guestsCanInvite: v.optional(v.boolean()),
+    // When a host cancelled the event. A cancelled event stays visible to its
+    // attendees, but its invites and join link stop working until a host
+    // restores it.
+    cancelledAt: v.optional(v.number()),
   })
     .index('by_createdBy', ['createdBy'])
     .index('by_inviteToken', ['inviteToken']),
@@ -171,11 +185,15 @@ export default defineSchema({
   // account; until then the row is just an emailed invite (status 'invited')
   // known by `email` + `token`. Having a `userId` is what grants access to the
   // event (see events.getAttendance) - whether they're going or not.
+  //
+  // A host can revoke an unanswered invite: the row stays as a record (status
+  // 'revoked', token cleared) and never has a `userId`, so it grants nothing.
+  // Inviting the same email again brings it back to 'invited'.
   eventAttendees: defineTable({
     eventId: v.id('events'),
     userId: v.optional(v.string()), // Better Auth user id
     role: v.union(v.literal('owner'), v.literal('host'), v.literal('guest')),
-    status: v.union(v.literal('invited'), v.literal('going'), v.literal('declined')),
+    status: v.union(v.literal('invited'), v.literal('going'), v.literal('declined'), v.literal('revoked')),
     color: avatarColorValidator,
     email: v.optional(v.string()), // lowercased; set when invited by email
     token: v.optional(v.string()), // the invite link's secret; cleared once used
@@ -183,6 +201,9 @@ export default defineSchema({
     // Set when invited as part of a whole group (events.inviteGroup) - purely
     // for display ("via the Smith Family"), not a live link to the group.
     sourceGroupId: v.optional(v.id('groups')),
+    // When this attendee archived the event, tucking it into the Archived
+    // section of their own events list. Personal - nobody else is affected.
+    archivedAt: v.optional(v.number()),
   })
     .index('by_event', ['eventId'])
     .index('by_user', ['userId'])
@@ -251,17 +272,21 @@ export default defineSchema({
     .index('by_group_email', ['groupId', 'email'])
     .index('by_email_status', ['email', 'status']),
 
-  // One Secret Santa round per event. `status` moves 'draft' -> 'sent' once
-  // and never back - a manager who wants to redo it calls secretSanta.reset,
-  // which deletes this row (and everything below) so a fresh one can be made.
+  // One Secret Santa round per event. `status` moves 'draft' -> 'sent' when
+  // names are drawn in a Secret draw. In a Reviewed draw it goes 'draft' ->
+  // 'drawn' (hosts can see the Matches, nobody's been told) -> 'sent' once a
+  // host sends the names. secretSanta.undoDraw moves it back to 'draft',
+  // keeping who's in and the rules; secretSanta.reset deletes the round.
   secretSantas: defineTable({
     eventId: v.id('events'),
-    status: v.union(v.literal('draft'), v.literal('sent')),
+    status: v.union(v.literal('draft'), v.literal('drawn'), v.literal('sent')),
     createdBy: v.string(), // Better Auth user id
+    // Missing means 'secret': nobody, hosts included, sees who drew whom.
+    // 'reviewed': hosts see every Match, and nobody is told until a host
+    // sends the names.
+    mode: v.optional(v.union(v.literal('secret'), v.literal('reviewed'))),
+    drawnAt: v.optional(v.number()),
     sentAt: v.optional(v.number()),
-    // Set by secretSanta.setup (the app's draw flow). Rounds from that flow
-    // are private: nobody, hosts included, is ever sent who drew whom.
-    private: v.optional(v.boolean()),
     budget: v.optional(v.number()), // spending limit, in dollars
     // When names get drawn, as a timestamp. Missing means they were drawn
     // right at setup.
@@ -271,6 +296,9 @@ export default defineSchema({
     scheduledDrawId: v.optional(v.id('_scheduled_functions')),
     // Why a scheduled draw couldn't happen (e.g. fewer than 2 people going).
     drawError: v.optional(v.string()),
+    // When a host last undid a draw whose names had been sent. Set while the
+    // round waits to be drawn again; cleared once it's set up again.
+    undoneAt: v.optional(v.number()),
   }).index('by_event', ['eventId']),
 
   // Who a host picked for a round set up with secretSanta.setup. Points at
@@ -299,8 +327,8 @@ export default defineSchema({
     userBId: v.string(),
   }).index('by_group_userAId_userBId', ['groupId', 'userAId', 'userBId']),
 
-  // Attendees opted into a given Secret Santa round. Rewritten wholesale by
-  // secretSanta.generate on every (re)generation, rather than diffed.
+  // The people actually in a round's draw: its entrants who were going when
+  // names were drawn. Rewritten wholesale on every draw, rather than diffed.
   secretSantaParticipants: defineTable({
     secretSantaId: v.id('secretSantas'),
     userId: v.string(), // Better Auth user id
@@ -323,6 +351,10 @@ export default defineSchema({
     secretSantaId: v.id('secretSantas'),
     giverUserId: v.string(),
     receiverUserId: v.string(),
+    // The giver has their Match's gift ("Gift ready"). Shown to people in the
+    // draw only as a count. Hosts of a Reviewed draw, who see every Match
+    // anyway, also see who. Goes with the row when a draw is undone.
+    giftReady: v.optional(v.boolean()),
   })
     .index('by_secretSanta', ['secretSantaId'])
     .index('by_secretSanta_giver', ['secretSantaId', 'giverUserId']),
@@ -364,4 +396,19 @@ export default defineSchema({
     .index('by_favoritedListId', ['favoritedListId'])
     .index('by_favoritedGroupId', ['favoritedGroupId'])
     .index('by_favoritedEventId', ['favoritedEventId']),
+
+  // Something a user should know about, shown as a card on their home screen
+  // until they dismiss it.
+  // - 'secretSantaUndone': a host undid an event's Secret Santa draw, so the
+  //   match the user was sent no longer counts.
+  // - 'secretSantaDrawn': (hosts) a scheduled Reviewed draw happened, so the
+  //   names are waiting to be reviewed and sent. Cleared once they're sent
+  //   or the draw is undone.
+  notices: defineTable({
+    userId: v.string(), // Better Auth user id
+    kind: v.union(v.literal('secretSantaUndone'), v.literal('secretSantaDrawn')),
+    eventId: v.id('events'),
+  })
+    .index('by_user_event', ['userId', 'eventId'])
+    .index('by_event', ['eventId']),
 });

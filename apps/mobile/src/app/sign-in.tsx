@@ -10,13 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { authClient } from '../../lib/auth-client';
 import DevUserSwitcher from '@/components/dev-user-switcher';
+import { fullName } from '@convex/names';
 import { useBreachedPasswordConfirm } from '@/components/breached-password-dialog';
 
 export default function SignIn() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const [mode, setMode] = useState<'signIn' | 'signUp'>(params.mode === 'signUp' ? 'signUp' : 'signIn');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { confirmPassword, dialog } = useBreachedPasswordConfirm();
@@ -34,7 +36,15 @@ export default function SignIn() {
     }
     const { error } = isSignIn
       ? await authClient.signIn.email({ email, password })
-      : await authClient.signUp.email({ email, password, name });
+      : // `name` is the full name the app shows. The parts go along too and
+        // are saved on the profile (see databaseHooks in convex/auth.ts).
+        await authClient.signUp.email({
+          email,
+          password,
+          name: fullName(firstName, lastName),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+        });
     setSubmitting(false);
     if (error) setError(error.message ?? 'Something went wrong');
   }
@@ -60,17 +70,29 @@ export default function SignIn() {
 
         <View className="gap-6">
           {!isSignIn && (
-            <View className="gap-1.5">
-              <Label nativeID="sign-in-name">Name</Label>
-              <Input
-                aria-labelledby="sign-in-name"
-                placeholder="Your name"
-                autoCapitalize="words"
-                autoComplete="name"
-                textContentType="name"
-                value={name}
-                onChangeText={setName}
-              />
+            <View className="flex-row gap-3">
+              <View className="flex-1 gap-1.5">
+                <Label nativeID="sign-in-first-name">First name</Label>
+                <Input
+                  aria-labelledby="sign-in-first-name"
+                  autoCapitalize="words"
+                  autoComplete="given-name"
+                  textContentType="givenName"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+              </View>
+              <View className="flex-1 gap-1.5">
+                <Label nativeID="sign-in-last-name">Last name</Label>
+                <Input
+                  aria-labelledby="sign-in-last-name"
+                  autoCapitalize="words"
+                  autoComplete="family-name"
+                  textContentType="familyName"
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+              </View>
             </View>
           )}
           <View className="gap-1.5">

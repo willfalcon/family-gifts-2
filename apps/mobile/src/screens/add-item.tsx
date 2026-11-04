@@ -3,10 +3,10 @@ import { ConvexError } from 'convex/values';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Link, X } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { DollarSign, Image, Link, X } from 'lucide-react-native';
+import { useCallback, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -14,11 +14,34 @@ import GlassButton from '@/components/glass-button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
 import { colors } from '@family-gifts/design-tokens';
+
+const PRIORITIES = ['low', 'medium', 'high'] as const;
+const IMAGE_SIZE = 72;
+
+function isValidUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Length of the text that was inserted between `prev` and `next` (ignoring the unchanged start and end).
+function insertedLength(prev: string, next: string) {
+  const min = Math.min(prev.length, next.length);
+  let start = 0;
+  while (start < min && prev[start] === next[start]) start++;
+  let end = 0;
+  while (end < min - start && prev[prev.length - 1 - end] === next[next.length - 1 - end]) end++;
+  return next.length - start - end;
+}
 
 const itemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -28,6 +51,7 @@ const itemSchema = z.object({
     .string()
     .optional()
     .refine(v => !v || (!isNaN(parseFloat(v)) && parseFloat(v) > 0), { message: 'Price must be a positive number' }),
+  priority: z.enum(PRIORITIES).optional(),
 });
 
 type ItemInput = z.infer<typeof itemSchema>;
@@ -41,10 +65,13 @@ export default function AddItem() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageId, setImageId] = useState<Id<'_storage'> | null>(null);
+  const linkInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const lastParsedUrl = useRef<string | null>(null);
+  const pastePending = useRef(false);
 
   const { control, handleSubmit, formState, setError, setValue, getValues } = useForm<ItemInput>({
     resolver: zodResolver(itemSchema),
-    defaultValues: { name: '', link: '', notes: '', price: '' },
+    defaultValues: { name: '', link: '', notes: '', price: '', priority: undefined },
   });
 
   const createItem = useMutation(api.items.create);
@@ -52,7 +79,7 @@ export default function AddItem() {
   const generateUploadUrl = useMutation(api.items.generateUploadUrl);
 
   const uploadImageFromUrl = useCallback(
-    async (url: string) => {
+    async (url: string, sourceLink: string) => {
       setIsUploadingImage(true);
       try {
         const uploadUrl = await generateUploadUrl();
@@ -68,6 +95,7 @@ export default function AddItem() {
         if (!uploadResponse.ok) throw new Error('Upload failed');
 
         const { storageId } = (await uploadResponse.json()) as { storageId: Id<'_storage'> };
+        if (lastParsedUrl.current !== sourceLink) return; // a newer link replaced this one
         setImageUri(url);
         setImageId(storageId);
       } catch {
@@ -81,28 +109,37 @@ export default function AddItem() {
 
   const handleLinkBlur = useCallback(
     async (url: string) => {
-      if (!url) return;
-      try {
-        new URL(url);
-      } catch {
-        return; // not a valid URL yet
-      }
+      const fromPaste = pastePending.current;
+      pastePending.current = false;
+      if (!isValidUrl(url) || url === lastParsedUrl.current) return;
+
+      // Pasting a new link over a previously fetched one replaces everything it filled in.
+      const replace = fromPaste && lastParsedUrl.current !== null;
+      lastParsedUrl.current = url;
 
       setIsParsing(true);
       try {
         const result = await parseLinkAction({ url });
+        if (lastParsedUrl.current !== url) return; // a newer link replaced this one
 
-        if (result) {
+        if (replace) {
+          setValue('name', result?.name ?? '');
+          setValue('notes', result?.notes ?? '');
+          setValue('price', result?.price != null ? String(result.price) : '');
+          setImageUri(null);
+          setImageId(null);
+          if (result?.imageUrl) void uploadImageFromUrl(result.imageUrl, url);
+        } else if (result) {
           const current = getValues();
           if (!current.name && result.name) setValue('name', result.name);
           if (!current.notes && result.notes) setValue('notes', result.notes);
           if (!current.price && result.price != null) setValue('price', String(result.price));
-          if (!imageUri && result.imageUrl) void uploadImageFromUrl(result.imageUrl);
+          if (!imageUri && result.imageUrl) void uploadImageFromUrl(result.imageUrl, url);
         }
       } catch {
         // silently ignore parse failures
       } finally {
-        setIsParsing(false);
+        if (lastParsedUrl.current === url) setIsParsing(false);
       }
     },
     [parseLinkAction, getValues, setValue, imageUri, uploadImageFromUrl],
@@ -158,6 +195,7 @@ export default function AddItem() {
         link: values.link || undefined,
         notes: values.notes || undefined,
         price: values.price ? parseFloat(values.price) : undefined,
+        priority: values.priority,
         imageId: imageId ?? undefined,
       });
       router.back();
@@ -190,7 +228,7 @@ export default function AddItem() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-6 px-4 pb-8"
+        contentContainerClassName="gap-2 px-4 pb-8"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
@@ -200,19 +238,31 @@ export default function AddItem() {
           name="link"
           render={({ field, fieldState }) => (
             <View className="gap-1.5">
+              <Label nativeID="item-link">Link</Label>
               <Input
                 prepend={Link}
                 aria-labelledby="item-link"
                 placeholder="https://..."
+                autoFocus
                 keyboardType="url"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
+                ref={linkInputRef}
                 value={field.value}
-                onChangeText={field.onChange}
+                onChangeText={text => {
+                  // RN has no paste event: treat inserting more than one character at once as a paste.
+                  const pasted = insertedLength(field.value ?? '', text) > 1;
+                  field.onChange(text);
+                  // Blurring triggers onBlur, which starts the link check.
+                  if (pasted && isValidUrl(text.trim())) {
+                    pastePending.current = true;
+                    linkInputRef.current?.blur();
+                  }
+                }}
                 onBlur={() => {
                   field.onBlur();
-                  void handleLinkBlur(field.value ?? '');
+                  void handleLinkBlur((getValues('link') ?? '').trim());
                 }}
                 aria-invalid={!!fieldState.error}
               />
@@ -227,14 +277,13 @@ export default function AddItem() {
           )}
         />
 
-        <View className="gap-1.5">
-          <Label nativeID="item-image">Photo (optional)</Label>
+        <View className="mt-2 flex-row gap-2">
           {imageUri ? (
-            <View className="relative h-32 w-32">
+            <View className="relative" style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}>
               <Pressable onPress={handlePickImage} accessibilityLabel="Change photo" style={{ flex: 1 }}>
                 <ExpoImage
                   source={{ uri: imageUri }}
-                  style={{ width: 128, height: 128, borderRadius: 12 }}
+                  style={{ width: IMAGE_SIZE, height: IMAGE_SIZE, borderRadius: 16 }}
                   contentFit="cover"
                 />
               </Pressable>
@@ -244,9 +293,12 @@ export default function AddItem() {
                 </View>
               )}
               <GlassButton
-                className="absolute right-1 top-1 size-7 items-center justify-center rounded-full"
+                className="absolute bottom-1 right-1 items-center justify-center rounded-full"
                 onPress={handleRemoveImage}
                 accessibilityLabel="Remove photo"
+                glassProps={{
+                  style: { width: 20, height: 20, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
+                }}
               >
                 <Icon as={X} size={14} />
               </GlassButton>
@@ -255,50 +307,55 @@ export default function AddItem() {
             <Pressable
               onPress={handlePickImage}
               accessibilityLabel="Add photo"
-              className="h-32 w-32 items-center justify-center gap-2 rounded-xl bg-fill"
+              className="items-center justify-center gap-2 rounded-xl bg-fill"
+              style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
             >
               <Icon as={Image} size={24} className="text-ink-muted" />
-              <Text className="text-sm text-ink-muted">Add photo</Text>
             </Pressable>
           )}
+
+          <Controller
+            control={control}
+            name="name"
+            render={({ field, fieldState }) => (
+              <View className="flex-1 gap-1.5">
+                <Label nativeID="item-name">Name</Label>
+                <Input
+                  aria-labelledby="item-name"
+                  placeholder="e.g. Blue wool sweater"
+                  returnKeyType="next"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!fieldState.error}
+                />
+                {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
+              </View>
+            )}
+          />
         </View>
 
-        <Controller
-          control={control}
-          name="name"
-          render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-name">Name</Label>
-              <Input
-                aria-labelledby="item-name"
-                placeholder="e.g. Blue wool sweater"
-                autoFocus
-                returnKeyType="next"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                aria-invalid={!!fieldState.error}
-              />
-              {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
-            </View>
-          )}
-        />
+        <Text className="mt-4 text-sm font-semibold text-ink-muted">Details</Text>
 
         <Controller
           control={control}
           name="price"
           render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-price">Price (optional)</Label>
+            <View className="flex-row gap-1.5 border-b border-line">
+              <Label nativeID="item-price" className="text-ink">
+                Price
+              </Label>
               <Input
                 aria-labelledby="item-price"
-                placeholder="0.00"
+                placeholder="Optional"
                 keyboardType="decimal-pad"
                 returnKeyType="next"
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!fieldState.error}
+                prepend={DollarSign}
+                className="bg-transparent"
               />
               {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
             </View>
@@ -309,8 +366,10 @@ export default function AddItem() {
           control={control}
           name="notes"
           render={({ field, fieldState }) => (
-            <View className="gap-1.5">
-              <Label nativeID="item-notes">Notes (optional)</Label>
+            <View className="flex-row gap-3 border-b border-line pb-2">
+              <Label nativeID="item-notes" className="text-ink">
+                Notes
+              </Label>
               <Textarea
                 aria-labelledby="item-notes"
                 placeholder="Size, color, anything helpful..."
@@ -318,8 +377,26 @@ export default function AddItem() {
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!fieldState.error}
+                className="flex-1"
               />
               {fieldState.error && <Text className="text-sm text-destructive">{fieldState.error.message}</Text>}
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="priority"
+          render={({ field }) => (
+            <View className="flex-row justify-between gap-1.5 border-b border-line pb-2">
+              <Label nativeID="item-priority" className="text-ink">
+                Priority
+              </Label>
+              <SegmentedControl
+                options={PRIORITIES.map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }))}
+                value={field.value ?? null}
+                onChange={field.onChange}
+              />
             </View>
           )}
         />

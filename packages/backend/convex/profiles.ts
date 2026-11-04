@@ -1,7 +1,8 @@
-import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { ConvexError, v } from 'convex/values';
+import { internalMutation, mutation, query, type QueryCtx } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
-import { authComponent, searchFields } from './auth';
+import { authComponent, createAuth, searchFields } from './auth';
+import { fullName, nameFields, nameParts } from './names';
 import { birthdayValidator, birthdayVisibilityValidator, notificationPreferenceValidator } from './schema';
 import { currencyValidator } from './currencies';
 import { canViewProfile, visibleProfile } from './permissions';
@@ -78,9 +79,71 @@ export const getPublic = query({
   },
 });
 
+const MAX_NAME_LENGTH = 50;
+
+// A person's first name, from their profile. `name` is their full name, used
+// to guess it for accounts from before names were split.
+export async function getFirstName(ctx: QueryCtx, userId: string, name: string) {
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_userId', q => q.eq('userId', userId))
+    .unique();
+  return nameParts(profile, name).firstName;
+}
+
+// Changes the current user's name. The parts are saved on their profile and
+// the Better Auth user's `name` is set to the two joined, which is what every
+// screen showing a full name reads. A last name is optional.
+export const updateName = mutation({
+  args: { firstName: v.string(), lastName: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    const fields = nameFields(args.firstName, args.lastName);
+    if (!fields.firstName) throw new ConvexError('Add your first name');
+    if (fields.firstName.length > MAX_NAME_LENGTH || (fields.lastName?.length ?? 0) > MAX_NAME_LENGTH) {
+      throw new ConvexError(`Keep each name under ${MAX_NAME_LENGTH} characters`);
+    }
+
+    // The profile goes first, so the user.onUpdate trigger in convex/auth.ts
+    // sees parts that match the new name and leaves them alone.
+    const existing = await ctx.db
+      .query('profiles')
+      .withIndex('by_userId', q => q.eq('userId', user._id))
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+    } else {
+      await ctx.db.insert('profiles', { userId: user._id, ...searchFields(user), ...fields });
+    }
+
+    const name = fullName(fields.firstName, fields.lastName);
+    if (name !== user.name) {
+      const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+      await auth.api.updateUser({ body: { name }, headers });
+    }
+  },
+});
+
+// Saves the name parts a sign-up form sent. Called by the Better Auth hook in
+// convex/auth.ts right after the account is created. They come straight from
+// the request, so they're only kept when they add up to the account's name.
+export const setSignUpNameParts = internalMutation({
+  args: { userId: v.string(), firstName: v.string(), lastName: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAnyUserById(ctx, args.userId);
+    const fields = nameFields(args.firstName, args.lastName);
+    if (!user || !fields.firstName || fullName(fields.firstName, fields.lastName) !== user.name) return;
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_userId', q => q.eq('userId', args.userId))
+      .unique();
+    if (profile) await ctx.db.patch(profile._id, fields);
+  },
+});
+
 // Updates the current user's own profile row. Identity is derived server-side,
-// so a caller can only ever write their own profile. The display name lives on
-// the Better Auth user record and is updated separately by the client.
+// so a caller can only ever write their own profile. The name is changed with
+// `updateName` instead.
 //
 // Only the fields passed in are changed, so the client can save one field at a
 // time. An empty/whitespace-only string clears that field, and `birthday: null`

@@ -6,7 +6,9 @@ import { MenuView } from '@expo/ui/community/menu';
 
 import InvitationCards from '@/components/invitation-card';
 import { GroupInvitationCards } from '@/components/group-invitation';
+import GiftShoppingCard from '@/components/gift-shopping-card';
 import NextUp from '@/components/next-up';
+import NoticeCards from '@/components/notice-cards';
 import ToDo from '@/components/to-do';
 import { useEvents } from '@/hooks/events';
 import { useGroups } from '@/hooks/groups';
@@ -54,7 +56,9 @@ export default function DashboardScreen() {
       </View>
       <InvitationCards />
       <GroupInvitationCards />
+      <NoticeCards />
       <NextUp />
+      <GiftShoppingCard />
 
       <ToDo />
     </SafeAreaView>

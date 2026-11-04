@@ -2,66 +2,49 @@ import { Gift } from 'lucide-react';
 import { Id } from '@convex/_generated/dataModel';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { useSecretSanta } from '@/hooks/secretSanta';
-import { useEventAttendees } from '@/hooks/events';
-import SecretSantaConfigureForm from '@/components/secret-santa-configure-form';
 import SecretSantaSentView from '@/components/secret-santa-sent-view';
 import SecretSantaMemberView from '@/components/secret-santa-member-view';
-import SecretSantaDraftView from '@/components/secret-santa-draft-view';
 
 interface Props {
   eventId: Id<'events'>;
 }
 
+// Setting up and drawing happens in the app for now; the web only shows
+// where things stand.
 export default function SecretSantaTab({ eventId }: Props) {
   const { secretSanta } = useSecretSanta(eventId);
-  // Only people who are going can be drawn.
-  const { attendees: allAttendees } = useEventAttendees(eventId);
-  const attendees = allAttendees?.filter(a => a.status === 'going');
 
   if (!secretSanta) return null;
 
-  if (!secretSanta.exists) {
-    if (!secretSanta.isManager) {
-      return (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Gift />
-            </EmptyMedia>
-            <EmptyTitle>Secret Santa hasn&apos;t been set up yet</EmptyTitle>
-            <EmptyDescription>The organizer hasn&apos;t started a Secret Santa round for this event.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      );
-    }
+  if (!secretSanta.exists || (secretSanta.isManager && secretSanta.status !== 'sent')) {
     return (
-      <SecretSantaConfigureForm
-        eventId={eventId}
-        attendees={attendees ?? []}
-        initialParticipantIds={(attendees ?? []).map(a => a.userId)}
-        initialExclusions={[]}
-      />
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Gift />
+          </EmptyMedia>
+          <EmptyTitle>
+            {secretSanta.exists ? 'Secret Santa is being set up' : 'Secret Santa hasn’t been set up yet'}
+          </EmptyTitle>
+          <EmptyDescription>
+            {secretSanta.isManager
+              ? 'Set up and draw names in the Family Gifts app.'
+              : 'Check back once names are drawn.'}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   if (!secretSanta.isManager) {
-    return <SecretSantaMemberView status={secretSanta.status} isParticipant={secretSanta.isParticipant} myAssignment={secretSanta.myAssignment} />;
-  }
-
-  if (secretSanta.status === 'sent') {
-    return <SecretSantaSentView eventId={eventId} assignments={secretSanta.assignments} />;
-  }
-
-  if (secretSanta.assignments.length === 0) {
     return (
-      <SecretSantaConfigureForm
-        eventId={eventId}
-        attendees={attendees ?? []}
-        initialParticipantIds={secretSanta.participants.map(p => p.userId)}
-        initialExclusions={secretSanta.exclusions}
+      <SecretSantaMemberView
+        status={secretSanta.status}
+        isParticipant={secretSanta.isParticipant}
+        myAssignment={secretSanta.myAssignment}
       />
     );
   }
 
-  return <SecretSantaDraftView eventId={eventId} secretSanta={secretSanta} attendees={attendees ?? []} />;
+  return <SecretSantaSentView eventId={eventId} assignments={secretSanta.assignments} />;
 }

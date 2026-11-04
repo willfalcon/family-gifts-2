@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { ExternalLink, X } from 'lucide-react-native';
 import { useState } from 'react';
@@ -48,7 +48,7 @@ export default function TheirItem() {
   const claims = useItemClaims(listId);
   const item = items?.find(i => i._id === itemId);
   const claim = (item && claims?.[item._id]) || NO_CLAIM;
-  const { claimOneMore } = useClaimActions(itemId as Id<'items'>, claim);
+  const { claimOneMore, unclaim } = useClaimActions(itemId as Id<'items'>, claim);
   const [claiming, setClaiming] = useState(false);
 
   const closeButton = (
@@ -73,9 +73,9 @@ export default function TheirItem() {
   const left = wanted - claim.claimedQuantity;
   const status = claimStatus(wanted, claim);
 
-  const getThis = async () => {
+  const updateClaim = async (action: () => Promise<boolean>) => {
     setClaiming(true);
-    await claimOneMore();
+    await action();
     setClaiming(false);
   };
 
@@ -84,6 +84,7 @@ export default function TheirItem() {
 
   const priceRow = [item.price !== undefined && `$${item.price}`, item.link && linkLabel(item.link)].filter(Boolean);
 
+  console.log(list);
   return (
     <View className="flex-1 bg-background">
       {closeButton}
@@ -98,7 +99,11 @@ export default function TheirItem() {
         )}
 
         <View className="gap-1">
-          {list && <Text className="text-[14px] text-ink-muted text-center">From {list.title}</Text>}
+          {list && (
+            <Link href={`/lists/${list._id}`} asChild>
+              <Text className="text-[14px] text-ink-muted text-center">From {list.title}</Text>
+            </Link>
+          )}
           <Text className="text-[24px] font-bold text-ink text-center">{item.name}</Text>
         </View>
 
@@ -109,8 +114,13 @@ export default function TheirItem() {
         <View className="gap-2 px-4 pt-2" style={{ paddingBottom: insets.bottom + 16 }}>
           {status && <Text className="text-center text-sm text-accent">{status}</Text>}
           {left > 0 && claim.myQuantity === 0 && (
-            <Button size="lg" onPress={getThis} disabled={claiming}>
+            <Button size="lg" onPress={() => updateClaim(claimOneMore)} disabled={claiming}>
               <Text>I'll get this</Text>
+            </Button>
+          )}
+          {claim.myQuantity > 0 && (
+            <Button size="lg" variant="secondary" onPress={() => updateClaim(unclaim)} disabled={claiming}>
+              <Text>Unclaim</Text>
             </Button>
           )}
           <View className="gap-2 flex-row items-center justify-center">

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, View, Text, Image } from 'react-native';
-import { Star } from 'lucide-react-native';
-import { Icon } from '@/components/ui/icon';
+import PriorityBadge from '@/components/priority-badge';
 import { ItemWithImage } from '@convex/types';
 import {
   SwipeActions,
@@ -40,21 +39,17 @@ function ItemSummary({ item, status }: { item: ItemWithImage; status?: string })
       )}
       <View className="flex-1 border-b border-line">
         <View className="flex-row items-center gap-2">
-          <Text className="flex-1 text-lg" numberOfLines={1}>
+          <Text className="text-lg" numberOfLines={1}>
             {item.name}
           </Text>
-          {item.priority === 'high' && (
-            <View className="flex-row items-center gap-1">
-              <Icon as={Star} className="text-star" size={16} />
-            </View>
-          )}
+          <PriorityBadge priority={item.priority} />
         </View>
         {status ? (
           <Text className="text-sm text-accent">{status}</Text>
         ) : (
           (item.notes || item.price) && (
             <View className="flex-row">
-              <Text className="flex-1 text-sm text-ink-muted" numberOfLines={1}>
+              <Text className="text-sm text-ink-muted" numberOfLines={1}>
                 {item.notes && item.notes}
               </Text>
               <View className="flex-row items-center gap-1">

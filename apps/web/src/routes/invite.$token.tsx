@@ -9,6 +9,7 @@ import { BigTitle } from '@/components/ui/big-title';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
+import { fullName } from '@convex/names';
 import { Spinner } from '@/components/ui/spinner';
 
 // acceptInvite throws ConvexError for its user-facing failures (invalid invite,
@@ -178,8 +179,11 @@ interface InviteAuthFormProps {
 function InviteAuthForm({ token, invitedEmail, displayName, acceptOnAuth }: InviteAuthFormProps) {
   const navigate = useNavigate();
   const acceptInvite = useMutation({ mutationFn: useConvexMutation(api.invites.accept) });
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState(invitedEmail ?? '');
+  // Filling in a name means signing up rather than in.
+  const signingUp = firstName.trim() !== '';
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -189,8 +193,14 @@ function InviteAuthForm({ token, invitedEmail, displayName, acceptOnAuth }: Invi
     setError(null);
     setSubmitting(true);
 
-    const { error: authError } = name
-      ? await authClient.signUp.email({ email, password, name })
+    const { error: authError } = signingUp
+      ? await authClient.signUp.email({
+          email,
+          password,
+          name: fullName(firstName, lastName),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+        })
       : await authClient.signIn.email({ email, password });
     if (authError) {
       setError(authError.message ?? 'Something went wrong');
@@ -219,7 +229,20 @@ function InviteAuthForm({ token, invitedEmail, displayName, acceptOnAuth }: Invi
         }
       />
       <form onSubmit={handleSubmit} className="space-y-3">
-        <Input placeholder="name (sign up only)" value={name} onChange={e => setName(e.target.value)} />
+        <div className="flex gap-3">
+          <Input
+            placeholder="first name (sign up only)"
+            autoComplete="given-name"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+          />
+          <Input
+            placeholder="last name"
+            autoComplete="family-name"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+          />
+        </div>
         {invitedEmail ? (
           <Input value={email} readOnly disabled />
         ) : (
@@ -233,7 +256,7 @@ function InviteAuthForm({ token, invitedEmail, displayName, acceptOnAuth }: Invi
           required
         />
         <Button type="submit" disabled={submitting} className="w-full">
-          {acceptOnAuth ? (name ? 'Sign up & join' : 'Sign in & join') : name ? 'Sign up' : 'Sign in'}
+          {acceptOnAuth ? (signingUp ? 'Sign up & join' : 'Sign in & join') : signingUp ? 'Sign up' : 'Sign in'}
         </Button>
         {error && <p className="text-destructive text-sm">{error}</p>}
       </form>

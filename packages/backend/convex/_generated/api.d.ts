@@ -17,8 +17,10 @@ import type * as emails_EventInviteEmail from "../emails/EventInviteEmail.js";
 import type * as emails_GroupInviteEmail from "../emails/GroupInviteEmail.js";
 import type * as emails_PasswordResetCodeEmail from "../emails/PasswordResetCodeEmail.js";
 import type * as emails_SecretSantaAssignmentEmail from "../emails/SecretSantaAssignmentEmail.js";
+import type * as emails_SecretSantaDrawnEmail from "../emails/SecretSantaDrawnEmail.js";
 import type * as events from "../events.js";
 import type * as favorites from "../favorites.js";
+import type * as giftShopping from "../giftShopping.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
@@ -27,6 +29,8 @@ import type * as linkParser from "../linkParser.js";
 import type * as listShares from "../listShares.js";
 import type * as lists from "../lists.js";
 import type * as mockUsers from "../mockUsers.js";
+import type * as names from "../names.js";
+import type * as notices from "../notices.js";
 import type * as occasions from "../occasions.js";
 import type * as people from "../people.js";
 import type * as permissions from "../permissions.js";
@@ -38,6 +42,7 @@ import type * as sendEventInviteEmail from "../sendEventInviteEmail.js";
 import type * as sendGroupInviteEmail from "../sendGroupInviteEmail.js";
 import type * as sendPasswordResetEmail from "../sendPasswordResetEmail.js";
 import type * as sendSecretSantaAssignmentEmail from "../sendSecretSantaAssignmentEmail.js";
+import type * as sendSecretSantaDrawnEmail from "../sendSecretSantaDrawnEmail.js";
 import type * as types from "../types.js";
 
 import type {
@@ -56,8 +61,10 @@ declare const fullApi: ApiFromModules<{
   "emails/GroupInviteEmail": typeof emails_GroupInviteEmail;
   "emails/PasswordResetCodeEmail": typeof emails_PasswordResetCodeEmail;
   "emails/SecretSantaAssignmentEmail": typeof emails_SecretSantaAssignmentEmail;
+  "emails/SecretSantaDrawnEmail": typeof emails_SecretSantaDrawnEmail;
   events: typeof events;
   favorites: typeof favorites;
+  giftShopping: typeof giftShopping;
   groups: typeof groups;
   http: typeof http;
   invites: typeof invites;
@@ -66,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   listShares: typeof listShares;
   lists: typeof lists;
   mockUsers: typeof mockUsers;
+  names: typeof names;
+  notices: typeof notices;
   occasions: typeof occasions;
   people: typeof people;
   permissions: typeof permissions;
@@ -77,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   sendGroupInviteEmail: typeof sendGroupInviteEmail;
   sendPasswordResetEmail: typeof sendPasswordResetEmail;
   sendSecretSantaAssignmentEmail: typeof sendSecretSantaAssignmentEmail;
+  sendSecretSantaDrawnEmail: typeof sendSecretSantaDrawnEmail;
   types: typeof types;
 }>;
 

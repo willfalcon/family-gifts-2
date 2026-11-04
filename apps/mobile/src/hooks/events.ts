@@ -29,6 +29,12 @@ export function useEventPendingInviteCount(eventId: Id<'events'> | undefined) {
   return useQuery(api.events.pendingInviteCount, eventId ? { eventId } : 'skip');
 }
 
+// Invitees who haven't replied yet, as the viewer is allowed to see them.
+// null for a non-attendee.
+export function useEventInvitees(eventId: Id<'events'> | undefined) {
+  return useQuery(api.events.listInvitees, eventId ? { eventId } : 'skip');
+}
+
 // Lists with this event as their occasion that the viewer can open; the
 // viewer's own come last.
 export function useEventOccasionLists(eventId: Id<'events'> | undefined) {

@@ -9,14 +9,14 @@
 export const MOCK_USER_PASSWORD = 'mock-user-password';
 
 export const MOCK_USERS = [
-  { name: 'Will Hawks', email: 'willkhawks@gmail.com' },
-  { name: 'Leigh Ann Hawks', email: 'leighann@example.com' },
-  { name: 'Bill Hawks', email: 'bill@example.com' },
-  { name: 'Morgan Hawks', email: 'morgan@example.com' },
-  { name: 'Cody Hawks', email: 'cody@example.com' },
-  { name: 'Kassy Hawks', email: 'kassy@example.com' },
-  { name: 'Annie Hawks', email: 'annie@example.com' },
-  { name: 'Anna Hawks', email: 'anna@example.com' },
+  { name: 'Will Hawks', firstName: 'Will', lastName: 'Hawks', email: 'willkhawks@gmail.com' },
+  { name: 'Leigh Ann Hawks', firstName: 'Leigh Ann', lastName: 'Hawks', email: 'leighann@example.com' },
+  { name: 'Bill Hawks', firstName: 'Bill', lastName: 'Hawks', email: 'bill@example.com' },
+  { name: 'Morgan Hawks', firstName: 'Morgan', lastName: 'Hawks', email: 'morgan@example.com' },
+  { name: 'Cody Hawks', firstName: 'Cody', lastName: 'Hawks', email: 'cody@example.com' },
+  { name: 'Kassy Hawks', firstName: 'Kassy', lastName: 'Hawks', email: 'kassy@example.com' },
+  { name: 'Annie Hawks', firstName: 'Annie', lastName: 'Hawks', email: 'annie@example.com' },
+  { name: 'Anna Hawks', firstName: 'Anna', lastName: 'Hawks', email: 'anna@example.com' },
 ] as const;
 
 export type MockUser = (typeof MOCK_USERS)[number];
