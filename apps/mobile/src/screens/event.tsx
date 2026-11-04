@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/back-button';
 import GlassButton from '@/components/glass-button';
 import { FieldRow } from '@/components/profile-form';
+import SwipeAction from '@/components/swipe-action';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -66,6 +67,7 @@ export default function Event() {
   const transferOwnership = useMutation(api.events.transferOwnership);
   const setMyStatus = useMutation(api.events.setMyStatus);
   const undoDraw = useMutation(api.secretSanta.undoDraw);
+  const setSecretSantaOff = useMutation(api.secretSanta.setOff);
   const eventActions = useEventActions(event, exitEvent);
   const cancelled = event?.cancelledAt !== undefined;
 
@@ -134,6 +136,25 @@ export default function Event() {
           style: 'destructive',
           onPress: () => run(() => undoDraw({ eventId: event._id })),
         },
+      ],
+    );
+  }
+
+  // Secret Santa off. Before anything's set up there's nothing to lose, so
+  // it's immediate; a draft setup is thrown away, so ask first.
+  function turnOffSecretSanta() {
+    if (!event || !secretSanta) return;
+    const turnOff = () => run(() => setSecretSantaOff({ eventId: event._id, off: true }));
+    if (!secretSanta.exists) {
+      turnOff();
+      return;
+    }
+    Alert.alert(
+      'Turn off Secret Santa?',
+      'Who’s in, the keep-apart rules and the budget will be cleared. You can turn it back on by editing the event.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Turn off', style: 'destructive', onPress: turnOff },
       ],
     );
   }
@@ -351,25 +372,28 @@ export default function Event() {
           </View>
         )}
 
-        {secretSanta && (secretSanta.exists || isHost) && (
+        {secretSanta && (secretSanta.exists || isHost) && !event?.secretSantaOff && (
           <View className="gap-3">
             <Text className="font-semibold text-ink-muted text-[15px]">Secret Santa</Text>
             {!secretSanta.exists || (isHost && secretSanta.status === 'draft') ? (
               // Until names are drawn, hosts can open the setup to change it
-              // (or draw again after an undo); after that the row shows how it's going.
-              <Link href={secretSantaSetupHref} asChild>
-                <Pressable className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
-                  <View className="flex-1 gap-1">
-                    <Text className="text-[17px]">
-                      {secretSanta.exists ? secretSantaSummary(secretSanta).title : 'Draw names'}
-                    </Text>
-                    <Text className="text-[13px] text-ink-muted">
-                      {secretSanta.exists ? secretSantaSummary(secretSanta).detail : 'Not set up'}
-                    </Text>
-                  </View>
-                  <Icon as={ChevronRight} size={20} className="text-ink-muted" />
-                </Pressable>
-              </Link>
+              // (or draw again after an undo), or swipe to turn Secret Santa
+              // off; after that the row shows how it's going.
+              <SwipeAction label="Turn off" onAction={turnOffSecretSanta}>
+                <Link href={secretSantaSetupHref} asChild>
+                  <Pressable className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
+                    <View className="flex-1 gap-1">
+                      <Text className="text-[17px]">
+                        {secretSanta.exists ? secretSantaSummary(secretSanta).title : 'Draw names'}
+                      </Text>
+                      <Text className="text-[13px] text-ink-muted">
+                        {secretSanta.exists ? secretSantaSummary(secretSanta).detail : 'Not set up'}
+                      </Text>
+                    </View>
+                    <Icon as={ChevronRight} size={20} className="text-ink-muted" />
+                  </Pressable>
+                </Link>
+              </SwipeAction>
             ) : (
               <View className="flex-row items-center justify-between gap-2 border-b border-line pb-1">
                 {(secretSanta.status === 'sent' && secretSanta.myAssignment) ||

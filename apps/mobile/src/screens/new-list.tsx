@@ -1,6 +1,6 @@
 import { useMutation } from 'convex/react';
 import { ConvexError } from 'convex/values';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { ScrollView, View } from 'react-native';
@@ -13,16 +13,26 @@ import { Text } from '@/components/ui/text';
 import { useGroups } from '@/hooks/groups';
 import { useProfile } from '@/hooks/user';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import { colors } from '@family-gifts/design-tokens';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ListInput, listSchema } from '@shared/schemas/list';
 
+// Opening it with `eventId`, or `occasion=birthday`, starts the list for
+// that occasion (as the Make a list To-do does).
+function startingOccasion(params: { eventId?: string; occasion?: string }): ListInput['occasion'] {
+  if (params.eventId) return { kind: 'event', eventId: params.eventId as Id<'events'> };
+  if (params.occasion === 'birthday') return { kind: 'birthday' };
+  return undefined;
+}
+
 export default function NewList() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ eventId?: string; occasion?: string }>();
 
   const { control, handleSubmit, formState, setError, resetField } = useForm<ListInput>({
     resolver: zodResolver(listSchema),
-    defaultValues: { title: '', sharedWithGroupIds: [] },
+    defaultValues: { title: '', occasion: startingOccasion(params), sharedWithGroupIds: [] },
   });
 
   // Start "Who can see it?" from the profile's "Share new lists with" setting.
@@ -85,7 +95,7 @@ export default function NewList() {
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
-        <ListForm control={control} onSubmit={onSubmit} />
+        <ListForm control={control} onSubmit={onSubmit} eventId={params.eventId} />
       </ScrollView>
     </View>
   );

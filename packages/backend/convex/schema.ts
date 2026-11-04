@@ -172,6 +172,9 @@ export default defineSchema({
     // attendees, but its invites and join link stop working until a host
     // restores it.
     cancelledAt: v.optional(v.number()),
+    // A host said this event won't have a Secret Santa ("Secret Santa off"),
+    // so hosts stop being asked to set one up. Missing means it's on.
+    secretSantaOff: v.optional(v.boolean()),
   })
     .index('by_createdBy', ['createdBy'])
     .index('by_inviteToken', ['inviteToken']),
@@ -401,9 +404,9 @@ export default defineSchema({
   // until they dismiss it.
   // - 'secretSantaUndone': a host undid an event's Secret Santa draw, so the
   //   match the user was sent no longer counts.
-  // - 'secretSantaDrawn': (hosts) a scheduled Reviewed draw happened, so the
-  //   names are waiting to be reviewed and sent. Cleared once they're sent
-  //   or the draw is undone.
+  // - 'secretSantaDrawn': no longer created - waiting to send the names is
+  //   now a To-do (convex/toDos.ts). Old rows are hidden from `notices.mine`
+  //   and cleared once the names are sent or the draw is undone.
   notices: defineTable({
     userId: v.string(), // Better Auth user id
     kind: v.union(v.literal('secretSantaUndone'), v.literal('secretSantaDrawn')),
@@ -411,4 +414,13 @@ export default defineSchema({
   })
     .index('by_user_event', ['userId', 'eventId'])
     .index('by_event', ['eventId']),
+
+  // To-dos someone dismissed. To-dos themselves aren't stored - they're
+  // worked out from everything else (convex/toDos.ts) - so this only records
+  // which ones not to show. `key` names one to-do for one occurrence, e.g.
+  // "addIdeas:<listId>:2026-12-25", so a yearly one can come back next year.
+  toDoDismissals: defineTable({
+    userId: v.string(), // Better Auth user id
+    key: v.string(),
+  }).index('by_userId_and_key', ['userId', 'key']),
 });

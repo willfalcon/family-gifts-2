@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { guestKey, useEventDraft } from '@/hooks/event-draft';
 import { useEvent } from '@/hooks/events';
 import { useGroups } from '@/hooks/groups';
+import { useSecretSanta } from '@/hooks/secret-santa-setup';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { colors } from '@family-gifts/design-tokens';
@@ -35,6 +36,10 @@ export default function EventForm({ id }: { id?: string }) {
   const inviteByEmail = useMutation(api.events.invite);
   const inviteUser = useMutation(api.events.inviteUser);
   const inviteGroup = useMutation(api.events.inviteGroup);
+  const setSecretSantaOff = useMutation(api.secretSanta.setOff);
+  const secretSanta = useSecretSanta(isEdit ? event?._id : undefined);
+  // Once names are drawn it can't be turned off here: undo the draw first.
+  const drawn = secretSanta?.exists === true && secretSanta.status !== 'draft';
   const groups = useGroups();
   // Who's been picked on the Add People screen. Only there for new events.
   const draft = useEventDraft();
@@ -49,6 +54,7 @@ export default function EventForm({ id }: { id?: string }) {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [groupIds, setGroupIds] = useState<Id<'groups'>[]>([]);
+  const [secretSantaOn, setSecretSantaOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +73,7 @@ export default function EventForm({ id }: { id?: string }) {
     setEndDate(hasRange ? event.endDate! : '');
     setStartTime(event.startTime ?? '');
     setEndTime(event.endTime ?? '');
+    setSecretSantaOn(!event.secretSantaOff);
   }, [isEdit, event]);
 
   // The event's fields, or an error message if the form isn't valid yet.
@@ -120,7 +127,15 @@ export default function EventForm({ id }: { id?: string }) {
     try {
       if (isEdit) {
         if (!event) return;
+        const turningOff = !secretSantaOn && !event.secretSantaOff;
+        const turningOn = secretSantaOn && !!event.secretSantaOff;
+        // Turning it off throws away a setup that hasn't been drawn yet.
+        if (turningOff && secretSanta?.exists && !(await confirmTurnOff())) {
+          setSubmitting(false);
+          return;
+        }
         await updateEvent({ id: event._id, ...fields });
+        if (turningOff || turningOn) await setSecretSantaOff({ eventId: event._id, off: turningOff });
         router.back();
       } else {
         let newId = draft?.eventId;
@@ -148,6 +163,15 @@ export default function EventForm({ id }: { id?: string }) {
       setError(e instanceof ConvexError ? String(e.data) : 'Something went wrong. Try again.');
       setSubmitting(false);
     }
+  }
+
+  function confirmTurnOff() {
+    return new Promise<boolean>(resolve =>
+      Alert.alert('Turn off Secret Santa?', 'Who’s in, the keep-apart rules and the budget will be cleared.', [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Turn off', style: 'destructive', onPress: () => resolve(true) },
+      ]),
+    );
   }
 
   return (
@@ -250,6 +274,28 @@ export default function EventForm({ id }: { id?: string }) {
             />
           </View>
         </View>
+
+        {isEdit && (
+          <View className="gap-2">
+            <Label>Secret Santa</Label>
+            <FieldRow>
+              <Text>Secret Santa</Text>
+              <Switch
+                aria-label="Secret Santa"
+                checked={secretSantaOn}
+                onCheckedChange={setSecretSantaOn}
+                disabled={drawn}
+              />
+            </FieldRow>
+            <Text className="text-[13px] text-ink-muted">
+              {drawn
+                ? 'Names have been drawn. Undo the draw to turn Secret Santa off.'
+                : secretSantaOn
+                  ? 'Hosts can draw names from the event page.'
+                  : 'Hosts won’t be asked to draw names for this event.'}
+            </Text>
+          </View>
+        )}
 
         {!isEdit && (
           <View className="gap-2">

@@ -9,7 +9,7 @@ import { getMembership } from './groups';
 import { hasListAccess } from './listShares';
 import { getFirstName } from './profiles';
 import { swapProblem } from '../../shared/secret-santa';
-import { addSecretSantaDrawnNotices, addSecretSantaUndoneNotice, clearSecretSantaDrawnNotices } from './notices';
+import { addSecretSantaUndoneNotice, clearSecretSantaDrawnNotices } from './notices';
 
 // Random derangement respecting one-directional exclusions ("giver must not
 // receive excludedUserId"). Tries plain random shuffles first (cheap, and
@@ -500,6 +500,26 @@ export const reset = mutation({
   },
 });
 
+// Turns Secret Santa off for an event ("Secret Santa off"), or back on. Off
+// only before names are drawn: any setup so far (who's in, rules, a
+// scheduled draw) is thrown away. Once drawn, undo or reset the draw first.
+export const setOff = mutation({
+  args: { eventId: v.id('events'), off: v.boolean() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    await requireHost(ctx, args.eventId, user._id);
+
+    if (args.off) {
+      const secretSanta = await getSecretSanta(ctx, args.eventId);
+      if (secretSanta && secretSanta.status !== 'draft') {
+        throw new ConvexError('Names have already been drawn. Undo the draw first.');
+      }
+      await deleteSecretSanta(ctx, args.eventId);
+    }
+    await ctx.db.patch(args.eventId, { secretSantaOff: args.off || undefined });
+  },
+});
+
 // Takes back a draw: everyone's match is cleared, but who's in, the
 // keep-apart rules and the budget are kept so the host can draw again from
 // the setup screen. If the names had been sent, everyone who was in the draw
@@ -629,7 +649,7 @@ async function getEntrantRows(ctx: QueryCtx, secretSanta: Doc<'secretSantas'>) {
 // Draws names: entrants who are going become the participants and keep-apart
 // rules become exclusions both ways. A Secret draw then sends the names. A
 // Reviewed draw waits for a host; with `notifyHosts` (a draw nobody was
-// watching happen) every host gets an email and a home-screen notice.
+// watching happen) every host gets an email.
 // Returns why it couldn't draw, writing nothing in that case.
 async function draw(
   ctx: MutationCtx,
@@ -688,13 +708,7 @@ async function draw(
   if ((secretSanta.mode ?? 'secret') === 'secret') {
     await sendNames(ctx, secretSanta);
   } else if (notifyHosts) {
-    const hostUserIds = (
-      await ctx.db
-        .query('eventAttendees')
-        .withIndex('by_event', q => q.eq('eventId', secretSanta.eventId))
-        .collect()
-    ).flatMap(row => (row.userId && isHostRole(row.role) ? [row.userId] : []));
-    await addSecretSantaDrawnNotices(ctx, secretSanta.eventId, hostUserIds);
+    // Hosts also get a Send the names To-do (convex/toDos.ts).
     await ctx.scheduler.runAfter(0, internal.sendSecretSantaDrawnEmail.sendSecretSantaDrawnEmails, {
       secretSantaId: secretSanta._id,
     });
@@ -948,6 +962,8 @@ export const setup = mutation({
     if (existing && existing.status !== 'draft') {
       throw new ConvexError('Names have already been drawn. Undo the draw to change it.');
     }
+    // Setting one up turns Secret Santa back on.
+    await ctx.db.patch(args.eventId, { secretSantaOff: undefined });
 
     const attendeeIds = [...new Set(args.attendeeIds)];
     const rows = new Map<string, Doc<'eventAttendees'>>();

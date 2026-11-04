@@ -56,12 +56,26 @@ A Secret Santa where hosts see every Match once names are drawn, and nobody is t
 _Avoid_: non-private draw, public draw
 
 **Send the names**
-When a host tells everyone in a Reviewed draw their Match. Until then the round is **Drawn, not sent**: the Matches exist, but only hosts can see them. A Secret draw sends the names as part of drawing.
+When a host tells everyone in a Reviewed draw their Match. Until then the Secret Santa is **Drawn, not sent**: the Matches exist, but only hosts can see them. A Secret draw sends the names as part of drawing.
 _Avoid_: publish, release, notify
+
+**Secret Santa off**
+A host has said an event won't have a Secret Santa, so hosts stop being asked to set one up. Any host can turn it back on. It can only be turned off before names are drawn, and turning it off throws away any setup done so far.
+_Avoid_: disabled, round (an event has at most one Secret Santa, so just say "the Secret Santa")
 
 **Gift ready**
 Someone in a Secret Santa has marked that they have their Match's gift. Everyone in the draw sees how many are Gift ready, never who. It's separate from Claims, and it resets if the draw is undone.
 _Avoid_: bought, done, got their gift
+
+## Home screen
+
+**To-do**
+Something the app suggests you do next, like making a list for an event you're going to. It stays until it's no longer true or you dismiss it. You can't tick one off by hand.
+_Avoid_: task, nudge (that's something else)
+
+**Notice**
+Something that happened that you should know about, like a draw being redone. It stays until you dismiss it.
+_Avoid_: notification, alert, to-do
 
 ## People
 

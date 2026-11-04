@@ -15,6 +15,8 @@ import type { Id } from '@convex/_generated/dataModel';
 interface Props {
   control: Control<ListInput>;
   onSubmit: () => void;
+  // The event to offer as an occasion. Defaults to the first one.
+  eventId?: string;
 }
 
 // One radio row. `key` is the string the RadioGroup works with; `occasion` is
@@ -35,13 +37,13 @@ function keyFor(occasion: OccasionInput | undefined): string {
   return occasion.kind;
 }
 
-export default function ListForm({ control, onSubmit }: Props) {
+export default function ListForm({ control, onSubmit, eventId }: Props) {
   const events = useEvents();
   const profile = useProfile();
   const groups = useGroups();
 
   const occasionKind = useWatch({ control, name: 'occasion.kind' });
-  const firstEvent = events?.[0];
+  const firstEvent = events?.find(e => e._id === eventId) ?? events?.[0];
   const birthday = profile?.birthday;
   const options: OccasionOption[] = [
     ...(firstEvent

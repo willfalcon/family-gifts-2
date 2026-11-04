@@ -11,9 +11,8 @@ import { Text } from './ui/text';
 
 type Notice = FunctionReturnType<typeof api.notices.mine>[number];
 
-// One dismissible card per notice (a Secret Santa draw that was undone, or
-// one waiting for a host to send the names), shown on the home screen
-// alongside invites.
+// One dismissible card per Notice (a Secret Santa draw that was undone),
+// shown on the home screen alongside invites.
 export default function NoticeCards() {
   const notices = useQuery(api.notices.mine);
   if (!notices?.length) return null;
@@ -31,19 +30,12 @@ const COPY: Record<Notice['kind'], { title: string; body: string }> = {
     title: 'The draw was redone',
     body: 'Your old match no longer counts. You’ll get a new one when names are drawn again.',
   },
-  secretSantaDrawn: {
-    title: 'Names are drawn',
-    body: 'Nobody has been told who they have yet. Review them, then send the names.',
-  },
 };
 
 function NoticeCard({ notice }: { notice: Notice }) {
   const dismiss = useMutation(api.notices.dismiss);
   const { title, body } = COPY[notice.kind];
-  const href =
-    notice.kind === 'secretSantaDrawn'
-      ? ({ pathname: '/(app)/(events)/events/[id]/secret-santa', params: { id: notice.eventId } } as const)
-      : ({ pathname: '/(app)/(events)/events/[id]', params: { id: notice.eventId } } as const);
+  const href = { pathname: '/(app)/(events)/events/[id]', params: { id: notice.eventId } } as const;
 
   return (
     <Card>

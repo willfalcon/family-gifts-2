@@ -14,20 +14,8 @@ export async function addSecretSantaUndoneNotice(ctx: MutationCtx, userId: strin
   if (!existing) await ctx.db.insert('notices', { userId, kind: 'secretSantaUndone', eventId });
 }
 
-// Tells every host on the event that a scheduled Reviewed draw happened and
-// the names are waiting to be sent.
-export async function addSecretSantaDrawnNotices(ctx: MutationCtx, eventId: Id<'events'>, hostUserIds: string[]) {
-  for (const userId of hostUserIds) {
-    const existing = await ctx.db
-      .query('notices')
-      .withIndex('by_user_event', q => q.eq('userId', userId).eq('eventId', eventId))
-      .filter(q => q.eq(q.field('kind'), 'secretSantaDrawn'))
-      .first();
-    if (!existing) await ctx.db.insert('notices', { userId, kind: 'secretSantaDrawn', eventId });
-  }
-}
-
-// Once the names are sent or the draw is undone, there's nothing left to review.
+// Clears old 'secretSantaDrawn' notices (no longer created - see the
+// notices table in convex/schema.ts) once there's nothing left to send.
 export async function clearSecretSantaDrawnNotices(ctx: MutationCtx, eventId: Id<'events'>) {
   for await (const notice of ctx.db.query('notices').withIndex('by_event', q => q.eq('eventId', eventId))) {
     if (notice.kind === 'secretSantaDrawn') await ctx.db.delete(notice._id);
@@ -54,6 +42,8 @@ export const mine = query({
 
     const withEvents = await Promise.all(
       notices.map(async notice => {
+        // Waiting to send the names is a To-do now; skip old notices for it.
+        if (notice.kind !== 'secretSantaUndone') return null;
         const event = await ctx.db.get(notice.eventId);
         if (!event) return null;
         return {
