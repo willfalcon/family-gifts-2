@@ -4,6 +4,7 @@ import { authComponent } from './auth';
 import { priorityValidator } from './schema';
 import { hasListAccess } from './listShares';
 import { claimSnapshot, syncItemClaimed } from './claims';
+import { answerAsks } from './asks';
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -60,6 +61,7 @@ export const create = mutation({
 
     const itemId = await ctx.db.insert('items', { ...args, createdBy: user._id });
     await ctx.db.patch(list._id, { itemCount: list.itemCount + 1 });
+    await answerAsks(ctx, (await ctx.db.get(list._id))!);
     return itemId;
   },
 });
@@ -99,6 +101,7 @@ export const update = mutation({
       }
       await ctx.db.patch(oldList._id, { itemCount: Math.max(0, oldList.itemCount - 1) });
       await ctx.db.patch(newListId, { itemCount: newList.itemCount + 1 });
+      await answerAsks(ctx, (await ctx.db.get(newListId))!);
       for await (const claim of ctx.db.query('claims').withIndex('by_item', q => q.eq('itemId', id))) {
         await ctx.db.patch(claim._id, { listId: newListId });
       }

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as asks from "../asks.js";
 import type * as auth from "../auth.js";
 import type * as avatarColors from "../avatarColors.js";
 import type * as claims from "../claims.js";
@@ -43,6 +44,7 @@ import type * as sendGroupInviteEmail from "../sendGroupInviteEmail.js";
 import type * as sendPasswordResetEmail from "../sendPasswordResetEmail.js";
 import type * as sendSecretSantaAssignmentEmail from "../sendSecretSantaAssignmentEmail.js";
 import type * as sendSecretSantaDrawnEmail from "../sendSecretSantaDrawnEmail.js";
+import type * as threads from "../threads.js";
 import type * as toDos from "../toDos.js";
 import type * as types from "../types.js";
 
@@ -53,6 +55,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  asks: typeof asks;
   auth: typeof auth;
   avatarColors: typeof avatarColors;
   claims: typeof claims;
@@ -88,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   sendPasswordResetEmail: typeof sendPasswordResetEmail;
   sendSecretSantaAssignmentEmail: typeof sendSecretSantaAssignmentEmail;
   sendSecretSantaDrawnEmail: typeof sendSecretSantaDrawnEmail;
+  threads: typeof threads;
   toDos: typeof toDos;
   types: typeof types;
 }>;

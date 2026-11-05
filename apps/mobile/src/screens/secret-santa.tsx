@@ -15,6 +15,7 @@ import { useUser } from '@/hooks/user';
 
 import { useSecretSanta } from '@/hooks/secret-santa-setup';
 import MatchItems from '@/components/secret-santa/match-items';
+import SecretSantaAsk from '@/components/secret-santa-ask';
 import GiftReady from '@/components/secret-santa/gift-ready';
 import MatchAvatar from '@/components/secret-santa/match-avatar';
 import ReviewMatches from '@/components/secret-santa/review-matches';
@@ -175,6 +176,8 @@ export default function SecretSanta() {
         {match && budget != null && <Text className="text-center text-[15px] text-ink-muted">${budget} limit</Text>}
 
         {match && revealed && <MatchItems eventId={event?._id} match={match} budget={budget} />}
+
+        {match && revealed && event && <SecretSantaAsk eventId={event._id} />}
 
         {!hostGiftView && match && event && giftProgress && (
           <GiftReady

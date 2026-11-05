@@ -8,6 +8,8 @@ export default function Layout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="shopping" />
+      <Stack.Screen name="threads/index" />
+      <Stack.Screen name="threads/[id]" />
       <Stack.Screen name="lists/[id]/index" />
       <Stack.Screen name="lists/[id]/items/[itemId]" options={THEIR_ITEM_SHEET_OPTIONS} />
       <Stack.Screen name="profile" options={{ presentation: 'modal' }} />

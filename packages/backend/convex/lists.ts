@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values';
 import { listSchema, type ListInput } from '../../shared/schemas/list';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import { answerAsks } from './asks';
 import { authComponent } from './auth';
 import { getClaimedItemCount } from './claims';
 import { getAttendance } from './events';
@@ -206,6 +207,8 @@ export const update = mutation({
 
     await ctx.db.patch(id, { title, notes, occasion });
     if (sharedWithGroupIds) await syncGroupShares(ctx, id, sharedWithGroupIds, user._id);
+    // A new occasion can answer an Ask for it.
+    await answerAsks(ctx, (await ctx.db.get(id))!);
   },
 });
 
@@ -236,6 +239,7 @@ export const unarchive = mutation({
     }
 
     await ctx.db.patch(args.id, { archivedAt: undefined });
+    await answerAsks(ctx, (await ctx.db.get(args.id))!);
   },
 });
 

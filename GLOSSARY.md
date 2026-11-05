@@ -77,6 +77,20 @@ _Avoid_: task, nudge (that's something else)
 Something that happened that you should know about, like a draw being redone. It stays until you dismiss it.
 _Avoid_: notification, alert, to-do
 
+## Messages
+
+**Ask**
+A request to one person for gift ideas for an occasion, sent as a message in a Thread. You can only ask a Connection, and only once per person per occasion. Asking again just adds to the same Ask. It stays open until they have a list for that occasion with at least one item, or until a week after the occasion has passed. If the event is cancelled, it closes right away. Other people asking the same person for the same occasion can see who already asked, but not what they wrote. A Secret Santa Ask is the exception: nobody else knows about it.
+_Avoid_: request, nudge, message (the Ask is the request; the message is what carries it)
+
+**Secret Santa Ask**
+An Ask you send your Match without your name. It arrives from "Your Secret Santa" in a Thread of its own, they can reply, and they never find out who it was. Nobody else knows it was sent. It closes like any Ask, and also when the draw is undone, which also stops either of you replying.
+_Avoid_: anonymous ask, secret message
+
+**Thread**
+A conversation between people in the app. Asks arrive in one, and anyone in it can reply.
+_Avoid_: chat, conversation, DM
+
 ## People
 
 **Connection**

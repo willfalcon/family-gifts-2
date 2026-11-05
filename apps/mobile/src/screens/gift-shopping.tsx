@@ -18,6 +18,7 @@ import { useItemDetailsHref } from '@/hooks/claims';
 import { useGiftShopping, useSetBought, type GiftToGet, type ShoppingClaim } from '@/hooks/gift-shopping';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from '@/screens/secret-santa-setup';
+import SecretSantaAsk from '@/components/secret-santa-ask';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
@@ -243,6 +244,7 @@ function MatchDetails({ gift, onHide }: { gift: GiftToGet; onHide: () => void })
           />
         </View>
       )}
+      {eventId && <SecretSantaAsk eventId={eventId} />}
     </View>
   );
 }

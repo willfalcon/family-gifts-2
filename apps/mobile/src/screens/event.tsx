@@ -5,10 +5,12 @@ import { GlassView } from 'expo-glass-effect';
 import { ConvexError } from 'convex/values';
 import { Link, router, useLocalSearchParams, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Check, ChevronRight, Ellipsis, Pencil, Plus } from 'lucide-react-native';
+import { Check, ChevronRight, Ellipsis, MessageCircle, Pencil, Plus } from 'lucide-react-native';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AskForIdeasSheet from '@/components/ask-for-ideas-sheet';
 import { BackButton } from '@/components/back-button';
 import GlassButton from '@/components/glass-button';
 import SwipeAction from '@/components/swipe-action';
@@ -67,6 +69,8 @@ export default function Event() {
   const setSecretSantaOff = useMutation(api.secretSanta.setOff);
   const eventActions = useEventActions(event, exitEvent);
   const cancelled = event?.cancelledAt !== undefined;
+  // Who the Ask for ideas sheet is open for, if anyone.
+  const [askingUserId, setAskingUserId] = useState<string | null>(null);
 
   if (event === null) {
     return (
@@ -450,8 +454,7 @@ export default function Event() {
                         <Text className="text-subhead text-ink-muted">{listSummary(firstList, isSelf)}</Text>
                         <Icon as={ChevronRight} size={20} className="text-ink-muted" />
                       </>
-                    ) : (
-                      isSelf &&
+                    ) : isSelf ? (
                       !cancelled && (
                         <Link href={{ pathname: '/(app)/(my-lists)/lists/new', params: { eventId: id } }} asChild>
                           <Button variant="secondary" size="sm" className="rounded-pill">
@@ -459,6 +462,19 @@ export default function Event() {
                             <Text className="text-accent">Make a list</Text>
                           </Button>
                         </Link>
+                      )
+                    ) : (
+                      !cancelled &&
+                      attendee.userId && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="rounded-pill"
+                          onPress={() => setAskingUserId(attendee.userId ?? null)}
+                        >
+                          <Icon as={MessageCircle} size={16} strokeWidth={2.5} className="text-accent" />
+                          <Text className="text-accent">Ask for ideas</Text>
+                        </Button>
                       )
                     )}
                     {canManageThem && (
@@ -551,6 +567,15 @@ export default function Event() {
           </View>
         )}
       </ScrollView>
+
+      {askingUserId && (
+        <AskForIdeasSheet
+          visible
+          onClose={() => setAskingUserId(null)}
+          userId={askingUserId}
+          eventId={eventId}
+        />
+      )}
     </SafeAreaView>
   );
 }

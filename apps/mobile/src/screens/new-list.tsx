@@ -18,11 +18,12 @@ import { colors } from '@family-gifts/design-tokens';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ListInput, listSchema } from '@shared/schemas/list';
 
-// Opening it with `eventId`, or `occasion=birthday`, starts the list for
-// that occasion (as the Make a list To-do does).
+// Opening it with `eventId`, or `occasion=birthday` or `christmas`, starts the
+// list for that occasion (as the Make a list To-do and Asks do).
 function startingOccasion(params: { eventId?: string; occasion?: string }): ListInput['occasion'] {
   if (params.eventId) return { kind: 'event', eventId: params.eventId as Id<'events'> };
   if (params.occasion === 'birthday') return { kind: 'birthday' };
+  if (params.occasion === 'christmas') return { kind: 'christmas' };
   return undefined;
 }
 

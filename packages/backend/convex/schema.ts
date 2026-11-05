@@ -42,6 +42,15 @@ export const occasionValidator = v.union(
   v.object({ kind: v.literal('date'), date: v.string() }), // "Another occasion"
 );
 
+// What an Ask is for. A subset of the list occasions: another date isn't
+// something you can ask about.
+export const askOccasionValidator = v.union(
+  v.object({ kind: v.literal('event'), eventId: v.id('events') }),
+  v.object({ kind: v.literal('christmas') }),
+  v.object({ kind: v.literal('birthday') }), // the asked person's
+);
+export type AskOccasion = Infer<typeof askOccasionValidator>;
+
 // App tables. Better Auth's own tables (user, session, account, ...) live in the
 // betterAuth component and are not declared here.
 export default defineSchema({
@@ -414,6 +423,70 @@ export default defineSchema({
   })
     .index('by_user_event', ['userId', 'eventId'])
     .index('by_event', ['eventId']),
+
+  // A conversation between people (see Thread in GLOSSARY.md). Who's in it
+  // lives in threadMembers, so a thread can later hold more than two people.
+  // `pairKey` is set on 1:1 threads only - the two user ids sorted and joined
+  // with "|" - so there's at most one thread per pair.
+  //
+  // A Secret Santa Ask's thread has `assignmentId` (the giver's Match) and
+  // `santaId` (the giver), and no `pairKey`. The giver is never named to the
+  // other member. It's read-only once that assignment is gone (the draw was
+  // undone), even if a redraw pairs them again.
+  threads: defineTable({
+    pairKey: v.optional(v.string()),
+    lastMessageAt: v.number(),
+    assignmentId: v.optional(v.id('secretSantaAssignments')),
+    santaId: v.optional(v.string()), // Better Auth user id
+  })
+    .index('by_pairKey', ['pairKey'])
+    .index('by_assignmentId', ['assignmentId']),
+
+  // threads <-> users. `lastMessageAt` is copied from the thread so a user's
+  // threads can be read newest first. `unreadCount` is messages from other
+  // people since this member last opened the thread.
+  threadMembers: defineTable({
+    threadId: v.id('threads'),
+    userId: v.string(), // Better Auth user id
+    lastMessageAt: v.number(),
+    unreadCount: v.number(),
+  })
+    .index('by_threadId_and_userId', ['threadId', 'userId'])
+    .index('by_userId_and_lastMessageAt', ['userId', 'lastMessageAt']),
+
+  // - 'text': a plain message.
+  // - 'ask': the message an Ask was sent with. `askId` is set.
+  // - 'listMade': the asked person made a list that answered the Ask. Written
+  //   by the app, but `authorId` is the asked person, since it's their doing.
+  messages: defineTable({
+    threadId: v.id('threads'),
+    authorId: v.string(), // Better Auth user id
+    kind: v.union(v.literal('text'), v.literal('ask'), v.literal('listMade')),
+    body: v.optional(v.string()),
+    askId: v.optional(v.id('asks')),
+  }).index('by_threadId', ['threadId']),
+
+  // A request to one person for gift ideas (see Ask in GLOSSARY.md). Whether
+  // it's still open is worked out when read (convex/asks.ts): it closes once
+  // `answeredAt` is set, a week after the occasion, or while its event is
+  // cancelled.
+  asks: defineTable({
+    threadId: v.id('threads'),
+    askerId: v.string(), // Better Auth user id
+    askedId: v.string(), // Better Auth user id
+    // A Secret Santa Ask: always for its event, in its own thread, and kept
+    // out of everyone else's view of who asked.
+    secretSanta: v.optional(v.boolean()),
+    // None = "No occasion". 'birthday' is the asked person's birthday.
+    occasion: v.optional(askOccasionValidator),
+    // Which Christmas or birthday it's for, e.g. "2026-12-25". Events use
+    // the event's own date, which can change.
+    occurrenceDate: v.optional(v.string()),
+    // When the asked person had a list for the occasion with an item on it.
+    answeredAt: v.optional(v.number()),
+  })
+    .index('by_askedId_and_answeredAt', ['askedId', 'answeredAt'])
+    .index('by_askerId_and_askedId', ['askerId', 'askedId']),
 
   // To-dos someone dismissed. To-dos themselves aren't stored - they're
   // worked out from everything else (convex/toDos.ts) - so this only records

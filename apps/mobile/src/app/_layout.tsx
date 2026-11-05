@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { Fraunces_500Medium, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { PortalHost } from '@rn-primitives/portal';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import * as SplashScreen from 'expo-splash-screen';
 import { authClient } from '../../lib/auth-client';
 import AppContent from '../components/app-content';
@@ -46,8 +47,11 @@ export default function AppLayout() {
     <ThemeProvider value={NAV_THEME.light}>
       <ConvexProvider client={convex}>
         <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-          <AppContent />
-          <PortalHost />
+          {/* Lets screens follow the keyboard frame by frame (see the thread screen). */}
+          <KeyboardProvider>
+            <AppContent />
+            <PortalHost />
+          </KeyboardProvider>
         </ConvexBetterAuthProvider>
       </ConvexProvider>
       <AnimatedSplashOverlay />

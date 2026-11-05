@@ -9,6 +9,7 @@ import { GroupInvitationCards } from '@/components/group-invitation';
 import GiftShoppingCard from '@/components/gift-shopping-card';
 import NextUp from '@/components/next-up';
 import NoticeCards from '@/components/notice-cards';
+import ThreadCards from '@/components/thread-cards';
 import ToDo from '@/components/to-do';
 import { useEvents } from '@/hooks/events';
 import { useGroups } from '@/hooks/groups';
@@ -57,6 +58,7 @@ export default function DashboardScreen() {
       <InvitationCards />
       <GroupInvitationCards />
       <NoticeCards />
+      <ThreadCards />
       <NextUp />
       <GiftShoppingCard />
 

@@ -39,3 +39,24 @@ export async function getConnections(ctx: QueryCtx, userId: string) {
 
   return people;
 }
+
+// Whether two people are Connections: they share a group, or both have
+// replied to the same event.
+export async function areConnected(ctx: QueryCtx, userId: string, otherId: string) {
+  if (userId === otherId) return false;
+  for await (const membership of ctx.db.query('groupMembers').withIndex('by_user', q => q.eq('userId', userId))) {
+    const other = await ctx.db
+      .query('groupMembers')
+      .withIndex('by_group_user', q => q.eq('groupId', membership.groupId).eq('userId', otherId))
+      .first();
+    if (other) return true;
+  }
+  for await (const attendance of ctx.db.query('eventAttendees').withIndex('by_user', q => q.eq('userId', userId))) {
+    const other = await ctx.db
+      .query('eventAttendees')
+      .withIndex('by_event_user', q => q.eq('eventId', attendance.eventId).eq('userId', otherId))
+      .first();
+    if (other) return true;
+  }
+  return false;
+}

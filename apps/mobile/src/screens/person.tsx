@@ -1,11 +1,12 @@
 import MenuView from '@expo/ui/community/menu';
 import { GlassView } from 'expo-glass-effect';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { ChevronRight, Ellipsis, Lock, Plus } from 'lucide-react-native';
+import { ChevronRight, Ellipsis, Lock, MessageCircle, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AskForIdeasSheet from '@/components/ask-for-ideas-sheet';
 import { BackButton } from '@/components/back-button';
 import { FieldRow } from '@/components/profile-form';
 import PrivateIdeaRow from '@/components/private-idea-row';
@@ -28,6 +29,7 @@ export default function Person() {
 
   // Undefined = closed, null = adding a new idea, a doc = editing that idea.
   const [editingIdea, setEditingIdea] = useState<Doc<'privateIdeas'> | null | undefined>(undefined);
+  const [asking, setAsking] = useState(false);
 
   const actions = [
     ...(isSelf ? [] : [{ id: 'add-private-idea', title: 'Add private idea' }]),
@@ -70,6 +72,12 @@ export default function Person() {
             <Text className="text-ink-muted">
               {isSelf ? "You don't have any lists yet." : `${firstName} hasn't shared any lists with you yet.`}
             </Text>
+          )}
+          {person?.lists.length === 0 && !isSelf && (
+            <Button variant="secondary" size="sm" className="self-start rounded-pill" onPress={() => setAsking(true)}>
+              <Icon as={MessageCircle} size={16} strokeWidth={2.5} className="text-accent" />
+              <Text className="text-accent">Ask for ideas</Text>
+            </Button>
           )}
           {person?.lists.map(list => (
             <Link key={list._id} href={{ pathname: '/(app)/(groups)/lists/[id]', params: { id: list._id } }} asChild>
@@ -114,6 +122,9 @@ export default function Person() {
           personName={firstName}
           idea={editingIdea}
         />
+      )}
+      {person && !isSelf && asking && (
+        <AskForIdeasSheet visible onClose={() => setAsking(false)} userId={id} />
       )}
     </SafeAreaView>
   );

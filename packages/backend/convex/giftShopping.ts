@@ -101,7 +101,7 @@ function eventOccasion(event: Doc<'events'>): Occasion {
 }
 
 // `ownerId`'s birthday, if they let `viewerId` see it.
-async function visibleBirthday(ctx: QueryCtx, ownerId: string, viewerId: string) {
+export async function visibleBirthday(ctx: QueryCtx, ownerId: string, viewerId: string) {
   const profile = await ctx.db
     .query('profiles')
     .withIndex('by_userId', q => q.eq('userId', ownerId))
