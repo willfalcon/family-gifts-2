@@ -40,6 +40,8 @@ import { Route as AppGroupsIdInviteRouteImport } from './routes/_app/groups/$id/
 import { Route as AppListsIdIndexRouteImport } from './routes/_app/lists/$id/index'
 import { Route as AppListsIdAddRouteImport } from './routes/_app/lists/$id/add'
 import { Route as AppListsIdEditRouteImport } from './routes/_app/lists/$id/edit'
+import { Route as AppEventsIdSecretSantaIndexRouteImport } from './routes/_app/events/$id/secret-santa/index'
+import { Route as AppEventsIdSecretSantaSetupRouteImport } from './routes/_app/events/$id/secret-santa/setup'
 import { Route as AppListsIdItemsItemIdRouteImport } from './routes/_app/lists/$id/items/$itemId'
 
 const AppRoute = AppRouteImport.update({
@@ -195,6 +197,18 @@ const AppListsIdEditRoute = AppListsIdEditRouteImport.update({
   path: '/lists/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEventsIdSecretSantaIndexRoute =
+  AppEventsIdSecretSantaIndexRouteImport.update({
+    id: '/events/$id/secret-santa/',
+    path: '/events/$id/secret-santa/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppEventsIdSecretSantaSetupRoute =
+  AppEventsIdSecretSantaSetupRouteImport.update({
+    id: '/events/$id/secret-santa/setup',
+    path: '/events/$id/secret-santa/setup',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppListsIdItemsItemIdRoute = AppListsIdItemsItemIdRouteImport.update({
   id: '/lists/$id/items/$itemId',
   path: '/lists/$id/items/$itemId',
@@ -231,7 +245,9 @@ export interface FileRoutesByFullPath {
   '/events/$id/': typeof AppEventsIdIndexRoute
   '/groups/$id/': typeof AppGroupsIdIndexRoute
   '/lists/$id/': typeof AppListsIdIndexRoute
+  '/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
   '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/events/$id/secret-santa/': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -263,7 +279,9 @@ export interface FileRoutesByTo {
   '/events/$id': typeof AppEventsIdIndexRoute
   '/groups/$id': typeof AppGroupsIdIndexRoute
   '/lists/$id': typeof AppListsIdIndexRoute
+  '/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
   '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/events/$id/secret-santa': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -298,7 +316,9 @@ export interface FileRoutesById {
   '/_app/events/$id/': typeof AppEventsIdIndexRoute
   '/_app/groups/$id/': typeof AppGroupsIdIndexRoute
   '/_app/lists/$id/': typeof AppListsIdIndexRoute
+  '/_app/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
   '/_app/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/_app/events/$id/secret-santa/': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -332,7 +352,9 @@ export interface FileRouteTypes {
     | '/events/$id/'
     | '/groups/$id/'
     | '/lists/$id/'
+    | '/events/$id/secret-santa/setup'
     | '/lists/$id/items/$itemId'
+    | '/events/$id/secret-santa/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -364,7 +386,9 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/groups/$id'
     | '/lists/$id'
+    | '/events/$id/secret-santa/setup'
     | '/lists/$id/items/$itemId'
+    | '/events/$id/secret-santa'
   id:
     | '__root__'
     | '/_app'
@@ -398,7 +422,9 @@ export interface FileRouteTypes {
     | '/_app/events/$id/'
     | '/_app/groups/$id/'
     | '/_app/lists/$id/'
+    | '/_app/events/$id/secret-santa/setup'
     | '/_app/lists/$id/items/$itemId'
+    | '/_app/events/$id/secret-santa/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -628,6 +654,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppListsIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/events/$id/secret-santa/': {
+      id: '/_app/events/$id/secret-santa/'
+      path: '/events/$id/secret-santa'
+      fullPath: '/events/$id/secret-santa/'
+      preLoaderRoute: typeof AppEventsIdSecretSantaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/events/$id/secret-santa/setup': {
+      id: '/_app/events/$id/secret-santa/setup'
+      path: '/events/$id/secret-santa/setup'
+      fullPath: '/events/$id/secret-santa/setup'
+      preLoaderRoute: typeof AppEventsIdSecretSantaSetupRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/lists/$id/items/$itemId': {
       id: '/_app/lists/$id/items/$itemId'
       path: '/lists/$id/items/$itemId'
@@ -661,7 +701,9 @@ interface AppRouteChildren {
   AppEventsIdIndexRoute: typeof AppEventsIdIndexRoute
   AppGroupsIdIndexRoute: typeof AppGroupsIdIndexRoute
   AppListsIdIndexRoute: typeof AppListsIdIndexRoute
+  AppEventsIdSecretSantaSetupRoute: typeof AppEventsIdSecretSantaSetupRoute
   AppListsIdItemsItemIdRoute: typeof AppListsIdItemsItemIdRoute
+  AppEventsIdSecretSantaIndexRoute: typeof AppEventsIdSecretSantaIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -687,7 +729,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppEventsIdIndexRoute: AppEventsIdIndexRoute,
   AppGroupsIdIndexRoute: AppGroupsIdIndexRoute,
   AppListsIdIndexRoute: AppListsIdIndexRoute,
+  AppEventsIdSecretSantaSetupRoute: AppEventsIdSecretSantaSetupRoute,
   AppListsIdItemsItemIdRoute: AppListsIdItemsItemIdRoute,
+  AppEventsIdSecretSantaIndexRoute: AppEventsIdSecretSantaIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

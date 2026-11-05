@@ -125,9 +125,9 @@ Legend: done / partial / todo / n/a.
 - [x] Invite guests (picker + groups, waiting invites + revoke, guests can share link, reset link) — done
 
 ### Secret Santa
-- [ ] Setup: who's in, budget, keep-apart rules (dialog with remember-for-group), mode, draw date / draw early, footnotes — todo
-- [ ] Secret Santa page: reveal/hide Match, budget, match items, ask anonymously, gift ready + progress — todo
-- [ ] Reviewed draw: drawn-not-sent banner, swap matches, send the names, host gift-ready pills — todo
+- [x] Setup: who's in, budget, keep-apart rules (dialog with remember-for-group), mode, draw date / draw early, footnotes — done
+- [x] Secret Santa page: reveal/hide Match, budget, match items, ask anonymously, gift ready + progress — done
+- [x] Reviewed draw: drawn-not-sent banner, swap matches, send the names, host gift-ready pills — done
 
 ## Env vars
 
