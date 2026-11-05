@@ -118,11 +118,11 @@ Legend: done / partial / todo / n/a.
 - [x] Person page: their lists, ask for ideas, private ideas (add/edit/delete) — done
 
 ### Events
-- [ ] Events list: invitations, upcoming by month, past, archived; per-row edit/archive/cancel/restore/delete — todo
-- [ ] New event (name, description, dates, multi-day, times, location, invite groups, add people incl. share link before saving) — todo
-- [ ] Edit event (+ Secret Santa on/off) — todo
-- [ ] Event page: when/where, cancelled banner, going summary + avatars, Secret Santa row (setup/summary/undo/turn off), attendees with lists / make a list / ask for ideas / host actions, waiting-on invitees + revoke, menu (invite, copy link, can't go / can go, archive, cancel/restore, delete) — todo
-- [ ] Invite guests (picker + groups, waiting invites + revoke, guests can share link, reset link) — todo
+- [x] Events list: invitations, upcoming by month, past, archived; per-row edit/archive/cancel/restore/delete (menu instead of swipe / long-press) — done
+- [x] New event (name, description, dates, multi-day, times, location, invite groups, add people incl. share link before saving) — done (Add People is a dialog over the form)
+- [x] Edit event (+ Secret Santa on/off) — done
+- [x] Event page: when/where, cancelled banner, going summary + avatars, Secret Santa row (setup/summary/undo/turn off), attendees with lists / make a list / ask for ideas / host actions, waiting-on invitees + revoke, menu (invite, copy link, can't go / can go, archive, cancel/restore, delete) — done ("Turn off" is a row menu instead of a swipe)
+- [x] Invite guests (picker + groups, waiting invites + revoke, guests can share link, reset link) — done
 
 ### Secret Santa
 - [ ] Setup: who's in, budget, keep-apart rules (dialog with remember-for-group), mode, draw date / draw early, footnotes — todo
