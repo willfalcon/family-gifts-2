@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppShoppingRouteImport } from './routes/_app/shopping'
 import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
@@ -20,6 +21,10 @@ import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
 import { Route as AppListsNewRouteImport } from './routes/_app/lists/new'
+import { Route as AppMessagesIndexRouteImport } from './routes/_app/messages/index'
+import { Route as AppMessagesIdRouteImport } from './routes/_app/messages/$id'
+import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
+import { Route as AppProfilePasswordRouteImport } from './routes/_app/profile/password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppListsIdIndexRouteImport } from './routes/_app/lists/$id/index'
 import { Route as AppListsIdAddRouteImport } from './routes/_app/lists/$id/add'
@@ -37,6 +42,11 @@ const AuthRoute = AuthRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShoppingRoute = AppShoppingRouteImport.update({
+  id: '/shopping',
+  path: '/shopping',
   getParentRoute: () => AppRoute,
 } as any)
 const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
@@ -79,6 +89,26 @@ const AppListsNewRoute = AppListsNewRouteImport.update({
   path: '/lists/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMessagesIndexRoute = AppMessagesIndexRouteImport.update({
+  id: '/messages/',
+  path: '/messages/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesIdRoute = AppMessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfilePasswordRoute = AppProfilePasswordRouteImport.update({
+  id: '/profile/password',
+  path: '/profile/password',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -107,6 +137,7 @@ const AppListsIdItemsItemIdRoute = AppListsIdItemsItemIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/shopping': typeof AppShoppingRoute
   '/forgot-password': typeof AuthForgotPasswordRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/sign-in': typeof AuthSignInRoute
@@ -114,8 +145,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/lists/new': typeof AppListsNewRoute
+  '/messages/$id': typeof AppMessagesIdRoute
+  '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/lists/': typeof AppListsIndexRoute
+  '/messages/': typeof AppMessagesIndexRoute
+  '/profile/': typeof AppProfileIndexRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
   '/lists/$id/': typeof AppListsIdIndexRoute
@@ -123,6 +158,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/shopping': typeof AppShoppingRoute
   '/forgot-password': typeof AuthForgotPasswordRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/sign-in': typeof AuthSignInRoute
@@ -130,8 +166,12 @@ export interface FileRoutesByTo {
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/lists/new': typeof AppListsNewRoute
+  '/messages/$id': typeof AppMessagesIdRoute
+  '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/lists': typeof AppListsIndexRoute
+  '/messages': typeof AppMessagesIndexRoute
+  '/profile': typeof AppProfileIndexRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
   '/lists/$id': typeof AppListsIdIndexRoute
@@ -141,6 +181,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
+  '/_app/shopping': typeof AppShoppingRoute
   '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_auth/sign-in': typeof AuthSignInRoute
@@ -149,8 +190,12 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/lists/new': typeof AppListsNewRoute
+  '/_app/messages/$id': typeof AppMessagesIdRoute
+  '/_app/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/lists/': typeof AppListsIndexRoute
+  '/_app/messages/': typeof AppMessagesIndexRoute
+  '/_app/profile/': typeof AppProfileIndexRoute
   '/_app/lists/$id/add': typeof AppListsIdAddRoute
   '/_app/lists/$id/edit': typeof AppListsIdEditRoute
   '/_app/lists/$id/': typeof AppListsIdIndexRoute
@@ -160,6 +205,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/shopping'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
@@ -167,8 +213,12 @@ export interface FileRouteTypes {
     | '/dashboard/$'
     | '/invite/$token'
     | '/lists/new'
+    | '/messages/$id'
+    | '/profile/password'
     | '/api/auth/$'
     | '/lists/'
+    | '/messages/'
+    | '/profile/'
     | '/lists/$id/add'
     | '/lists/$id/edit'
     | '/lists/$id/'
@@ -176,6 +226,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/shopping'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
@@ -183,8 +234,12 @@ export interface FileRouteTypes {
     | '/dashboard/$'
     | '/invite/$token'
     | '/lists/new'
+    | '/messages/$id'
+    | '/profile/password'
     | '/api/auth/$'
     | '/lists'
+    | '/messages'
+    | '/profile'
     | '/lists/$id/add'
     | '/lists/$id/edit'
     | '/lists/$id'
@@ -193,6 +248,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_auth'
+    | '/_app/shopping'
     | '/_auth/forgot-password'
     | '/_auth/reset-password'
     | '/_auth/sign-in'
@@ -201,8 +257,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/_app/'
     | '/_app/lists/new'
+    | '/_app/messages/$id'
+    | '/_app/profile/password'
     | '/api/auth/$'
     | '/_app/lists/'
+    | '/_app/messages/'
+    | '/_app/profile/'
     | '/_app/lists/$id/add'
     | '/_app/lists/$id/edit'
     | '/_app/lists/$id/'
@@ -238,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shopping': {
+      id: '/_app/shopping'
+      path: '/shopping'
+      fullPath: '/shopping'
+      preLoaderRoute: typeof AppShoppingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_auth/forgot-password': {
@@ -296,6 +363,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppListsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/messages/': {
+      id: '/_app/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof AppMessagesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages/$id': {
+      id: '/_app/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof AppMessagesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile/': {
+      id: '/_app/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AppProfileIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile/password': {
+      id: '/_app/profile/password'
+      path: '/profile/password'
+      fullPath: '/profile/password'
+      preLoaderRoute: typeof AppProfilePasswordRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -335,9 +430,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppShoppingRoute: typeof AppShoppingRoute
   AppIndexRoute: typeof AppIndexRoute
   AppListsNewRoute: typeof AppListsNewRoute
+  AppMessagesIdRoute: typeof AppMessagesIdRoute
+  AppProfilePasswordRoute: typeof AppProfilePasswordRoute
   AppListsIndexRoute: typeof AppListsIndexRoute
+  AppMessagesIndexRoute: typeof AppMessagesIndexRoute
+  AppProfileIndexRoute: typeof AppProfileIndexRoute
   AppListsIdAddRoute: typeof AppListsIdAddRoute
   AppListsIdEditRoute: typeof AppListsIdEditRoute
   AppListsIdIndexRoute: typeof AppListsIdIndexRoute
@@ -345,9 +445,14 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppShoppingRoute: AppShoppingRoute,
   AppIndexRoute: AppIndexRoute,
   AppListsNewRoute: AppListsNewRoute,
+  AppMessagesIdRoute: AppMessagesIdRoute,
+  AppProfilePasswordRoute: AppProfilePasswordRoute,
   AppListsIndexRoute: AppListsIndexRoute,
+  AppMessagesIndexRoute: AppMessagesIndexRoute,
+  AppProfileIndexRoute: AppProfileIndexRoute,
   AppListsIdAddRoute: AppListsIdAddRoute,
   AppListsIdEditRoute: AppListsIdEditRoute,
   AppListsIdIndexRoute: AppListsIdIndexRoute,
