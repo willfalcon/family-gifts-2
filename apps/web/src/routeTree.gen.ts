@@ -23,6 +23,8 @@ import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
 import { Route as AppListsNewRouteImport } from './routes/_app/lists/new'
 import { Route as AppMessagesIndexRouteImport } from './routes/_app/messages/index'
 import { Route as AppMessagesIdRouteImport } from './routes/_app/messages/$id'
+import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
+import { Route as AppPeopleIdRouteImport } from './routes/_app/people/$id'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppProfilePasswordRouteImport } from './routes/_app/profile/password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -99,6 +101,16 @@ const AppMessagesIdRoute = AppMessagesIdRouteImport.update({
   path: '/messages/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
+  id: '/people/',
+  path: '/people/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeopleIdRoute = AppPeopleIdRouteImport.update({
+  id: '/people/$id',
+  path: '/people/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -146,10 +158,12 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/lists/new': typeof AppListsNewRoute
   '/messages/$id': typeof AppMessagesIdRoute
+  '/people/$id': typeof AppPeopleIdRoute
   '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/lists/': typeof AppListsIndexRoute
   '/messages/': typeof AppMessagesIndexRoute
+  '/people/': typeof AppPeopleIndexRoute
   '/profile/': typeof AppProfileIndexRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
@@ -167,10 +181,12 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/lists/new': typeof AppListsNewRoute
   '/messages/$id': typeof AppMessagesIdRoute
+  '/people/$id': typeof AppPeopleIdRoute
   '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/lists': typeof AppListsIndexRoute
   '/messages': typeof AppMessagesIndexRoute
+  '/people': typeof AppPeopleIndexRoute
   '/profile': typeof AppProfileIndexRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
@@ -191,10 +207,12 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/lists/new': typeof AppListsNewRoute
   '/_app/messages/$id': typeof AppMessagesIdRoute
+  '/_app/people/$id': typeof AppPeopleIdRoute
   '/_app/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/lists/': typeof AppListsIndexRoute
   '/_app/messages/': typeof AppMessagesIndexRoute
+  '/_app/people/': typeof AppPeopleIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
   '/_app/lists/$id/add': typeof AppListsIdAddRoute
   '/_app/lists/$id/edit': typeof AppListsIdEditRoute
@@ -214,10 +232,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/lists/new'
     | '/messages/$id'
+    | '/people/$id'
     | '/profile/password'
     | '/api/auth/$'
     | '/lists/'
     | '/messages/'
+    | '/people/'
     | '/profile/'
     | '/lists/$id/add'
     | '/lists/$id/edit'
@@ -235,10 +255,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/lists/new'
     | '/messages/$id'
+    | '/people/$id'
     | '/profile/password'
     | '/api/auth/$'
     | '/lists'
     | '/messages'
+    | '/people'
     | '/profile'
     | '/lists/$id/add'
     | '/lists/$id/edit'
@@ -258,10 +280,12 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/lists/new'
     | '/_app/messages/$id'
+    | '/_app/people/$id'
     | '/_app/profile/password'
     | '/api/auth/$'
     | '/_app/lists/'
     | '/_app/messages/'
+    | '/_app/people/'
     | '/_app/profile/'
     | '/_app/lists/$id/add'
     | '/_app/lists/$id/edit'
@@ -377,6 +401,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMessagesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/people/': {
+      id: '/_app/people/'
+      path: '/people'
+      fullPath: '/people/'
+      preLoaderRoute: typeof AppPeopleIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/people/$id': {
+      id: '/_app/people/$id'
+      path: '/people/$id'
+      fullPath: '/people/$id'
+      preLoaderRoute: typeof AppPeopleIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile/': {
       id: '/_app/profile/'
       path: '/profile'
@@ -434,9 +472,11 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppListsNewRoute: typeof AppListsNewRoute
   AppMessagesIdRoute: typeof AppMessagesIdRoute
+  AppPeopleIdRoute: typeof AppPeopleIdRoute
   AppProfilePasswordRoute: typeof AppProfilePasswordRoute
   AppListsIndexRoute: typeof AppListsIndexRoute
   AppMessagesIndexRoute: typeof AppMessagesIndexRoute
+  AppPeopleIndexRoute: typeof AppPeopleIndexRoute
   AppProfileIndexRoute: typeof AppProfileIndexRoute
   AppListsIdAddRoute: typeof AppListsIdAddRoute
   AppListsIdEditRoute: typeof AppListsIdEditRoute
@@ -449,9 +489,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppListsNewRoute: AppListsNewRoute,
   AppMessagesIdRoute: AppMessagesIdRoute,
+  AppPeopleIdRoute: AppPeopleIdRoute,
   AppProfilePasswordRoute: AppProfilePasswordRoute,
   AppListsIndexRoute: AppListsIndexRoute,
   AppMessagesIndexRoute: AppMessagesIndexRoute,
+  AppPeopleIndexRoute: AppPeopleIndexRoute,
   AppProfileIndexRoute: AppProfileIndexRoute,
   AppListsIdAddRoute: AppListsIdAddRoute,
   AppListsIdEditRoute: AppListsIdEditRoute,
