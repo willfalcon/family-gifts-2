@@ -18,7 +18,13 @@ import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthWelcomeRouteImport } from './routes/_auth/welcome'
 import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
+import { Route as AppListsNewRouteImport } from './routes/_app/lists/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppListsIdIndexRouteImport } from './routes/_app/lists/$id/index'
+import { Route as AppListsIdAddRouteImport } from './routes/_app/lists/$id/add'
+import { Route as AppListsIdEditRouteImport } from './routes/_app/lists/$id/edit'
+import { Route as AppListsIdItemsItemIdRouteImport } from './routes/_app/lists/$id/items/$itemId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -63,10 +69,40 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppListsIndexRoute = AppListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsNewRoute = AppListsNewRouteImport.update({
+  id: '/lists/new',
+  path: '/lists/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppListsIdIndexRoute = AppListsIdIndexRouteImport.update({
+  id: '/lists/$id/',
+  path: '/lists/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIdAddRoute = AppListsIdAddRouteImport.update({
+  id: '/lists/$id/add',
+  path: '/lists/$id/add',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIdEditRoute = AppListsIdEditRouteImport.update({
+  id: '/lists/$id/edit',
+  path: '/lists/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIdItemsItemIdRoute = AppListsIdItemsItemIdRouteImport.update({
+  id: '/lists/$id/items/$itemId',
+  path: '/lists/$id/items/$itemId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -77,7 +113,13 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof AuthWelcomeRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/lists/new': typeof AppListsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/lists/': typeof AppListsIndexRoute
+  '/lists/$id/add': typeof AppListsIdAddRoute
+  '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/lists/$id/': typeof AppListsIdIndexRoute
+  '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -87,7 +129,13 @@ export interface FileRoutesByTo {
   '/welcome': typeof AuthWelcomeRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/lists/new': typeof AppListsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/lists': typeof AppListsIndexRoute
+  '/lists/$id/add': typeof AppListsIdAddRoute
+  '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/lists/$id': typeof AppListsIdIndexRoute
+  '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -100,7 +148,13 @@ export interface FileRoutesById {
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/lists/new': typeof AppListsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/lists/': typeof AppListsIndexRoute
+  '/_app/lists/$id/add': typeof AppListsIdAddRoute
+  '/_app/lists/$id/edit': typeof AppListsIdEditRoute
+  '/_app/lists/$id/': typeof AppListsIdIndexRoute
+  '/_app/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,7 +166,13 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/dashboard/$'
     | '/invite/$token'
+    | '/lists/new'
     | '/api/auth/$'
+    | '/lists/'
+    | '/lists/$id/add'
+    | '/lists/$id/edit'
+    | '/lists/$id/'
+    | '/lists/$id/items/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,7 +182,13 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/dashboard/$'
     | '/invite/$token'
+    | '/lists/new'
     | '/api/auth/$'
+    | '/lists'
+    | '/lists/$id/add'
+    | '/lists/$id/edit'
+    | '/lists/$id'
+    | '/lists/$id/items/$itemId'
   id:
     | '__root__'
     | '/_app'
@@ -134,7 +200,13 @@ export interface FileRouteTypes {
     | '/dashboard/$'
     | '/invite/$token'
     | '/_app/'
+    | '/_app/lists/new'
     | '/api/auth/$'
+    | '/_app/lists/'
+    | '/_app/lists/$id/add'
+    | '/_app/lists/$id/edit'
+    | '/_app/lists/$id/'
+    | '/_app/lists/$id/items/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +282,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/lists/': {
+      id: '/_app/lists/'
+      path: '/lists'
+      fullPath: '/lists/'
+      preLoaderRoute: typeof AppListsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/new': {
+      id: '/_app/lists/new'
+      path: '/lists/new'
+      fullPath: '/lists/new'
+      preLoaderRoute: typeof AppListsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -217,15 +303,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/lists/$id/': {
+      id: '/_app/lists/$id/'
+      path: '/lists/$id'
+      fullPath: '/lists/$id/'
+      preLoaderRoute: typeof AppListsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/add': {
+      id: '/_app/lists/$id/add'
+      path: '/lists/$id/add'
+      fullPath: '/lists/$id/add'
+      preLoaderRoute: typeof AppListsIdAddRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/edit': {
+      id: '/_app/lists/$id/edit'
+      path: '/lists/$id/edit'
+      fullPath: '/lists/$id/edit'
+      preLoaderRoute: typeof AppListsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/items/$itemId': {
+      id: '/_app/lists/$id/items/$itemId'
+      path: '/lists/$id/items/$itemId'
+      fullPath: '/lists/$id/items/$itemId'
+      preLoaderRoute: typeof AppListsIdItemsItemIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppListsNewRoute: typeof AppListsNewRoute
+  AppListsIndexRoute: typeof AppListsIndexRoute
+  AppListsIdAddRoute: typeof AppListsIdAddRoute
+  AppListsIdEditRoute: typeof AppListsIdEditRoute
+  AppListsIdIndexRoute: typeof AppListsIdIndexRoute
+  AppListsIdItemsItemIdRoute: typeof AppListsIdItemsItemIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppListsNewRoute: AppListsNewRoute,
+  AppListsIndexRoute: AppListsIndexRoute,
+  AppListsIdAddRoute: AppListsIdAddRoute,
+  AppListsIdEditRoute: AppListsIdEditRoute,
+  AppListsIdIndexRoute: AppListsIdIndexRoute,
+  AppListsIdItemsItemIdRoute: AppListsIdItemsItemIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
