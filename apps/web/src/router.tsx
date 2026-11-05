@@ -36,9 +36,7 @@ export function getRouter() {
     context: { queryClient, convexQueryClient },
     scrollRestoration: true,
     defaultPreload: 'intent',
-    Wrap: ({ children }) => (
-      <ConvexProvider client={convexQueryClient.convexClient}>{children}</ConvexProvider>
-    ),
+    Wrap: ({ children }) => <ConvexProvider client={convexQueryClient.convexClient}>{children}</ConvexProvider>,
   });
 
   setupRouterSsrQueryIntegration({ router, queryClient });

@@ -9,273 +9,496 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppShoppingRouteImport } from './routes/_app/shopping'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
+import { Route as AuthWelcomeRouteImport } from './routes/_auth/welcome'
+import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppEventsIndexRouteImport } from './routes/_app/events/index'
+import { Route as AppEventsNewRouteImport } from './routes/_app/events/new'
+import { Route as AppGroupsNewRouteImport } from './routes/_app/groups/new'
+import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
+import { Route as AppListsNewRouteImport } from './routes/_app/lists/new'
+import { Route as AppMessagesIndexRouteImport } from './routes/_app/messages/index'
+import { Route as AppMessagesIdRouteImport } from './routes/_app/messages/$id'
+import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
+import { Route as AppPeopleIdRouteImport } from './routes/_app/people/$id'
+import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
+import { Route as AppProfilePasswordRouteImport } from './routes/_app/profile/password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as DashboardEventsIndexRouteImport } from './routes/dashboard/events.index'
-import { Route as DashboardEventsIdRouteImport } from './routes/dashboard/events.$id'
-import { Route as DashboardGroupsIndexRouteImport } from './routes/dashboard/groups.index'
-import { Route as DashboardGroupsIdRouteImport } from './routes/dashboard/groups.$id'
-import { Route as DashboardListsIndexRouteImport } from './routes/dashboard/lists.index'
-import { Route as DashboardListsIdRouteImport } from './routes/dashboard/lists.$id'
-import { Route as DashboardUsersIdRouteImport } from './routes/dashboard/users.$id'
+import { Route as AppEventsIdIndexRouteImport } from './routes/_app/events/$id/index'
+import { Route as AppEventsIdEditRouteImport } from './routes/_app/events/$id/edit'
+import { Route as AppEventsIdInviteRouteImport } from './routes/_app/events/$id/invite'
+import { Route as AppGroupsIdIndexRouteImport } from './routes/_app/groups/$id/index'
+import { Route as AppGroupsIdEditRouteImport } from './routes/_app/groups/$id/edit'
+import { Route as AppGroupsIdInviteRouteImport } from './routes/_app/groups/$id/invite'
+import { Route as AppListsIdIndexRouteImport } from './routes/_app/lists/$id/index'
+import { Route as AppListsIdAddRouteImport } from './routes/_app/lists/$id/add'
+import { Route as AppListsIdEditRouteImport } from './routes/_app/lists/$id/edit'
+import { Route as AppEventsIdSecretSantaIndexRouteImport } from './routes/_app/events/$id/secret-santa/index'
+import { Route as AppEventsIdSecretSantaSetupRouteImport } from './routes/_app/events/$id/secret-santa/setup'
+import { Route as AppListsIdItemsItemIdRouteImport } from './routes/_app/lists/$id/items/$itemId'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShoppingRoute = AppShoppingRouteImport.update({
+  id: '/shopping',
+  path: '/shopping',
+  getParentRoute: () => AppRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignInRoute = AuthSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWelcomeRoute = AuthWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => AuthRoute,
+} as any)
+const DashboardSplatRoute = DashboardSplatRouteImport.update({
+  id: '/dashboard/$',
+  path: '/dashboard/$',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRouteRoute = DashboardRouteRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardProfileRoute = DashboardProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppEventsIndexRoute = AppEventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEventsNewRoute = AppEventsNewRouteImport.update({
+  id: '/events/new',
+  path: '/events/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsNewRoute = AppGroupsNewRouteImport.update({
+  id: '/groups/new',
+  path: '/groups/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIndexRoute = AppListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsNewRoute = AppListsNewRouteImport.update({
+  id: '/lists/new',
+  path: '/lists/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesIndexRoute = AppMessagesIndexRouteImport.update({
+  id: '/messages/',
+  path: '/messages/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesIdRoute = AppMessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
+  id: '/people/',
+  path: '/people/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeopleIdRoute = AppPeopleIdRouteImport.update({
+  id: '/people/$id',
+  path: '/people/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfilePasswordRoute = AppProfilePasswordRouteImport.update({
+  id: '/profile/password',
+  path: '/profile/password',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardEventsIndexRoute = DashboardEventsIndexRouteImport.update({
-  id: '/events/',
-  path: '/events/',
-  getParentRoute: () => DashboardRouteRoute,
+const AppEventsIdIndexRoute = AppEventsIdIndexRouteImport.update({
+  id: '/events/$id/',
+  path: '/events/$id/',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardEventsIdRoute = DashboardEventsIdRouteImport.update({
-  id: '/events/$id',
-  path: '/events/$id',
-  getParentRoute: () => DashboardRouteRoute,
+const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
+  id: '/events/$id/edit',
+  path: '/events/$id/edit',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardGroupsIndexRoute = DashboardGroupsIndexRouteImport.update({
-  id: '/groups/',
-  path: '/groups/',
-  getParentRoute: () => DashboardRouteRoute,
+const AppEventsIdInviteRoute = AppEventsIdInviteRouteImport.update({
+  id: '/events/$id/invite',
+  path: '/events/$id/invite',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardGroupsIdRoute = DashboardGroupsIdRouteImport.update({
-  id: '/groups/$id',
-  path: '/groups/$id',
-  getParentRoute: () => DashboardRouteRoute,
+const AppGroupsIdIndexRoute = AppGroupsIdIndexRouteImport.update({
+  id: '/groups/$id/',
+  path: '/groups/$id/',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardListsIndexRoute = DashboardListsIndexRouteImport.update({
-  id: '/lists/',
-  path: '/lists/',
-  getParentRoute: () => DashboardRouteRoute,
+const AppGroupsIdEditRoute = AppGroupsIdEditRouteImport.update({
+  id: '/groups/$id/edit',
+  path: '/groups/$id/edit',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardListsIdRoute = DashboardListsIdRouteImport.update({
-  id: '/lists/$id',
-  path: '/lists/$id',
-  getParentRoute: () => DashboardRouteRoute,
+const AppGroupsIdInviteRoute = AppGroupsIdInviteRouteImport.update({
+  id: '/groups/$id/invite',
+  path: '/groups/$id/invite',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardUsersIdRoute = DashboardUsersIdRouteImport.update({
-  id: '/users/$id',
-  path: '/users/$id',
-  getParentRoute: () => DashboardRouteRoute,
+const AppListsIdIndexRoute = AppListsIdIndexRouteImport.update({
+  id: '/lists/$id/',
+  path: '/lists/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIdAddRoute = AppListsIdAddRouteImport.update({
+  id: '/lists/$id/add',
+  path: '/lists/$id/add',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListsIdEditRoute = AppListsIdEditRouteImport.update({
+  id: '/lists/$id/edit',
+  path: '/lists/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEventsIdSecretSantaIndexRoute =
+  AppEventsIdSecretSantaIndexRouteImport.update({
+    id: '/events/$id/secret-santa/',
+    path: '/events/$id/secret-santa/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppEventsIdSecretSantaSetupRoute =
+  AppEventsIdSecretSantaSetupRouteImport.update({
+    id: '/events/$id/secret-santa/setup',
+    path: '/events/$id/secret-santa/setup',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppListsIdItemsItemIdRoute = AppListsIdItemsItemIdRouteImport.update({
+  id: '/lists/$id/items/$itemId',
+  path: '/lists/$id/items/$itemId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/': typeof AppIndexRoute
+  '/shopping': typeof AppShoppingRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/sign-in': typeof AuthSignInRoute
+  '/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard/': typeof DashboardIndexRoute
+  '/events/new': typeof AppEventsNewRoute
+  '/groups/new': typeof AppGroupsNewRoute
+  '/lists/new': typeof AppListsNewRoute
+  '/messages/$id': typeof AppMessagesIdRoute
+  '/people/$id': typeof AppPeopleIdRoute
+  '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events/': typeof DashboardEventsIndexRoute
-  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists/': typeof DashboardListsIndexRoute
+  '/events/': typeof AppEventsIndexRoute
+  '/lists/': typeof AppListsIndexRoute
+  '/messages/': typeof AppMessagesIndexRoute
+  '/people/': typeof AppPeopleIndexRoute
+  '/profile/': typeof AppProfileIndexRoute
+  '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/events/$id/invite': typeof AppEventsIdInviteRoute
+  '/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/groups/$id/invite': typeof AppGroupsIdInviteRoute
+  '/lists/$id/add': typeof AppListsIdAddRoute
+  '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/events/$id/': typeof AppEventsIdIndexRoute
+  '/groups/$id/': typeof AppGroupsIdIndexRoute
+  '/lists/$id/': typeof AppListsIdIndexRoute
+  '/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
+  '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/events/$id/secret-santa/': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/': typeof AppIndexRoute
+  '/shopping': typeof AppShoppingRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/sign-in': typeof AuthSignInRoute
+  '/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard': typeof DashboardIndexRoute
+  '/events/new': typeof AppEventsNewRoute
+  '/groups/new': typeof AppGroupsNewRoute
+  '/lists/new': typeof AppListsNewRoute
+  '/messages/$id': typeof AppMessagesIdRoute
+  '/people/$id': typeof AppPeopleIdRoute
+  '/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events': typeof DashboardEventsIndexRoute
-  '/dashboard/groups': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists': typeof DashboardListsIndexRoute
+  '/events': typeof AppEventsIndexRoute
+  '/lists': typeof AppListsIndexRoute
+  '/messages': typeof AppMessagesIndexRoute
+  '/people': typeof AppPeopleIndexRoute
+  '/profile': typeof AppProfileIndexRoute
+  '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/events/$id/invite': typeof AppEventsIdInviteRoute
+  '/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/groups/$id/invite': typeof AppGroupsIdInviteRoute
+  '/lists/$id/add': typeof AppListsIdAddRoute
+  '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/events/$id': typeof AppEventsIdIndexRoute
+  '/groups/$id': typeof AppGroupsIdIndexRoute
+  '/lists/$id': typeof AppListsIdIndexRoute
+  '/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
+  '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/events/$id/secret-santa': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_auth': typeof AuthRouteWithChildren
+  '/_app/shopping': typeof AppShoppingRoute
+  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRoute
+  '/_auth/sign-in': typeof AuthSignInRoute
+  '/_auth/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard/': typeof DashboardIndexRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/events/new': typeof AppEventsNewRoute
+  '/_app/groups/new': typeof AppGroupsNewRoute
+  '/_app/lists/new': typeof AppListsNewRoute
+  '/_app/messages/$id': typeof AppMessagesIdRoute
+  '/_app/people/$id': typeof AppPeopleIdRoute
+  '/_app/profile/password': typeof AppProfilePasswordRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events/': typeof DashboardEventsIndexRoute
-  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists/': typeof DashboardListsIndexRoute
+  '/_app/events/': typeof AppEventsIndexRoute
+  '/_app/lists/': typeof AppListsIndexRoute
+  '/_app/messages/': typeof AppMessagesIndexRoute
+  '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/profile/': typeof AppProfileIndexRoute
+  '/_app/events/$id/edit': typeof AppEventsIdEditRoute
+  '/_app/events/$id/invite': typeof AppEventsIdInviteRoute
+  '/_app/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/_app/groups/$id/invite': typeof AppGroupsIdInviteRoute
+  '/_app/lists/$id/add': typeof AppListsIdAddRoute
+  '/_app/lists/$id/edit': typeof AppListsIdEditRoute
+  '/_app/events/$id/': typeof AppEventsIdIndexRoute
+  '/_app/groups/$id/': typeof AppGroupsIdIndexRoute
+  '/_app/lists/$id/': typeof AppListsIdIndexRoute
+  '/_app/events/$id/secret-santa/setup': typeof AppEventsIdSecretSantaSetupRoute
+  '/_app/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
+  '/_app/events/$id/secret-santa/': typeof AppEventsIdSecretSantaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/shopping'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/sign-in'
+    | '/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard/'
+    | '/events/new'
+    | '/groups/new'
+    | '/lists/new'
+    | '/messages/$id'
+    | '/people/$id'
+    | '/profile/password'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events/'
-    | '/dashboard/groups/'
-    | '/dashboard/lists/'
+    | '/events/'
+    | '/lists/'
+    | '/messages/'
+    | '/people/'
+    | '/profile/'
+    | '/events/$id/edit'
+    | '/events/$id/invite'
+    | '/groups/$id/edit'
+    | '/groups/$id/invite'
+    | '/lists/$id/add'
+    | '/lists/$id/edit'
+    | '/events/$id/'
+    | '/groups/$id/'
+    | '/lists/$id/'
+    | '/events/$id/secret-santa/setup'
+    | '/lists/$id/items/$itemId'
+    | '/events/$id/secret-santa/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/shopping'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/sign-in'
+    | '/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard'
+    | '/events/new'
+    | '/groups/new'
+    | '/lists/new'
+    | '/messages/$id'
+    | '/people/$id'
+    | '/profile/password'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events'
-    | '/dashboard/groups'
-    | '/dashboard/lists'
+    | '/events'
+    | '/lists'
+    | '/messages'
+    | '/people'
+    | '/profile'
+    | '/events/$id/edit'
+    | '/events/$id/invite'
+    | '/groups/$id/edit'
+    | '/groups/$id/invite'
+    | '/lists/$id/add'
+    | '/lists/$id/edit'
+    | '/events/$id'
+    | '/groups/$id'
+    | '/lists/$id'
+    | '/events/$id/secret-santa/setup'
+    | '/lists/$id/items/$itemId'
+    | '/events/$id/secret-santa'
   id:
     | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/_app'
+    | '/_auth'
+    | '/_app/shopping'
+    | '/_auth/forgot-password'
+    | '/_auth/reset-password'
+    | '/_auth/sign-in'
+    | '/_auth/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard/'
+    | '/_app/'
+    | '/_app/events/new'
+    | '/_app/groups/new'
+    | '/_app/lists/new'
+    | '/_app/messages/$id'
+    | '/_app/people/$id'
+    | '/_app/profile/password'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events/'
-    | '/dashboard/groups/'
-    | '/dashboard/lists/'
+    | '/_app/events/'
+    | '/_app/lists/'
+    | '/_app/messages/'
+    | '/_app/people/'
+    | '/_app/profile/'
+    | '/_app/events/$id/edit'
+    | '/_app/events/$id/invite'
+    | '/_app/groups/$id/edit'
+    | '/_app/groups/$id/invite'
+    | '/_app/lists/$id/add'
+    | '/_app/lists/$id/edit'
+    | '/_app/events/$id/'
+    | '/_app/groups/$id/'
+    | '/_app/lists/$id/'
+    | '/_app/events/$id/secret-santa/setup'
+    | '/_app/lists/$id/items/$itemId'
+    | '/_app/events/$id/secret-santa/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  SignupRoute: typeof SignupRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+  DashboardSplatRoute: typeof DashboardSplatRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shopping': {
+      id: '/_app/shopping'
+      path: '/shopping'
+      fullPath: '/shopping'
+      preLoaderRoute: typeof AppShoppingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sign-in': {
+      id: '/_auth/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/welcome': {
+      id: '/_auth/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof AuthWelcomeRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/dashboard/$': {
+      id: '/dashboard/$'
+      path: '/dashboard/$'
+      fullPath: '/dashboard/$'
+      preLoaderRoute: typeof DashboardSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/profile': {
-      id: '/dashboard/profile'
-      path: '/profile'
-      fullPath: '/dashboard/profile'
-      preLoaderRoute: typeof DashboardProfileRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof DashboardRouteRoute
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -284,6 +507,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/events/': {
+      id: '/_app/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof AppEventsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/events/new': {
+      id: '/_app/events/new'
+      path: '/events/new'
+      fullPath: '/events/new'
+      preLoaderRoute: typeof AppEventsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups/new': {
+      id: '/_app/groups/new'
+      path: '/groups/new'
+      fullPath: '/groups/new'
+      preLoaderRoute: typeof AppGroupsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/': {
+      id: '/_app/lists/'
+      path: '/lists'
+      fullPath: '/lists/'
+      preLoaderRoute: typeof AppListsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/new': {
+      id: '/_app/lists/new'
+      path: '/lists/new'
+      fullPath: '/lists/new'
+      preLoaderRoute: typeof AppListsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages/': {
+      id: '/_app/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof AppMessagesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages/$id': {
+      id: '/_app/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof AppMessagesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/people/': {
+      id: '/_app/people/'
+      path: '/people'
+      fullPath: '/people/'
+      preLoaderRoute: typeof AppPeopleIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/people/$id': {
+      id: '/_app/people/$id'
+      path: '/people/$id'
+      fullPath: '/people/$id'
+      preLoaderRoute: typeof AppPeopleIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile/': {
+      id: '/_app/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AppProfileIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile/password': {
+      id: '/_app/profile/password'
+      path: '/profile/password'
+      fullPath: '/profile/password'
+      preLoaderRoute: typeof AppProfilePasswordRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -291,93 +591,171 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/events/': {
-      id: '/dashboard/events/'
-      path: '/events'
-      fullPath: '/dashboard/events/'
-      preLoaderRoute: typeof DashboardEventsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/events/$id': {
-      id: '/dashboard/events/$id'
+    '/_app/events/$id/': {
+      id: '/_app/events/$id/'
       path: '/events/$id'
-      fullPath: '/dashboard/events/$id'
-      preLoaderRoute: typeof DashboardEventsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
+      fullPath: '/events/$id/'
+      preLoaderRoute: typeof AppEventsIdIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/groups/': {
-      id: '/dashboard/groups/'
-      path: '/groups'
-      fullPath: '/dashboard/groups/'
-      preLoaderRoute: typeof DashboardGroupsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
+    '/_app/events/$id/edit': {
+      id: '/_app/events/$id/edit'
+      path: '/events/$id/edit'
+      fullPath: '/events/$id/edit'
+      preLoaderRoute: typeof AppEventsIdEditRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/groups/$id': {
-      id: '/dashboard/groups/$id'
+    '/_app/events/$id/invite': {
+      id: '/_app/events/$id/invite'
+      path: '/events/$id/invite'
+      fullPath: '/events/$id/invite'
+      preLoaderRoute: typeof AppEventsIdInviteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups/$id/': {
+      id: '/_app/groups/$id/'
       path: '/groups/$id'
-      fullPath: '/dashboard/groups/$id'
-      preLoaderRoute: typeof DashboardGroupsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
+      fullPath: '/groups/$id/'
+      preLoaderRoute: typeof AppGroupsIdIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/lists/': {
-      id: '/dashboard/lists/'
-      path: '/lists'
-      fullPath: '/dashboard/lists/'
-      preLoaderRoute: typeof DashboardListsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
+    '/_app/groups/$id/edit': {
+      id: '/_app/groups/$id/edit'
+      path: '/groups/$id/edit'
+      fullPath: '/groups/$id/edit'
+      preLoaderRoute: typeof AppGroupsIdEditRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/lists/$id': {
-      id: '/dashboard/lists/$id'
+    '/_app/groups/$id/invite': {
+      id: '/_app/groups/$id/invite'
+      path: '/groups/$id/invite'
+      fullPath: '/groups/$id/invite'
+      preLoaderRoute: typeof AppGroupsIdInviteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/': {
+      id: '/_app/lists/$id/'
       path: '/lists/$id'
-      fullPath: '/dashboard/lists/$id'
-      preLoaderRoute: typeof DashboardListsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
+      fullPath: '/lists/$id/'
+      preLoaderRoute: typeof AppListsIdIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/users/$id': {
-      id: '/dashboard/users/$id'
-      path: '/users/$id'
-      fullPath: '/dashboard/users/$id'
-      preLoaderRoute: typeof DashboardUsersIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
+    '/_app/lists/$id/add': {
+      id: '/_app/lists/$id/add'
+      path: '/lists/$id/add'
+      fullPath: '/lists/$id/add'
+      preLoaderRoute: typeof AppListsIdAddRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/edit': {
+      id: '/_app/lists/$id/edit'
+      path: '/lists/$id/edit'
+      fullPath: '/lists/$id/edit'
+      preLoaderRoute: typeof AppListsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/events/$id/secret-santa/': {
+      id: '/_app/events/$id/secret-santa/'
+      path: '/events/$id/secret-santa'
+      fullPath: '/events/$id/secret-santa/'
+      preLoaderRoute: typeof AppEventsIdSecretSantaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/events/$id/secret-santa/setup': {
+      id: '/_app/events/$id/secret-santa/setup'
+      path: '/events/$id/secret-santa/setup'
+      fullPath: '/events/$id/secret-santa/setup'
+      preLoaderRoute: typeof AppEventsIdSecretSantaSetupRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lists/$id/items/$itemId': {
+      id: '/_app/lists/$id/items/$itemId'
+      path: '/lists/$id/items/$itemId'
+      fullPath: '/lists/$id/items/$itemId'
+      preLoaderRoute: typeof AppListsIdItemsItemIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
-interface DashboardRouteRouteChildren {
-  DashboardProfileRoute: typeof DashboardProfileRoute
-  DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardEventsIdRoute: typeof DashboardEventsIdRoute
-  DashboardGroupsIdRoute: typeof DashboardGroupsIdRoute
-  DashboardListsIdRoute: typeof DashboardListsIdRoute
-  DashboardUsersIdRoute: typeof DashboardUsersIdRoute
-  DashboardEventsIndexRoute: typeof DashboardEventsIndexRoute
-  DashboardGroupsIndexRoute: typeof DashboardGroupsIndexRoute
-  DashboardListsIndexRoute: typeof DashboardListsIndexRoute
+interface AppRouteChildren {
+  AppShoppingRoute: typeof AppShoppingRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppEventsNewRoute: typeof AppEventsNewRoute
+  AppGroupsNewRoute: typeof AppGroupsNewRoute
+  AppListsNewRoute: typeof AppListsNewRoute
+  AppMessagesIdRoute: typeof AppMessagesIdRoute
+  AppPeopleIdRoute: typeof AppPeopleIdRoute
+  AppProfilePasswordRoute: typeof AppProfilePasswordRoute
+  AppEventsIndexRoute: typeof AppEventsIndexRoute
+  AppListsIndexRoute: typeof AppListsIndexRoute
+  AppMessagesIndexRoute: typeof AppMessagesIndexRoute
+  AppPeopleIndexRoute: typeof AppPeopleIndexRoute
+  AppProfileIndexRoute: typeof AppProfileIndexRoute
+  AppEventsIdEditRoute: typeof AppEventsIdEditRoute
+  AppEventsIdInviteRoute: typeof AppEventsIdInviteRoute
+  AppGroupsIdEditRoute: typeof AppGroupsIdEditRoute
+  AppGroupsIdInviteRoute: typeof AppGroupsIdInviteRoute
+  AppListsIdAddRoute: typeof AppListsIdAddRoute
+  AppListsIdEditRoute: typeof AppListsIdEditRoute
+  AppEventsIdIndexRoute: typeof AppEventsIdIndexRoute
+  AppGroupsIdIndexRoute: typeof AppGroupsIdIndexRoute
+  AppListsIdIndexRoute: typeof AppListsIdIndexRoute
+  AppEventsIdSecretSantaSetupRoute: typeof AppEventsIdSecretSantaSetupRoute
+  AppListsIdItemsItemIdRoute: typeof AppListsIdItemsItemIdRoute
+  AppEventsIdSecretSantaIndexRoute: typeof AppEventsIdSecretSantaIndexRoute
 }
 
-const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardProfileRoute: DashboardProfileRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-  DashboardEventsIdRoute: DashboardEventsIdRoute,
-  DashboardGroupsIdRoute: DashboardGroupsIdRoute,
-  DashboardListsIdRoute: DashboardListsIdRoute,
-  DashboardUsersIdRoute: DashboardUsersIdRoute,
-  DashboardEventsIndexRoute: DashboardEventsIndexRoute,
-  DashboardGroupsIndexRoute: DashboardGroupsIndexRoute,
-  DashboardListsIndexRoute: DashboardListsIndexRoute,
+const AppRouteChildren: AppRouteChildren = {
+  AppShoppingRoute: AppShoppingRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppEventsNewRoute: AppEventsNewRoute,
+  AppGroupsNewRoute: AppGroupsNewRoute,
+  AppListsNewRoute: AppListsNewRoute,
+  AppMessagesIdRoute: AppMessagesIdRoute,
+  AppPeopleIdRoute: AppPeopleIdRoute,
+  AppProfilePasswordRoute: AppProfilePasswordRoute,
+  AppEventsIndexRoute: AppEventsIndexRoute,
+  AppListsIndexRoute: AppListsIndexRoute,
+  AppMessagesIndexRoute: AppMessagesIndexRoute,
+  AppPeopleIndexRoute: AppPeopleIndexRoute,
+  AppProfileIndexRoute: AppProfileIndexRoute,
+  AppEventsIdEditRoute: AppEventsIdEditRoute,
+  AppEventsIdInviteRoute: AppEventsIdInviteRoute,
+  AppGroupsIdEditRoute: AppGroupsIdEditRoute,
+  AppGroupsIdInviteRoute: AppGroupsIdInviteRoute,
+  AppListsIdAddRoute: AppListsIdAddRoute,
+  AppListsIdEditRoute: AppListsIdEditRoute,
+  AppEventsIdIndexRoute: AppEventsIdIndexRoute,
+  AppGroupsIdIndexRoute: AppGroupsIdIndexRoute,
+  AppListsIdIndexRoute: AppListsIdIndexRoute,
+  AppEventsIdSecretSantaSetupRoute: AppEventsIdSecretSantaSetupRoute,
+  AppListsIdItemsItemIdRoute: AppListsIdItemsItemIdRoute,
+  AppEventsIdSecretSantaIndexRoute: AppEventsIdSecretSantaIndexRoute,
 }
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
-  DashboardRouteRouteChildren,
-)
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface AuthRouteChildren {
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  AuthSignInRoute: typeof AuthSignInRoute
+  AuthWelcomeRoute: typeof AuthWelcomeRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  AuthSignInRoute: AuthSignInRoute,
+  AuthWelcomeRoute: AuthWelcomeRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  LoginRoute: LoginRoute,
-  SignupRoute: SignupRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
+  DashboardSplatRoute: DashboardSplatRoute,
   InviteTokenRoute: InviteTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

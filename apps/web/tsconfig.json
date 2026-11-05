@@ -4,12 +4,16 @@
     "moduleResolution": "Bundler",
     "module": "ESNext",
     "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
     "skipLibCheck": true,
-    "strictNullChecks": true,
+    "strict": true,
+    "noEmit": true,
     "paths": {
       "@/*": ["./src/*"],
       "@convex/*": ["../../packages/backend/convex/*"],
       "@shared/*": ["../../packages/shared/*"]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

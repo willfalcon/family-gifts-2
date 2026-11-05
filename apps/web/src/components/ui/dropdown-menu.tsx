@@ -25,7 +25,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
       'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-body outline-none',
       'focus:bg-ink/5 data-[state=open]:bg-ink/5',
       inset && 'pl-8',
-      className
+      className,
     )}
     {...props}
   >
@@ -45,7 +45,7 @@ const DropdownMenuSubContent = React.forwardRef<
       'z-50 min-w-48 overflow-hidden rounded-2xl border border-white/45 bg-white/70',
       'backdrop-blur-glass p-1.5 text-ink shadow-glass',
       'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-      className
+      className,
     )}
     {...props}
   />
@@ -66,7 +66,7 @@ const DropdownMenuContent = React.forwardRef<
         'before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-b before:from-white/40 before:to-transparent',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className
+        className,
       )}
       {...props}
     />
@@ -89,7 +89,7 @@ const DropdownMenuItem = React.forwardRef<
       variant === 'default' && 'text-ink focus:bg-ink/5',
       variant === 'destructive' && 'text-accent focus:bg-accent/10',
       inset && 'pl-8',
-      className
+      className,
     )}
     {...props}
   />
@@ -105,7 +105,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     className={cn(
       'relative flex cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-2.5 text-sm font-body outline-none',
       'focus:bg-ink/5 data-disabled:pointer-events-none data-disabled:opacity-40',
-      className
+      className,
     )}
     checked={checked}
     {...props}
@@ -129,7 +129,7 @@ const DropdownMenuRadioItem = React.forwardRef<
     className={cn(
       'relative flex cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-2.5 text-sm font-body outline-none',
       'focus:bg-ink/5 data-disabled:pointer-events-none data-disabled:opacity-40',
-      className
+      className,
     )}
     {...props}
   >
