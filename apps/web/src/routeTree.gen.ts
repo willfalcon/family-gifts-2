@@ -9,57 +9,54 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
+import { Route as AuthWelcomeRouteImport } from './routes/_auth/welcome'
+import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as DashboardEventsIndexRouteImport } from './routes/dashboard/events.index'
-import { Route as DashboardEventsIdRouteImport } from './routes/dashboard/events.$id'
-import { Route as DashboardGroupsIndexRouteImport } from './routes/dashboard/groups.index'
-import { Route as DashboardGroupsIdRouteImport } from './routes/dashboard/groups.$id'
-import { Route as DashboardListsIndexRouteImport } from './routes/dashboard/lists.index'
-import { Route as DashboardListsIdRouteImport } from './routes/dashboard/lists.$id'
-import { Route as DashboardUsersIdRouteImport } from './routes/dashboard/users.$id'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignInRoute = AuthSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWelcomeRoute = AuthWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => AuthRoute,
+} as any)
+const DashboardSplatRoute = DashboardSplatRouteImport.update({
+  id: '/dashboard/$',
+  path: '/dashboard/$',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRouteRoute = DashboardRouteRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardProfileRoute = DashboardProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -71,211 +68,140 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardEventsIndexRoute = DashboardEventsIndexRouteImport.update({
-  id: '/events/',
-  path: '/events/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardEventsIdRoute = DashboardEventsIdRouteImport.update({
-  id: '/events/$id',
-  path: '/events/$id',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardGroupsIndexRoute = DashboardGroupsIndexRouteImport.update({
-  id: '/groups/',
-  path: '/groups/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardGroupsIdRoute = DashboardGroupsIdRouteImport.update({
-  id: '/groups/$id',
-  path: '/groups/$id',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardListsIndexRoute = DashboardListsIndexRouteImport.update({
-  id: '/lists/',
-  path: '/lists/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardListsIdRoute = DashboardListsIdRouteImport.update({
-  id: '/lists/$id',
-  path: '/lists/$id',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardUsersIdRoute = DashboardUsersIdRouteImport.update({
-  id: '/users/$id',
-  path: '/users/$id',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/': typeof AppIndexRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/sign-in': typeof AuthSignInRoute
+  '/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events/': typeof DashboardEventsIndexRoute
-  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/': typeof AppIndexRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/sign-in': typeof AuthSignInRoute
+  '/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events': typeof DashboardEventsIndexRoute
-  '/dashboard/groups': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists': typeof DashboardListsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_auth': typeof AuthRouteWithChildren
+  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRoute
+  '/_auth/sign-in': typeof AuthSignInRoute
+  '/_auth/welcome': typeof AuthWelcomeRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/dashboard/': typeof DashboardIndexRoute
+  '/_app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/dashboard/events/$id': typeof DashboardEventsIdRoute
-  '/dashboard/groups/$id': typeof DashboardGroupsIdRoute
-  '/dashboard/lists/$id': typeof DashboardListsIdRoute
-  '/dashboard/users/$id': typeof DashboardUsersIdRoute
-  '/dashboard/events/': typeof DashboardEventsIndexRoute
-  '/dashboard/groups/': typeof DashboardGroupsIndexRoute
-  '/dashboard/lists/': typeof DashboardListsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/sign-in'
+    | '/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard/'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events/'
-    | '/dashboard/groups/'
-    | '/dashboard/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/forgot-password'
+    | '/reset-password'
+    | '/sign-in'
+    | '/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events'
-    | '/dashboard/groups'
-    | '/dashboard/lists'
   id:
     | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/login'
-    | '/signup'
-    | '/dashboard/profile'
-    | '/dashboard/settings'
+    | '/_app'
+    | '/_auth'
+    | '/_auth/forgot-password'
+    | '/_auth/reset-password'
+    | '/_auth/sign-in'
+    | '/_auth/welcome'
+    | '/dashboard/$'
     | '/invite/$token'
-    | '/dashboard/'
+    | '/_app/'
     | '/api/auth/$'
-    | '/dashboard/events/$id'
-    | '/dashboard/groups/$id'
-    | '/dashboard/lists/$id'
-    | '/dashboard/users/$id'
-    | '/dashboard/events/'
-    | '/dashboard/groups/'
-    | '/dashboard/lists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  SignupRoute: typeof SignupRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+  DashboardSplatRoute: typeof DashboardSplatRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sign-in': {
+      id: '/_auth/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/welcome': {
+      id: '/_auth/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof AuthWelcomeRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/dashboard/$': {
+      id: '/dashboard/$'
+      path: '/dashboard/$'
+      fullPath: '/dashboard/$'
+      preLoaderRoute: typeof DashboardSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/profile': {
-      id: '/dashboard/profile'
-      path: '/profile'
-      fullPath: '/dashboard/profile'
-      preLoaderRoute: typeof DashboardProfileRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof DashboardRouteRoute
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -291,93 +217,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/events/': {
-      id: '/dashboard/events/'
-      path: '/events'
-      fullPath: '/dashboard/events/'
-      preLoaderRoute: typeof DashboardEventsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/events/$id': {
-      id: '/dashboard/events/$id'
-      path: '/events/$id'
-      fullPath: '/dashboard/events/$id'
-      preLoaderRoute: typeof DashboardEventsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/groups/': {
-      id: '/dashboard/groups/'
-      path: '/groups'
-      fullPath: '/dashboard/groups/'
-      preLoaderRoute: typeof DashboardGroupsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/groups/$id': {
-      id: '/dashboard/groups/$id'
-      path: '/groups/$id'
-      fullPath: '/dashboard/groups/$id'
-      preLoaderRoute: typeof DashboardGroupsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/lists/': {
-      id: '/dashboard/lists/'
-      path: '/lists'
-      fullPath: '/dashboard/lists/'
-      preLoaderRoute: typeof DashboardListsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/lists/$id': {
-      id: '/dashboard/lists/$id'
-      path: '/lists/$id'
-      fullPath: '/dashboard/lists/$id'
-      preLoaderRoute: typeof DashboardListsIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/users/$id': {
-      id: '/dashboard/users/$id'
-      path: '/users/$id'
-      fullPath: '/dashboard/users/$id'
-      preLoaderRoute: typeof DashboardUsersIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
   }
 }
 
-interface DashboardRouteRouteChildren {
-  DashboardProfileRoute: typeof DashboardProfileRoute
-  DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardEventsIdRoute: typeof DashboardEventsIdRoute
-  DashboardGroupsIdRoute: typeof DashboardGroupsIdRoute
-  DashboardListsIdRoute: typeof DashboardListsIdRoute
-  DashboardUsersIdRoute: typeof DashboardUsersIdRoute
-  DashboardEventsIndexRoute: typeof DashboardEventsIndexRoute
-  DashboardGroupsIndexRoute: typeof DashboardGroupsIndexRoute
-  DashboardListsIndexRoute: typeof DashboardListsIndexRoute
+interface AppRouteChildren {
+  AppIndexRoute: typeof AppIndexRoute
 }
 
-const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardProfileRoute: DashboardProfileRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-  DashboardEventsIdRoute: DashboardEventsIdRoute,
-  DashboardGroupsIdRoute: DashboardGroupsIdRoute,
-  DashboardListsIdRoute: DashboardListsIdRoute,
-  DashboardUsersIdRoute: DashboardUsersIdRoute,
-  DashboardEventsIndexRoute: DashboardEventsIndexRoute,
-  DashboardGroupsIndexRoute: DashboardGroupsIndexRoute,
-  DashboardListsIndexRoute: DashboardListsIndexRoute,
+const AppRouteChildren: AppRouteChildren = {
+  AppIndexRoute: AppIndexRoute,
 }
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
-  DashboardRouteRouteChildren,
-)
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface AuthRouteChildren {
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  AuthSignInRoute: typeof AuthSignInRoute
+  AuthWelcomeRoute: typeof AuthWelcomeRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  AuthSignInRoute: AuthSignInRoute,
+  AuthWelcomeRoute: AuthWelcomeRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  LoginRoute: LoginRoute,
-  SignupRoute: SignupRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
+  DashboardSplatRoute: DashboardSplatRoute,
   InviteTokenRoute: InviteTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
