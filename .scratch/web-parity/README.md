@@ -111,10 +111,10 @@ Legend: done / partial / todo / n/a.
 
 ### People
 - [x] Groups with member summaries, pending group invites (Join / Decline), empty state — done
-- [ ] New group (name, members can invite, share lists) — todo
-- [ ] Group page: members (roles, promote/demote/remove), pending invites, events, invite link (share/copy/create/reset), members can invite, leave, delete — todo
-- [ ] Edit group (rename) — todo (mobile's screen is still a stub; web uses `groups.update`)
-- [ ] Invite members (guest picker: search, suggestions, invite by email, share link, revoke) — todo
+- [x] New group (name, members can invite, share lists) — done
+- [x] Group page: members (roles, promote/demote/remove), pending invites (+ revoke), events, invite link (share/copy/create/reset), members can invite, leave, delete — done (mobile's placeholder "Mute this group" switch is left out: it isn't wired to anything)
+- [x] Edit group (rename) — done (mobile's screen is still a stub; web uses `groups.update`)
+- [x] Invite members (guest picker: search, suggestions, invite by email, share link, revoke) — done
 - [x] Person page: their lists, ask for ideas, private ideas (add/edit/delete) — done
 
 ### Events

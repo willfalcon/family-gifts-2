@@ -19,6 +19,7 @@ import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthWelcomeRouteImport } from './routes/_auth/welcome'
 import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppGroupsNewRouteImport } from './routes/_app/groups/new'
 import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
 import { Route as AppListsNewRouteImport } from './routes/_app/lists/new'
 import { Route as AppMessagesIndexRouteImport } from './routes/_app/messages/index'
@@ -28,6 +29,9 @@ import { Route as AppPeopleIdRouteImport } from './routes/_app/people/$id'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppProfilePasswordRouteImport } from './routes/_app/profile/password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppGroupsIdIndexRouteImport } from './routes/_app/groups/$id/index'
+import { Route as AppGroupsIdEditRouteImport } from './routes/_app/groups/$id/edit'
+import { Route as AppGroupsIdInviteRouteImport } from './routes/_app/groups/$id/invite'
 import { Route as AppListsIdIndexRouteImport } from './routes/_app/lists/$id/index'
 import { Route as AppListsIdAddRouteImport } from './routes/_app/lists/$id/add'
 import { Route as AppListsIdEditRouteImport } from './routes/_app/lists/$id/edit'
@@ -81,6 +85,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppGroupsNewRoute = AppGroupsNewRouteImport.update({
+  id: '/groups/new',
+  path: '/groups/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppListsIndexRoute = AppListsIndexRouteImport.update({
   id: '/lists/',
   path: '/lists/',
@@ -126,6 +135,21 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppGroupsIdIndexRoute = AppGroupsIdIndexRouteImport.update({
+  id: '/groups/$id/',
+  path: '/groups/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsIdEditRoute = AppGroupsIdEditRouteImport.update({
+  id: '/groups/$id/edit',
+  path: '/groups/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsIdInviteRoute = AppGroupsIdInviteRouteImport.update({
+  id: '/groups/$id/invite',
+  path: '/groups/$id/invite',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppListsIdIndexRoute = AppListsIdIndexRouteImport.update({
   id: '/lists/$id/',
   path: '/lists/$id/',
@@ -156,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof AuthWelcomeRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/groups/new': typeof AppGroupsNewRoute
   '/lists/new': typeof AppListsNewRoute
   '/messages/$id': typeof AppMessagesIdRoute
   '/people/$id': typeof AppPeopleIdRoute
@@ -165,8 +190,11 @@ export interface FileRoutesByFullPath {
   '/messages/': typeof AppMessagesIndexRoute
   '/people/': typeof AppPeopleIndexRoute
   '/profile/': typeof AppProfileIndexRoute
+  '/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/groups/$id/invite': typeof AppGroupsIdInviteRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/groups/$id/': typeof AppGroupsIdIndexRoute
   '/lists/$id/': typeof AppListsIdIndexRoute
   '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
@@ -179,6 +207,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof AuthWelcomeRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/groups/new': typeof AppGroupsNewRoute
   '/lists/new': typeof AppListsNewRoute
   '/messages/$id': typeof AppMessagesIdRoute
   '/people/$id': typeof AppPeopleIdRoute
@@ -188,8 +217,11 @@ export interface FileRoutesByTo {
   '/messages': typeof AppMessagesIndexRoute
   '/people': typeof AppPeopleIndexRoute
   '/profile': typeof AppProfileIndexRoute
+  '/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/groups/$id/invite': typeof AppGroupsIdInviteRoute
   '/lists/$id/add': typeof AppListsIdAddRoute
   '/lists/$id/edit': typeof AppListsIdEditRoute
+  '/groups/$id': typeof AppGroupsIdIndexRoute
   '/lists/$id': typeof AppListsIdIndexRoute
   '/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
@@ -205,6 +237,7 @@ export interface FileRoutesById {
   '/dashboard/$': typeof DashboardSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/groups/new': typeof AppGroupsNewRoute
   '/_app/lists/new': typeof AppListsNewRoute
   '/_app/messages/$id': typeof AppMessagesIdRoute
   '/_app/people/$id': typeof AppPeopleIdRoute
@@ -214,8 +247,11 @@ export interface FileRoutesById {
   '/_app/messages/': typeof AppMessagesIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
+  '/_app/groups/$id/edit': typeof AppGroupsIdEditRoute
+  '/_app/groups/$id/invite': typeof AppGroupsIdInviteRoute
   '/_app/lists/$id/add': typeof AppListsIdAddRoute
   '/_app/lists/$id/edit': typeof AppListsIdEditRoute
+  '/_app/groups/$id/': typeof AppGroupsIdIndexRoute
   '/_app/lists/$id/': typeof AppListsIdIndexRoute
   '/_app/lists/$id/items/$itemId': typeof AppListsIdItemsItemIdRoute
 }
@@ -230,6 +266,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/dashboard/$'
     | '/invite/$token'
+    | '/groups/new'
     | '/lists/new'
     | '/messages/$id'
     | '/people/$id'
@@ -239,8 +276,11 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/people/'
     | '/profile/'
+    | '/groups/$id/edit'
+    | '/groups/$id/invite'
     | '/lists/$id/add'
     | '/lists/$id/edit'
+    | '/groups/$id/'
     | '/lists/$id/'
     | '/lists/$id/items/$itemId'
   fileRoutesByTo: FileRoutesByTo
@@ -253,6 +293,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/dashboard/$'
     | '/invite/$token'
+    | '/groups/new'
     | '/lists/new'
     | '/messages/$id'
     | '/people/$id'
@@ -262,8 +303,11 @@ export interface FileRouteTypes {
     | '/messages'
     | '/people'
     | '/profile'
+    | '/groups/$id/edit'
+    | '/groups/$id/invite'
     | '/lists/$id/add'
     | '/lists/$id/edit'
+    | '/groups/$id'
     | '/lists/$id'
     | '/lists/$id/items/$itemId'
   id:
@@ -278,6 +322,7 @@ export interface FileRouteTypes {
     | '/dashboard/$'
     | '/invite/$token'
     | '/_app/'
+    | '/_app/groups/new'
     | '/_app/lists/new'
     | '/_app/messages/$id'
     | '/_app/people/$id'
@@ -287,8 +332,11 @@ export interface FileRouteTypes {
     | '/_app/messages/'
     | '/_app/people/'
     | '/_app/profile/'
+    | '/_app/groups/$id/edit'
+    | '/_app/groups/$id/invite'
     | '/_app/lists/$id/add'
     | '/_app/lists/$id/edit'
+    | '/_app/groups/$id/'
     | '/_app/lists/$id/'
     | '/_app/lists/$id/items/$itemId'
   fileRoutesById: FileRoutesById
@@ -373,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/groups/new': {
+      id: '/_app/groups/new'
+      path: '/groups/new'
+      fullPath: '/groups/new'
+      preLoaderRoute: typeof AppGroupsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/lists/': {
       id: '/_app/lists/'
       path: '/lists'
@@ -436,6 +491,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/groups/$id/': {
+      id: '/_app/groups/$id/'
+      path: '/groups/$id'
+      fullPath: '/groups/$id/'
+      preLoaderRoute: typeof AppGroupsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups/$id/edit': {
+      id: '/_app/groups/$id/edit'
+      path: '/groups/$id/edit'
+      fullPath: '/groups/$id/edit'
+      preLoaderRoute: typeof AppGroupsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups/$id/invite': {
+      id: '/_app/groups/$id/invite'
+      path: '/groups/$id/invite'
+      fullPath: '/groups/$id/invite'
+      preLoaderRoute: typeof AppGroupsIdInviteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/lists/$id/': {
       id: '/_app/lists/$id/'
       path: '/lists/$id'
@@ -470,6 +546,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppShoppingRoute: typeof AppShoppingRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppGroupsNewRoute: typeof AppGroupsNewRoute
   AppListsNewRoute: typeof AppListsNewRoute
   AppMessagesIdRoute: typeof AppMessagesIdRoute
   AppPeopleIdRoute: typeof AppPeopleIdRoute
@@ -478,8 +555,11 @@ interface AppRouteChildren {
   AppMessagesIndexRoute: typeof AppMessagesIndexRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
   AppProfileIndexRoute: typeof AppProfileIndexRoute
+  AppGroupsIdEditRoute: typeof AppGroupsIdEditRoute
+  AppGroupsIdInviteRoute: typeof AppGroupsIdInviteRoute
   AppListsIdAddRoute: typeof AppListsIdAddRoute
   AppListsIdEditRoute: typeof AppListsIdEditRoute
+  AppGroupsIdIndexRoute: typeof AppGroupsIdIndexRoute
   AppListsIdIndexRoute: typeof AppListsIdIndexRoute
   AppListsIdItemsItemIdRoute: typeof AppListsIdItemsItemIdRoute
 }
@@ -487,6 +567,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppShoppingRoute: AppShoppingRoute,
   AppIndexRoute: AppIndexRoute,
+  AppGroupsNewRoute: AppGroupsNewRoute,
   AppListsNewRoute: AppListsNewRoute,
   AppMessagesIdRoute: AppMessagesIdRoute,
   AppPeopleIdRoute: AppPeopleIdRoute,
@@ -495,8 +576,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppMessagesIndexRoute: AppMessagesIndexRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
   AppProfileIndexRoute: AppProfileIndexRoute,
+  AppGroupsIdEditRoute: AppGroupsIdEditRoute,
+  AppGroupsIdInviteRoute: AppGroupsIdInviteRoute,
   AppListsIdAddRoute: AppListsIdAddRoute,
   AppListsIdEditRoute: AppListsIdEditRoute,
+  AppGroupsIdIndexRoute: AppGroupsIdIndexRoute,
   AppListsIdIndexRoute: AppListsIdIndexRoute,
   AppListsIdItemsItemIdRoute: AppListsIdItemsItemIdRoute,
 }
