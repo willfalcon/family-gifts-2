@@ -20,7 +20,13 @@ function AddItem() {
   const [busy, setBusy] = useState(false);
   return (
     <SheetPage title="Add Item" action={{ label: 'Add', form: 'add-item', disabled: busy }}>
-      <ItemForm formId="add-item" listId={id as Id<'lists'>} initialLink={link} onDone={goBack} onBusyChange={setBusy} />
+      <ItemForm
+        formId="add-item"
+        listId={id as Id<'lists'>}
+        initialLink={link}
+        onDone={goBack}
+        onBusyChange={setBusy}
+      />
     </SheetPage>
   );
 }

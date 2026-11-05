@@ -38,7 +38,9 @@ const itemSchema = z.object({
   quantity: z
     .string()
     .optional()
-    .refine(v => !v || (!isNaN(parseInt(v, 10)) && parseInt(v, 10) > 0), { message: 'Quantity must be a positive number' }),
+    .refine(v => !v || (!isNaN(parseInt(v, 10)) && parseInt(v, 10) > 0), {
+      message: 'Quantity must be a positive number',
+    }),
   listId: z.string().optional(),
 });
 
@@ -91,7 +93,10 @@ export function ItemForm({
     },
   });
 
-  useEffect(() => onBusyChange(formState.isSubmitting || isParsing || isUploading), [formState.isSubmitting, isParsing, isUploading]);
+  useEffect(
+    () => onBusyChange(formState.isSubmitting || isParsing || isUploading),
+    [formState.isSubmitting, isParsing, isUploading],
+  );
 
   const upload = useCallback(
     async (blob: Blob) => {
@@ -269,7 +274,12 @@ export function ItemForm({
         />
         {imageUri ? (
           <div className="relative shrink-0" style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}>
-            <button type="button" onClick={() => fileInput.current?.click()} aria-label="Change photo" className="size-full">
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              aria-label="Change photo"
+              className="size-full"
+            >
               <img src={imageUri} alt="" className="size-full rounded-2xl object-cover" />
             </button>
             {isUploading && (
@@ -297,7 +307,11 @@ export function ItemForm({
             className="flex shrink-0 items-center justify-center rounded-xl bg-fill hover:bg-line"
             style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
           >
-            {isUploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-6 text-ink-muted" />}
+            {isUploading ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <ImagePlus className="size-6 text-ink-muted" />
+            )}
           </button>
         )}
         <Controller

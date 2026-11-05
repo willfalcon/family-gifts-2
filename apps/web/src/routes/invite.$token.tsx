@@ -194,9 +194,7 @@ function InviteAuthForm({
     <Shell
       title={`Join ${name}`}
       subtitle={
-        signingUp
-          ? `Create an account${invitedEmail ? ` with ${invitedEmail}` : ''} to join.`
-          : 'Log in to join.'
+        signingUp ? `Create an account${invitedEmail ? ` with ${invitedEmail}` : ''} to join.` : 'Log in to join.'
       }
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -204,12 +202,23 @@ function InviteAuthForm({
           <div className="flex gap-3">
             <div className="flex-1">
               <Field label="First name" htmlFor="invite-first">
-                <Input id="invite-first" autoComplete="given-name" required value={first} onChange={e => setFirst(e.target.value)} />
+                <Input
+                  id="invite-first"
+                  autoComplete="given-name"
+                  required
+                  value={first}
+                  onChange={e => setFirst(e.target.value)}
+                />
               </Field>
             </div>
             <div className="flex-1">
               <Field label="Last name" htmlFor="invite-last">
-                <Input id="invite-last" autoComplete="family-name" value={last} onChange={e => setLast(e.target.value)} />
+                <Input
+                  id="invite-last"
+                  autoComplete="family-name"
+                  value={last}
+                  onChange={e => setLast(e.target.value)}
+                />
               </Field>
             </div>
           </div>
@@ -239,7 +248,11 @@ function InviteAuthForm({
         <Button type="submit" size="lg" disabled={submitting}>
           {signingUp ? 'Create Account' : 'Log In'}
         </Button>
-        <button type="button" className="text-center text-sm text-ink-muted" onClick={() => setMode(signingUp ? 'signIn' : 'signUp')}>
+        <button
+          type="button"
+          className="text-center text-sm text-ink-muted"
+          onClick={() => setMode(signingUp ? 'signIn' : 'signUp')}
+        >
           {signingUp ? 'Already have an account? ' : 'New here? '}
           <span className="font-semibold text-accent">{signingUp ? 'Log in' : 'Create one'}</span>
         </button>

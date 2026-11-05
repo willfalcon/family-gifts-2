@@ -15,7 +15,11 @@ import { cn } from '@/lib/utils';
 // The width every screen is laid out in. Mobile's MaxContentWidth is 800;
 // pages here are narrower so text lines stay readable on a desktop.
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <main className={cn('mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pt-4 pb-28 sm:pt-8 sm:pb-16', className)}>{children}</main>;
+  return (
+    <main className={cn('mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pt-4 pb-28 sm:pt-8 sm:pb-16', className)}>
+      {children}
+    </main>
+  );
 }
 
 // Goes back in history when there's somewhere to go, otherwise to `fallback`.
@@ -33,7 +37,14 @@ export function GlassButton({
   ...props
 }: React.ComponentProps<'button'> & { label: string }) {
   return (
-    <Button variant="ghost" size="icon" aria-label={label} title={label} className={cn('glass shrink-0', className)} {...props}>
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      className={cn('glass shrink-0', className)}
+      {...props}
+    >
       {children}
     </Button>
   );
@@ -158,7 +169,13 @@ export function ActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={label} title={label} className={cn('glass shrink-0', className)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={label}
+          title={label}
+          className={cn('glass shrink-0', className)}
+        >
           <Ellipsis className="size-5" />
         </Button>
       </DropdownMenuTrigger>
@@ -209,7 +226,12 @@ export function Section({
 // A hairline-divided row: label on the left, control on the right.
 export function FieldRow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line pb-2', className)}>
+    <div
+      className={cn(
+        'flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line pb-2',
+        className,
+      )}
+    >
       {children}
     </div>
   );

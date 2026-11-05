@@ -36,7 +36,9 @@ export function ListForm({ control, eventId }: { control: Control<ListInput>; ev
   // The event offered as an occasion: the one asked for, the list's own, or the next one.
   const currentEventId = currentOccasion?.kind === 'event' ? currentOccasion.eventId : undefined;
   const firstEvent =
-    events?.find(e => e._id === (eventId ?? currentEventId)) ?? events?.find(e => e.cancelledAt === undefined) ?? events?.[0];
+    events?.find(e => e._id === (eventId ?? currentEventId)) ??
+    events?.find(e => e.cancelledAt === undefined) ??
+    events?.[0];
   const birthday = profile?.birthday;
   const options: OccasionOption[] = [
     ...(firstEvent
@@ -72,13 +74,7 @@ export function ListForm({ control, eventId }: { control: Control<ListInput>; ev
         render={({ field, fieldState }) => (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="list-title">Name</Label>
-            <Input
-              id="list-title"
-              placeholder="List name"
-              autoFocus
-              {...field}
-              aria-invalid={!!fieldState.error}
-            />
+            <Input id="list-title" placeholder="List name" autoFocus {...field} aria-invalid={!!fieldState.error} />
             <ErrorText>{fieldState.error?.message}</ErrorText>
           </div>
         )}
@@ -101,7 +97,9 @@ export function ListForm({ control, eventId }: { control: Control<ListInput>; ev
                     >
                       <span className="flex-1">
                         <span className="block">{option.label}</span>
-                        {option.description && <span className="block text-sm text-ink-muted">{option.description}</span>}
+                        {option.description && (
+                          <span className="block text-sm text-ink-muted">{option.description}</span>
+                        )}
                       </span>
                       <RadioGroupItem value={option.key} aria-label={option.label} />
                     </label>
@@ -146,7 +144,10 @@ export function ListForm({ control, eventId }: { control: Control<ListInput>; ev
             <Section title="Who can see it?">
               <div>
                 {groups?.map(group => (
-                  <label key={group._id} className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2">
+                  <label
+                    key={group._id}
+                    className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2"
+                  >
                     <span>{group.name}</span>
                     <Switch
                       aria-label={group.name}

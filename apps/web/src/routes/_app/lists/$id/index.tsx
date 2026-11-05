@@ -98,7 +98,10 @@ function MyList({ listId }: { listId: Id<'lists'> }) {
                       { label: 'Delete Permanently', onSelect: confirmDelete, destructive: true },
                     ]
                   : [
-                      { label: 'Edit List', onSelect: () => navigate({ to: '/lists/$id/edit', params: { id: listId } }) },
+                      {
+                        label: 'Edit List',
+                        onSelect: () => navigate({ to: '/lists/$id/edit', params: { id: listId } }),
+                      },
                       {
                         label: 'Archive List',
                         onSelect: async () => {
@@ -135,7 +138,11 @@ function MyList({ listId }: { listId: Id<'lists'> }) {
           {items.map(item => (
             <OwnItemRow key={item._id} item={item} />
           ))}
-          <Link to="/lists/$id/add" params={{ id: listId }} className="mt-2 flex items-center gap-2 py-2 text-accent hover:underline">
+          <Link
+            to="/lists/$id/add"
+            params={{ id: listId }}
+            className="mt-2 flex items-center gap-2 py-2 text-accent hover:underline"
+          >
             <Plus className="size-4" />
             Add an idea
           </Link>
@@ -191,7 +198,12 @@ function TheirList({ listId }: { listId: Id<'lists'> }) {
             </>
           )
         }
-        actions={<ActionsMenu label="List options" actions={[{ label: 'Add private idea', onSelect: () => setIdeaOpen(true) }]} />}
+        actions={
+          <ActionsMenu
+            label="List options"
+            actions={[{ label: 'Add private idea', onSelect: () => setIdeaOpen(true) }]}
+          />
+        }
       />
 
       {items && items.length > 0 && (
@@ -206,7 +218,11 @@ function TheirList({ listId }: { listId: Id<'lists'> }) {
       )}
 
       {items?.length === 0 && (
-        <EmptyState icon={Gift} title="Nothing here yet" body={`${first ?? 'They'} hasn’t added any ideas to this list.`} />
+        <EmptyState
+          icon={Gift}
+          title="Nothing here yet"
+          body={`${first ?? 'They'} hasn’t added any ideas to this list.`}
+        />
       )}
       {visibleItems && visibleItems.length === 0 && items && items.length > 0 && (
         <EmptyState icon={Gift} title="Everything’s claimed" body="Every idea on this list has been claimed." />
@@ -220,7 +236,12 @@ function TheirList({ listId }: { listId: Id<'lists'> }) {
       )}
 
       {list && (
-        <PrivateIdeaDialog open={ideaOpen} onClose={() => setIdeaOpen(false)} forUserId={list.owner.userId} personName={first} />
+        <PrivateIdeaDialog
+          open={ideaOpen}
+          onClose={() => setIdeaOpen(false)}
+          forUserId={list.owner.userId}
+          personName={first}
+        />
       )}
     </Page>
   );

@@ -104,7 +104,9 @@ function SecretSanta() {
       {review?.status === 'drawn' && review.drawnAt != null && (
         <Card className="gap-1">
           <p className="font-semibold">Drawn {formatDrawnAt(review.drawnAt, now)} · Not sent yet</p>
-          <p className="text-[15px] text-ink-muted">Nobody has been told who they have. Make any changes, then send the names.</p>
+          <p className="text-[15px] text-ink-muted">
+            Nobody has been told who they have. Make any changes, then send the names.
+          </p>
         </Card>
       )}
 
@@ -116,7 +118,9 @@ function SecretSanta() {
               <div className="flex flex-col items-center gap-1 text-center">
                 <p className="text-[15px] text-ink-muted">You’re giving to</p>
                 <p className="font-display-bold text-4xl tracking-tight text-ink">{match.name}</p>
-                <p className="text-[15px] text-ink-muted">{reviewed ? 'Keep it secret.' : 'Keep it secret. Not even the hosts know.'}</p>
+                <p className="text-[15px] text-ink-muted">
+                  {reviewed ? 'Keep it secret.' : 'Keep it secret. Not even the hosts know.'}
+                </p>
               </div>
               <Button variant="secondary" size="lg" onClick={() => setRevealed(false)}>
                 Hide

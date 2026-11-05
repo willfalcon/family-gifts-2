@@ -79,7 +79,9 @@ function GiftShopping() {
       {empty && (
         <div className="flex flex-col items-center gap-2 pt-8 text-center">
           <p className="text-lg font-semibold">Nobody to shop for yet</p>
-          <p className="text-ink-muted">When you’re going to an event, the people there with a list for it show up here.</p>
+          <p className="text-ink-muted">
+            When you’re going to an event, the people there with a list for it show up here.
+          </p>
         </div>
       )}
       {data &&
@@ -93,7 +95,9 @@ function GiftShopping() {
         ))}
       {data && data.justIdeas.length > 0 && (
         <section className="flex flex-col gap-3">
-          <SectionHeading hint="Things you claimed from lists that aren’t for a particular occasion.">Just ideas</SectionHeading>
+          <SectionHeading hint="Things you claimed from lists that aren’t for a particular occasion.">
+            Just ideas
+          </SectionHeading>
           {data.justIdeas.map(({ person, claims }) => (
             <Card key={person.userId}>
               <PersonHeader person={person} />
@@ -116,7 +120,15 @@ function GiftShopping() {
   );
 }
 
-function PersonHeader({ person, badge, detail }: { person: { name: string; color: string }; badge?: string; detail?: string }) {
+function PersonHeader({
+  person,
+  badge,
+  detail,
+}: {
+  person: { name: string; color: string };
+  badge?: string;
+  detail?: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <Avatar person={person} size={36} />
@@ -144,7 +156,9 @@ function GiftCard({ gift, showOccasion = false }: { gift: GiftToGet; showOccasio
           </span>
           <div className="flex-1">
             <p className="text-[17px] font-semibold">Your Secret Santa</p>
-            <p className="text-[13px] text-ink-muted">{detail ? `${detail} · ` : ''}Click Show to see who you’re giving to</p>
+            <p className="text-[13px] text-ink-muted">
+              {detail ? `${detail} · ` : ''}Click Show to see who you’re giving to
+            </p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => setRevealed(true)}>
             Show
@@ -173,7 +187,9 @@ function MatchDetails({ gift, onHide }: { gift: GiftToGet; onHide: () => void })
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-[15px] text-ink-muted">
-          {match.budget != null ? `You’ve claimed $${match.claimedTotal} of the $${match.budget} limit` : 'No spending limit'}
+          {match.budget != null
+            ? `You’ve claimed $${match.claimedTotal} of the $${match.budget} limit`
+            : 'No spending limit'}
         </p>
         <button type="button" onClick={onHide} className="text-[15px] text-accent hover:underline">
           Hide
@@ -182,7 +198,11 @@ function MatchDetails({ gift, onHide }: { gift: GiftToGet; onHide: () => void })
       {eventId && (
         <label className="flex items-center justify-between rounded-xl bg-fill px-3 py-2">
           <span className="flex-1 pr-3">{label}</span>
-          <Switch aria-label={label} checked={match.giftReady} onCheckedChange={checked => void setGiftReady({ eventId, giftReady: checked })} />
+          <Switch
+            aria-label={label}
+            checked={match.giftReady}
+            onCheckedChange={checked => void setGiftReady({ eventId, giftReady: checked })}
+          />
         </label>
       )}
       {eventId && <SecretSantaAsk eventId={eventId} />}
@@ -206,7 +226,10 @@ function ClaimList({ claims, gift }: { claims: ShoppingClaim[]; gift?: GiftToGet
 function ClaimRow({ claim, gift }: { claim: ShoppingClaim; gift?: GiftToGet }) {
   const setBought = useSetBought();
   const setGiftReady = useMutation(api.secretSanta.setGiftReady);
-  const detail = [claim.quantity > 1 ? `${claim.quantity} claimed` : null, claim.price != null ? `$${claim.price}` : null]
+  const detail = [
+    claim.quantity > 1 ? `${claim.quantity} claimed` : null,
+    claim.price != null ? `$${claim.price}` : null,
+  ]
     .filter(Boolean)
     .join(' · ');
 
@@ -220,14 +243,22 @@ function ClaimRow({ claim, gift }: { claim: ShoppingClaim; gift?: GiftToGet }) {
     // Your gift might not come from their list, so only ask.
     const eventId = gift?.occasion.eventId;
     if (bought && gift?.match && !gift.match.giftReady && eventId) {
-      const ok = await confirm({ title: 'Mark your Secret Santa gift ready?', confirmText: 'Mark ready', cancelText: 'Not yet' });
+      const ok = await confirm({
+        title: 'Mark your Secret Santa gift ready?',
+        confirmText: 'Mark ready',
+        cancelText: 'Not yet',
+      });
       if (ok) void setGiftReady({ eventId, giftReady: true });
     }
   }
 
   return (
     <div className="flex items-center gap-3">
-      <Checkbox aria-label={`Bought ${claim.name}`} checked={claim.bought} onCheckedChange={checked => void toggle(checked === true)} />
+      <Checkbox
+        aria-label={`Bought ${claim.name}`}
+        checked={claim.bought}
+        onCheckedChange={checked => void toggle(checked === true)}
+      />
       <Link
         to="/lists/$id/items/$itemId"
         params={{ id: claim.listId, itemId: claim.itemId }}
@@ -235,7 +266,9 @@ function ClaimRow({ claim, gift }: { claim: ShoppingClaim; gift?: GiftToGet }) {
       >
         <ItemImage url={claim.imageUrl} muted={claim.bought} />
         <span className="min-w-0 flex-1">
-          <span className={cn('block truncate text-[17px]', claim.bought && 'text-ink-muted line-through')}>{claim.name}</span>
+          <span className={cn('block truncate text-[17px]', claim.bought && 'text-ink-muted line-through')}>
+            {claim.name}
+          </span>
           {detail && <span className="block text-[13px] text-ink-muted">{detail}</span>}
         </span>
       </Link>
@@ -312,7 +345,11 @@ function SuggestionRow({ item }: { item: Suggestions['items'][number] }) {
 
   return (
     <div className="flex items-center gap-3">
-      <Link to="/lists/$id/items/$itemId" params={{ id: item.listId, itemId: item.itemId }} className="flex min-w-0 flex-1 items-center gap-3">
+      <Link
+        to="/lists/$id/items/$itemId"
+        params={{ id: item.listId, itemId: item.itemId }}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
         <ItemImage url={item.imageUrl} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px]">{item.name}</span>

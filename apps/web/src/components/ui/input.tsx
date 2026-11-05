@@ -34,13 +34,7 @@ function Input({ className, prepend: Prepend, ...props }: InputProps) {
 }
 
 function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
-  return (
-    <textarea
-      data-slot="textarea"
-      className={cn(FIELD, 'h-auto min-h-20 resize-y py-2', className)}
-      {...props}
-    />
-  );
+  return <textarea data-slot="textarea" className={cn(FIELD, 'h-auto min-h-20 resize-y py-2', className)} {...props} />;
 }
 
 // A native <select>, styled like the inputs. Used where mobile shows an iOS picker.

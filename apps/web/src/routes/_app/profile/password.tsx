@@ -60,10 +60,18 @@ function ChangePassword() {
       return;
     }
     // Keeps this browser signed in and signs out everywhere else, like a reset.
-    const { error } = await authClient.changePassword({ currentPassword: current, newPassword: next, revokeOtherSessions: true });
+    const { error } = await authClient.changePassword({
+      currentPassword: current,
+      newPassword: next,
+      revokeOtherSessions: true,
+    });
     setSaving(false);
     if (error) {
-      setError(error.code === 'INVALID_PASSWORD' ? 'Your current password is incorrect.' : (error.message ?? 'Something went wrong. Try again.'));
+      setError(
+        error.code === 'INVALID_PASSWORD'
+          ? 'Your current password is incorrect.'
+          : (error.message ?? 'Something went wrong. Try again.'),
+      );
       return;
     }
     done();
@@ -97,7 +105,12 @@ function ChangePassword() {
               onChange={e => setCurrent(e.target.value)}
             />
           </Field>
-          <button type="button" className="self-end pt-1 text-sm font-semibold text-accent" onClick={forgotPassword} disabled={sendingCode}>
+          <button
+            type="button"
+            className="self-end pt-1 text-sm font-semibold text-accent"
+            onClick={forgotPassword}
+            disabled={sendingCode}
+          >
             {sendingCode ? 'Sending code…' : 'Forgot it?'}
           </button>
         </div>
@@ -112,7 +125,9 @@ function ChangePassword() {
           />
         </Field>
         <ErrorText>{error}</ErrorText>
-        <p className="text-sm text-ink-muted">Changing your password signs you out on your other devices. You’ll stay signed in here.</p>
+        <p className="text-sm text-ink-muted">
+          Changing your password signs you out on your other devices. You’ll stay signed in here.
+        </p>
       </form>
     </SheetPage>
   );

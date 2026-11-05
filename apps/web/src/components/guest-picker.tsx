@@ -24,7 +24,8 @@ export function guestKey(guest: Guest) {
 // A list of picked guests, without duplicates.
 export function useGuests() {
   const [guests, setGuests] = useState<Guest[]>([]);
-  const addGuest = (guest: Guest) => setGuests(list => (list.some(g => guestKey(g) === guestKey(guest)) ? list : [...list, guest]));
+  const addGuest = (guest: Guest) =>
+    setGuests(list => (list.some(g => guestKey(g) === guestKey(guest)) ? list : [...list, guest]));
   const removeGuest = (key: string) => setGuests(list => list.filter(g => guestKey(g) !== key));
   return { guests, addGuest, removeGuest };
 }
@@ -33,13 +34,15 @@ const SUGGESTED_COUNT = 6;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type InviteTarget =
-  | { kind: 'event'; eventId: Id<'events'> | undefined }
-  | { kind: 'group'; groupId: Id<'groups'> | undefined };
+  { kind: 'event'; eventId: Id<'events'> | undefined } | { kind: 'group'; groupId: Id<'groups'> | undefined };
 
 // People the viewer shares a group or event with, leaving out anyone already
 // on the target. `search` also finds Discoverable people outside their circle.
 function usePeopleToInvite(target: InviteTarget, search?: string) {
-  const forEvent = useQuery(api.events.knownPeople, target.kind === 'event' ? { eventId: target.eventId, search } : 'skip');
+  const forEvent = useQuery(
+    api.events.knownPeople,
+    target.kind === 'event' ? { eventId: target.eventId, search } : 'skip',
+  );
   const forGroup = useQuery(
     api.groups.knownPeople,
     target.kind === 'group' && target.groupId ? { groupId: target.groupId, search } : 'skip',
@@ -80,7 +83,11 @@ export function useShareEventLink() {
       const link = await convex.query(api.events.getInviteLink, { eventId });
       let url = link?.url ?? null;
       if (!url) {
-        const ok = await confirm({ title: 'Create an invite link?', message: 'Anyone with the link can join the event.', confirmText: 'Create' });
+        const ok = await confirm({
+          title: 'Create an invite link?',
+          message: 'Anyone with the link can join the event.',
+          confirmText: 'Create',
+        });
         if (!ok) return;
         url = await resetInviteLink({ eventId });
       }
@@ -144,7 +151,10 @@ export function GuestPicker({
   // person with exactly that email.
   const typedEmail = query.toLowerCase();
   const canInviteTyped =
-    EMAIL_PATTERN.test(typedEmail) && !picked.has(typedEmail) && results !== undefined && !results.some(p => p.emailMatch);
+    EMAIL_PATTERN.test(typedEmail) &&
+    !picked.has(typedEmail) &&
+    results !== undefined &&
+    !results.some(p => p.emailMatch);
 
   return (
     <>
@@ -170,7 +180,10 @@ export function GuestPicker({
         {guests.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {guests.map(guest => (
-              <span key={guestKey(guest)} className="flex items-center gap-1 rounded-full bg-fill py-1.5 pr-1.5 pl-3 text-[15px]">
+              <span
+                key={guestKey(guest)}
+                className="flex items-center gap-1 rounded-full bg-fill py-1.5 pr-1.5 pl-3 text-[15px]"
+              >
                 {guest.name}
                 <button
                   type="button"
@@ -202,7 +215,12 @@ export function GuestPicker({
             </button>
           )}
           {results?.map(person => (
-            <PersonRow key={person.userId} person={person} checked={picked.has(person.userId)} onToggle={() => togglePerson(person)} />
+            <PersonRow
+              key={person.userId}
+              person={person}
+              checked={picked.has(person.userId)}
+              onToggle={() => togglePerson(person)}
+            />
           ))}
           {results?.length === 0 && !canInviteTyped && !picked.has(typedEmail) && (
             <p className="text-ink-muted">No one found. Type a full email to invite someone new.</p>
@@ -223,7 +241,12 @@ export function GuestPicker({
             </button>
             {addingNew && (
               <div className="flex flex-col gap-2 py-3 pl-8">
-                <Input placeholder="Name (optional)" aria-label="Name" value={newName} onChange={e => setNewName(e.target.value)} />
+                <Input
+                  placeholder="Name (optional)"
+                  aria-label="Name"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                />
                 <Input
                   type="email"
                   placeholder="Email"
@@ -268,7 +291,12 @@ export function GuestPicker({
             <Section title="Suggested">
               <div>
                 {known.slice(0, SUGGESTED_COUNT).map(person => (
-                  <PersonRow key={person.userId} person={person} checked={picked.has(person.userId)} onToggle={() => togglePerson(person)} />
+                  <PersonRow
+                    key={person.userId}
+                    person={person}
+                    checked={picked.has(person.userId)}
+                    onToggle={() => togglePerson(person)}
+                  />
                 ))}
               </div>
             </Section>

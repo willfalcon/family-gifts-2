@@ -52,7 +52,10 @@ function EditList() {
   });
 
   return (
-    <SheetPage title="Edit List" action={{ label: 'Save', form: 'edit-list', disabled: formState.isSubmitting || !list }}>
+    <SheetPage
+      title="Edit List"
+      action={{ label: 'Save', form: 'edit-list', disabled: formState.isSubmitting || !list }}
+    >
       <form id="edit-list" onSubmit={onSubmit} className="flex flex-col gap-6">
         <ListForm control={control} />
       </form>

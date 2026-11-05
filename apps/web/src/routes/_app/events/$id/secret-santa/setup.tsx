@@ -71,7 +71,15 @@ function listNames(names: string[]) {
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
-function PersonRow({ person, control, onClick }: { person: SetupPerson; control: React.ReactNode; onClick?: () => void }) {
+function PersonRow({
+  person,
+  control,
+  onClick,
+}: {
+  person: SetupPerson;
+  control: React.ReactNode;
+  onClick?: () => void;
+}) {
   const content = (
     <>
       <Avatar person={person} size={40} />
@@ -87,7 +95,11 @@ function PersonRow({ person, control, onClick }: { person: SetupPerson; control:
   );
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-line py-2 text-left">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-3 border-b border-line py-2 text-left"
+      >
         {content}
       </button>
     );
@@ -148,7 +160,8 @@ function SecretSantaSetup() {
     }
   }, [options]);
 
-  if (event === null || options === null) return <NotFound message="Only hosts can set up Secret Santa for this event." />;
+  if (event === null || options === null)
+    return <NotFound message="Only hosts can set up Secret Santa for this event." />;
 
   function togglePicked(aid: AttendeeId) {
     if (picked.includes(aid)) {
@@ -215,7 +228,9 @@ function SecretSantaSetup() {
 
   const drawFootnote = drawNow
     ? `Names are drawn as soon as you click Draw.${
-        leftOut.length > 0 ? ` Only people going are in, so ${listNames(leftOut.map(p => p.name))} won’t be included.` : ''
+        leftOut.length > 0
+          ? ` Only people going are in, so ${listNames(leftOut.map(p => p.name))} won’t be included.`
+          : ''
       }`
     : `Names are drawn on ${format(parseISO(drawDate), 'EEE, MMM d')}${drawEarly ? ', or sooner if everyone replies first' : ''}. ${
         reviewed ? 'You’ll get a notification to review them.' : 'Everyone gets a notification.'
@@ -224,13 +239,18 @@ function SecretSantaSetup() {
   return (
     <SheetPage
       title="Secret Santa"
-      action={{ label: drawNow ? 'Draw' : 'Save', onClick: () => void submit(), disabled: submitting || !event || picked.length < 2 }}
+      action={{
+        label: drawNow ? 'Draw' : 'Save',
+        onClick: () => void submit(),
+        disabled: submitting || !event || picked.length < 2,
+      }}
     >
       <Section>
         {event && (
           <Footnote className="truncate">
             {event.name}
-            {(event.date || event.startTime) && ` · ${event.date ? formatShortDate(event.date, event.startTime) : formatWhen(event)}`}
+            {(event.date || event.startTime) &&
+              ` · ${event.date ? formatShortDate(event.date, event.startTime) : formatWhen(event)}`}
           </Footnote>
         )}
         <div>
@@ -298,7 +318,12 @@ function SecretSantaSetup() {
             </div>
           );
         })}
-        <Button variant="link" className="self-start py-2" disabled={picked.length < 2} onClick={() => setKeepingApart(true)}>
+        <Button
+          variant="link"
+          className="self-start py-2"
+          disabled={picked.length < 2}
+          onClick={() => setKeepingApart(true)}
+        >
           <Plus className="size-[18px]" /> Keep two people apart
         </Button>
       </Section>
@@ -306,7 +331,10 @@ function SecretSantaSetup() {
       <Section title={<span id="draw-mode">Matches</span>}>
         <RadioGroup aria-labelledby="draw-mode" value={mode} onValueChange={value => setMode(value as DrawMode)}>
           {MODE_OPTIONS.map(option => (
-            <label key={option.mode} className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2">
+            <label
+              key={option.mode}
+              className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2"
+            >
               <span className="flex-1">
                 <span className="block">{option.label}</span>
                 <span className="block text-footnote text-ink-muted">{option.description}</span>
@@ -429,7 +457,8 @@ function KeepApartDialog({
   // "Remember" saves the pair on a group both are in. Before both are picked,
   // the first invited group stands in.
   const groups = options?.groups ?? [];
-  const sharedGroup = first && second ? groups.find(g => g.attendeeIds.includes(first) && g.attendeeIds.includes(second)) : groups[0];
+  const sharedGroup =
+    first && second ? groups.find(g => g.attendeeIds.includes(first) && g.attendeeIds.includes(second)) : groups[0];
 
   function add() {
     if (!first || !second) return;
@@ -458,7 +487,14 @@ function KeepApartDialog({
         <Section title="Everyone in the draw" className="gap-0">
           {inDraw.map(person => {
             const order = person.attendeeId === first ? 1 : person.attendeeId === second ? 2 : null;
-            return <PersonRow key={person.attendeeId} person={person} onClick={() => tap(person.attendeeId)} control={<OrderCheck order={order} />} />;
+            return (
+              <PersonRow
+                key={person.attendeeId}
+                person={person}
+                onClick={() => tap(person.attendeeId)}
+                control={<OrderCheck order={order} />}
+              />
+            );
           })}
         </Section>
 
@@ -469,7 +505,11 @@ function KeepApartDialog({
                 <span className="block">Remember for {sharedGroup.name}</span>
                 <span className="block text-footnote text-ink-muted">Suggest this pair in future draws</span>
               </span>
-              <Switch aria-label={`Remember for ${sharedGroup.name}`} checked={remember} onCheckedChange={setRemember} />
+              <Switch
+                aria-label={`Remember for ${sharedGroup.name}`}
+                checked={remember}
+                onCheckedChange={setRemember}
+              />
             </FieldRow>
           </label>
         )}

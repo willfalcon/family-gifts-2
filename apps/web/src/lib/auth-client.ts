@@ -17,8 +17,7 @@ const client = createAuthClient({
   plugins: [convexClient(), emailOTPClient()],
 });
 
-export const authClient = client as unknown as AuthClient &
-  Pick<typeof client, 'emailOtp'>;
+export const authClient = client as unknown as AuthClient & Pick<typeof client, 'emailOtp'>;
 
 // After signing in or out, reload so the server-rendered shell picks up the
 // new session cookie (the root route reads the token on the server).

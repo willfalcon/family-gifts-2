@@ -127,7 +127,12 @@ export function ResetPasswordForm({ email, onSuccess }: { email: string; onSucce
         <Button type="submit" size="lg" disabled={submitting}>
           Reset Password
         </Button>
-        <button type="button" onClick={handleResend} disabled={resending} className="text-center text-sm text-ink-muted">
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending}
+          className="text-center text-sm text-ink-muted"
+        >
           Didn’t get it? <span className="font-semibold text-accent">Send a new code</span>
         </button>
       </div>
@@ -140,7 +145,13 @@ export function ResetPasswordForm({ email, onSuccess }: { email: string; onSucce
  * packages/shared/mock-users.ts. Creates the account the first time.
  * Renders nothing in production builds.
  */
-export function DevUserSwitcher({ currentEmail, onSignedIn }: { currentEmail?: string | null; onSignedIn: () => void }) {
+export function DevUserSwitcher({
+  currentEmail,
+  onSignedIn,
+}: {
+  currentEmail?: string | null;
+  onSignedIn: () => void;
+}) {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

@@ -27,7 +27,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { name: 'theme-color', content: '#FBFAF8' },
       { title: 'Family Gifts' },
-      { name: 'description', content: 'Wish lists for the people you love. Claim a gift without spoiling the surprise.' },
+      {
+        name: 'description',
+        content: 'Wish lists for the people you love. Claim a gift without spoiling the surprise.',
+      },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },

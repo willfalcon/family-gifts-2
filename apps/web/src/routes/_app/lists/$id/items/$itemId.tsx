@@ -27,7 +27,11 @@ function ItemPage() {
   if (list === undefined || items === undefined) return <Page>{null}</Page>;
   if (list === null) return <NotFound message="This list doesn’t exist or isn’t shared with you." />;
   if (!item) return <NotFound message="This idea isn’t on the list anymore." />;
-  return list.isMine ? <EditItem listId={listId} item={item} /> : <TheirItem listId={listId} itemId={itemId as Id<'items'>} />;
+  return list.isMine ? (
+    <EditItem listId={listId} item={item} />
+  ) : (
+    <TheirItem listId={listId} itemId={itemId as Id<'items'>} />
+  );
 }
 
 function EditItem({ listId, item }: { listId: Id<'lists'>; item: NonNullable<ReturnType<typeof useItems>>[number] }) {
@@ -108,11 +112,7 @@ function TheirItem({ listId, itemId }: { listId: Id<'lists'>; itemId: Id<'items'
             Open in store <ExternalLink className="size-3.5" />
           </a>
         )}
-        {owner && (
-          <p className="text-center text-footnote text-ink-muted">
-            {owner} never sees what’s claimed.
-          </p>
-        )}
+        {owner && <p className="text-center text-footnote text-ink-muted">{owner} never sees what’s claimed.</p>}
       </div>
     </Page>
   );

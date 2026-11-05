@@ -33,7 +33,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: '/events', label: 'Events', icon: Calendar, prefixes: ['/events'], badge: eventInviteCount },
   ];
   const isActive = (tab: Tab) =>
-    tab.to === '/' ? pathname === '/' || tab.prefixes.some(p => pathname.startsWith(p)) : tab.prefixes.some(p => pathname.startsWith(p));
+    tab.to === '/'
+      ? pathname === '/' || tab.prefixes.some(p => pathname.startsWith(p))
+      : tab.prefixes.some(p => pathname.startsWith(p));
 
   return (
     <div className="min-h-dvh">

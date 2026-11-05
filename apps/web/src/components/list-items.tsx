@@ -69,7 +69,15 @@ export function PriorityBadge({ priority }: { priority: Doc<'items'>['priority']
   );
 }
 
-export function ItemImage({ url, size = 44, muted }: { url: string | null | undefined; size?: number; muted?: boolean }) {
+export function ItemImage({
+  url,
+  size = 44,
+  muted,
+}: {
+  url: string | null | undefined;
+  size?: number;
+  muted?: boolean;
+}) {
   return url ? (
     <img
       src={url}
@@ -115,13 +123,22 @@ export function OwnItemRow({ item }: { item: ItemWithImage }) {
   const edit = () => navigate({ to: '/lists/$id/items/$itemId', params: { id: item.listId, itemId: item._id } });
 
   async function confirmDelete() {
-    const ok = await confirm({ title: 'Delete Item', message: `${item.name} will be removed from this list.`, confirmText: 'Delete', destructive: true });
+    const ok = await confirm({
+      title: 'Delete Item',
+      message: `${item.name} will be removed from this list.`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
     if (ok) void removeItem({ id: item._id });
   }
 
   return (
     <div className="flex items-center gap-2">
-      <Link to="/lists/$id/items/$itemId" params={{ id: item.listId, itemId: item._id }} className="flex min-w-0 flex-1">
+      <Link
+        to="/lists/$id/items/$itemId"
+        params={{ id: item.listId, itemId: item._id }}
+        className="flex min-w-0 flex-1"
+      >
         <ItemSummary item={item} />
       </Link>
       <ActionsMenu
@@ -147,7 +164,11 @@ export function ClaimableItemRow({ item, claim }: { item: ItemWithImage; claim: 
   const left = wanted - claim.claimedQuantity;
   return (
     <div className="flex items-center gap-2">
-      <Link to="/lists/$id/items/$itemId" params={{ id: item.listId, itemId: item._id }} className="flex min-w-0 flex-1">
+      <Link
+        to="/lists/$id/items/$itemId"
+        params={{ id: item.listId, itemId: item._id }}
+        className="flex min-w-0 flex-1"
+      >
         <ItemSummary item={item} status={claimStatus(wanted, claim)} />
       </Link>
       <ActionsMenu

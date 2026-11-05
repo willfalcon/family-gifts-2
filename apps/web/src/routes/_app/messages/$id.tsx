@@ -62,7 +62,9 @@ function Thread() {
       <PageHeader title={thread ? threadTitle(thread) : ''} fallback="/messages" />
 
       {thread?.secretSanta === 'giver' && (
-        <p className="text-center text-footnote text-ink-muted">{thread.others[0]?.firstName ?? 'They'} won’t see your name.</p>
+        <p className="text-center text-footnote text-ink-muted">
+          {thread.others[0]?.firstName ?? 'They'} won’t see your name.
+        </p>
       )}
 
       {thread?.openAsks.map(ask => (
@@ -83,7 +85,10 @@ function Thread() {
           }
           const author = message.mine ? thread.me : thread.others.find(o => o.userId === message.authorId);
           return (
-            <li key={message._id} className={cn('flex w-full items-end gap-2', message.mine ? 'justify-end' : 'justify-start')}>
+            <li
+              key={message._id}
+              className={cn('flex w-full items-end gap-2', message.mine ? 'justify-end' : 'justify-start')}
+            >
               {!message.mine && <Avatar person={author} size={32} />}
               <div className="flex max-w-[75%] flex-col gap-1">
                 {message.askLabel && (
@@ -95,7 +100,9 @@ function Thread() {
                 <p
                   className={cn(
                     'rounded-2xl px-3 py-2 whitespace-pre-line break-words',
-                    message.mine ? 'self-end rounded-br-md bg-accent text-accent-foreground' : 'self-start rounded-bl-md bg-fill',
+                    message.mine
+                      ? 'self-end rounded-br-md bg-accent text-accent-foreground'
+                      : 'self-start rounded-bl-md bg-fill',
                   )}
                 >
                   {message.text}

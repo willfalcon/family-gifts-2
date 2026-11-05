@@ -60,7 +60,9 @@ export function GiftReady({
         giftProgress: { ...state.giftProgress, ready: state.giftProgress.ready + change },
         // A host's own row in the list below, so it flips with the switch.
         ...(state.isManager && {
-          assignments: state.assignments.map(a => (a.giverUserId === myUserId ? { ...a, giftReady: args.giftReady } : a)),
+          assignments: state.assignments.map(a =>
+            a.giverUserId === myUserId ? { ...a, giftReady: args.giftReady } : a,
+          ),
         }),
       },
     );
@@ -77,7 +79,9 @@ export function GiftReady({
             <span className="flex-1 pr-3">
               <span className="block">{label}</span>
               <span className="block text-[13px] text-ink-muted">
-                {reviewed ? 'Hosts can see who has their gift' : 'Only counts toward the total. Nobody sees who it’s for'}
+                {reviewed
+                  ? 'Hosts can see who has their gift'
+                  : 'Only counts toward the total. Nobody sees who it’s for'}
               </span>
             </span>
             <Switch
@@ -148,7 +152,9 @@ function MatchItemRow({ item, budget, showList }: { item: MatchItem; budget: num
           ? `Over $${budget}`
           : null;
   // Other lists' items say which list they're from.
-  const detail = [item.price != null ? `$${item.price}` : null, showList ? item.listTitle : null].filter(Boolean).join(' · ');
+  const detail = [item.price != null ? `$${item.price}` : null, showList ? item.listTitle : null]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Link
@@ -170,7 +176,12 @@ function MatchItemRow({ item, budget, showList }: { item: MatchItem; budget: num
         {detail !== '' && <span className="block truncate text-[13px] text-ink-muted">{detail}</span>}
       </span>
       {reason && (
-        <span className={cn('line-clamp-2 max-w-[45%] text-[13px]', item.status === 'mine' ? 'text-accent' : 'text-ink-muted')}>
+        <span
+          className={cn(
+            'line-clamp-2 max-w-[45%] text-[13px]',
+            item.status === 'mine' ? 'text-accent' : 'text-ink-muted',
+          )}
+        >
           {reason}
         </span>
       )}

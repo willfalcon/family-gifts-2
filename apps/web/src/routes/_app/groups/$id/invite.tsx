@@ -48,7 +48,11 @@ function InviteMembers() {
     try {
       let url = inviteLink.url;
       if (!url) {
-        const ok = await confirm({ title: 'Create an invite link?', message: 'Anyone with the link can join the group.', confirmText: 'Create' });
+        const ok = await confirm({
+          title: 'Create an invite link?',
+          message: 'Anyone with the link can join the group.',
+          confirmText: 'Create',
+        });
         if (!ok) return;
         url = await resetInviteLink({ groupId });
       }
@@ -69,7 +73,9 @@ function InviteMembers() {
     // Each invite stands alone, so one failing (e.g. already a member) doesn't stop the rest.
     const results = await Promise.allSettled(
       guests.map(guest =>
-        guest.kind === 'user' ? inviteUser({ groupId, userId: guest.userId }) : inviteByEmail({ groupId, email: guest.email }),
+        guest.kind === 'user'
+          ? inviteUser({ groupId, userId: guest.userId })
+          : inviteByEmail({ groupId, email: guest.email }),
       ),
     );
     setSending(false);
@@ -77,7 +83,10 @@ function InviteMembers() {
     goBack();
     if (failures.length > 0) {
       const messages = [...new Set(failures.map(f => errorMessage(f.reason)))];
-      void showAlert(failures.length === results.length ? 'Invites didn’t send' : 'Some invites didn’t send', messages.join('\n'));
+      void showAlert(
+        failures.length === results.length ? 'Invites didn’t send' : 'Some invites didn’t send',
+        messages.join('\n'),
+      );
     }
   }
 
@@ -103,7 +112,11 @@ function InviteMembers() {
                 <Button
                   variant="link"
                   className="text-destructive"
-                  onClick={() => revokeInvite({ id: invite._id as Id<'groupInvites'> }).catch(e => showError('Couldn’t update group', e))}
+                  onClick={() =>
+                    revokeInvite({ id: invite._id as Id<'groupInvites'> }).catch(e =>
+                      showError('Couldn’t update group', e),
+                    )
+                  }
                 >
                   Revoke
                 </Button>

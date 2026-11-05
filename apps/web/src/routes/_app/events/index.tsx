@@ -44,7 +44,12 @@ function MonthHeading({ children }: { children: string }) {
 // A click-to-expand heading, for the Past and Archived sections.
 function Disclosure({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
-    <button type="button" className="mt-6 flex items-center gap-1 self-start py-2" onClick={onToggle} aria-expanded={open}>
+    <button
+      type="button"
+      className="mt-6 flex items-center gap-1 self-start py-2"
+      onClick={onToggle}
+      aria-expanded={open}
+    >
       <span className="font-semibold text-ink-muted">{label}</span>
       {open ? <ChevronDown className="size-4 text-ink-muted" /> : <ChevronRight className="size-4 text-ink-muted" />}
     </button>
@@ -98,7 +103,9 @@ function Events() {
       ) : (
         <div className="flex flex-col gap-2">
           {!!invites?.length && <MonthHeading>{`Invitations · ${invites.length}`}</MonthHeading>}
-          {invites?.map(invite => <InvitationListItem key={invite._id} invite={invite} />)}
+          {invites?.map(invite => (
+            <InvitationListItem key={invite._id} invite={invite} />
+          ))}
 
           {groupByMonth(upcoming).map(section => (
             <div key={`upcoming-${section.key}`} className="flex flex-col gap-2">
@@ -116,7 +123,9 @@ function Events() {
             <span className="text-accent">Add Event</span>
           </Link>
 
-          {past.length > 0 && <Disclosure label={`Past · ${past.length}`} open={showPast} onToggle={() => setShowPast(v => !v)} />}
+          {past.length > 0 && (
+            <Disclosure label={`Past · ${past.length}`} open={showPast} onToggle={() => setShowPast(v => !v)} />
+          )}
           {showPast &&
             groupByMonth(past).map(section => (
               <div key={`past-${section.key}`} className="flex flex-col gap-2">
@@ -128,7 +137,11 @@ function Events() {
             ))}
 
           {archived.length > 0 && (
-            <Disclosure label={`Archived · ${archived.length}`} open={showArchived} onToggle={() => setShowArchived(v => !v)} />
+            <Disclosure
+              label={`Archived · ${archived.length}`}
+              open={showArchived}
+              onToggle={() => setShowArchived(v => !v)}
+            />
           )}
           {showArchived && archived.map(event => <EventListItem key={event._id} event={event} />)}
         </div>

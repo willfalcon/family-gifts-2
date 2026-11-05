@@ -83,7 +83,9 @@ function InviteGuests() {
     const results = await Promise.allSettled([
       ...groupIds.map(groupId => inviteGroup({ eventId, groupId })),
       ...guests.map(guest =>
-        guest.kind === 'user' ? inviteUser({ eventId, userId: guest.userId }) : inviteByEmail({ eventId, email: guest.email }),
+        guest.kind === 'user'
+          ? inviteUser({ eventId, userId: guest.userId })
+          : inviteByEmail({ eventId, email: guest.email }),
       ),
     ]);
     setSending(false);
@@ -91,7 +93,10 @@ function InviteGuests() {
     goBack();
     if (failures.length > 0) {
       const messages = [...new Set(failures.map(f => errorMessage(f.reason)))];
-      void showAlert(failures.length === results.length ? 'Invites didn’t send' : 'Some invites didn’t send', messages.join('\n'));
+      void showAlert(
+        failures.length === results.length ? 'Invites didn’t send' : 'Some invites didn’t send',
+        messages.join('\n'),
+      );
     }
   }
 
@@ -150,9 +155,15 @@ function InviteGuests() {
               <FieldRow key={invite._id}>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{invite.email}</span>
-                  {invite.sourceGroupName && <span className="block text-[13px] text-ink-muted">From {invite.sourceGroupName}</span>}
+                  {invite.sourceGroupName && (
+                    <span className="block text-[13px] text-ink-muted">From {invite.sourceGroupName}</span>
+                  )}
                 </span>
-                <Button variant="link" className="text-destructive" onClick={() => void confirmRevoke(invite._id, invite.email ?? '')}>
+                <Button
+                  variant="link"
+                  className="text-destructive"
+                  onClick={() => void confirmRevoke(invite._id, invite.email ?? '')}
+                >
                   Revoke
                 </Button>
               </FieldRow>
@@ -180,8 +191,10 @@ function InviteGuests() {
               </FieldRow>
             )}
             <Footnote>
-              {inviteLink.guestsCanInvite ? 'Anyone on the event can share the link.' : 'Only hosts can share the link.'} Resetting it
-              stops the old link from working.
+              {inviteLink.guestsCanInvite
+                ? 'Anyone on the event can share the link.'
+                : 'Only hosts can share the link.'}{' '}
+              Resetting it stops the old link from working.
             </Footnote>
           </Section>
         )}

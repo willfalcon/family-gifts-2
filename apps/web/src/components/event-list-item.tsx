@@ -50,8 +50,12 @@ export function EventListItem({ event, past = false }: { event: EventRow; past?:
         <DateBadge date={event.date} />
         <span className="flex min-w-0 flex-1 items-center justify-between gap-2 border-b border-line pt-2 pb-3">
           <span className="min-w-0 flex-1">
-            <span className={cn('block font-semibold', muted && 'text-ink-muted', cancelled && 'line-through')}>{event.name}</span>
-            <span className="block text-sm text-ink-muted">{cancelled ? `Cancelled · ${formatWhen(event)}` : formatWhen(event)}</span>
+            <span className={cn('block font-semibold', muted && 'text-ink-muted', cancelled && 'line-through')}>
+              {event.name}
+            </span>
+            <span className="block text-sm text-ink-muted">
+              {cancelled ? `Cancelled · ${formatWhen(event)}` : formatWhen(event)}
+            </span>
           </span>
           <span className="flex items-center gap-1">
             {relative && <span className="text-sm text-accent">{relative}</span>}

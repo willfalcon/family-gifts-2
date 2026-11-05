@@ -46,7 +46,14 @@ function Person() {
         actions={
           <>
             {!isSelf && person && (
-              <Button variant="ghost" size="icon" className="glass" aria-label="Add private idea" title="Add private idea" onClick={() => setEditingIdea(null)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="glass"
+                aria-label="Add private idea"
+                title="Add private idea"
+                onClick={() => setEditingIdea(null)}
+              >
                 <Plus className="size-[18px]" />
               </Button>
             )}
@@ -55,7 +62,10 @@ function Person() {
               actions={[
                 !isSelf && { label: 'Add private idea', onSelect: () => setEditingIdea(null) },
                 !isSelf && person && { label: 'Ask for ideas', onSelect: () => setAsking(true) },
-                { label: `Copy link to ${person?.name ?? 'this person'}`, onSelect: () => void copyLink(window.location.href) },
+                {
+                  label: `Copy link to ${person?.name ?? 'this person'}`,
+                  onSelect: () => void copyLink(window.location.href),
+                },
               ]}
             />
           </>
@@ -64,7 +74,9 @@ function Person() {
 
       <Section title="Lists">
         {person?.lists.length === 0 && (
-          <p className="text-ink-muted">{isSelf ? 'You don’t have any lists yet.' : `${first} hasn’t shared any lists with you yet.`}</p>
+          <p className="text-ink-muted">
+            {isSelf ? 'You don’t have any lists yet.' : `${first} hasn’t shared any lists with you yet.`}
+          </p>
         )}
         {person?.lists.length === 0 && !isSelf && (
           <Button variant="secondary" size="sm" className="self-start" onClick={() => setAsking(true)}>
@@ -93,8 +105,12 @@ function Person() {
             </span>
           }
         >
-          {ideas?.length === 0 && <p className="text-ink-muted">Jot down gift ideas for {first} here. Only you can see them.</p>}
-          {ideas?.map(idea => <PrivateIdeaRow key={idea._id} idea={idea} onEdit={setEditingIdea} />)}
+          {ideas?.length === 0 && (
+            <p className="text-ink-muted">Jot down gift ideas for {first} here. Only you can see them.</p>
+          )}
+          {ideas?.map(idea => (
+            <PrivateIdeaRow key={idea._id} idea={idea} onEdit={setEditingIdea} />
+          ))}
           <Button variant="link" className="self-start" onClick={() => setEditingIdea(null)}>
             <Plus /> Add private idea
           </Button>

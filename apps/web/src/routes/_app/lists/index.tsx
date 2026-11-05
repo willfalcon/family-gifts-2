@@ -47,7 +47,9 @@ function MyLists() {
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-2">
-          {lists?.map(list => <ListRow key={list._id} list={list} />)}
+          {lists?.map(list => (
+            <ListRow key={list._id} list={list} />
+          ))}
           <Link to="/lists/new" className="flex items-center gap-3 py-1 text-accent hover:underline">
             <span className="flex size-11 items-center justify-center">
               <Plus className="size-5" />
@@ -99,7 +101,8 @@ function ListRow({ list, archived = false }: { list: MyList; archived?: boolean 
   const details: string[] = [];
   if (list.occasionEventName) details.push(list.occasionEventName);
   if (list.occasionEventDate) details.push(formatOccasionDate(list.occasionEventDate));
-  if (groupShares.length > 0) details.push(`Shared with ${groupShares.length} group${groupShares.length > 1 ? 's' : ''}`);
+  if (groupShares.length > 0)
+    details.push(`Shared with ${groupShares.length} group${groupShares.length > 1 ? 's' : ''}`);
   const Icon = listIcon(list.occasion);
 
   async function archive() {

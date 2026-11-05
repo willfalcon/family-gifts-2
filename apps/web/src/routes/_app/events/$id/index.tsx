@@ -127,7 +127,8 @@ function Event() {
     if (secretSanta.exists) {
       const ok = await confirm({
         title: 'Turn off Secret Santa?',
-        message: 'Who’s in, the keep-apart rules and the budget will be cleared. You can turn it back on by editing the event.',
+        message:
+          'Who’s in, the keep-apart rules and the budget will be cleared. You can turn it back on by editing the event.',
         confirmText: 'Turn off',
         destructive: true,
       });
@@ -155,7 +156,8 @@ function Event() {
     listsByOwner.set(list.ownerId, [...(listsByOwner.get(list.ownerId) ?? []), list]);
   }
   // Going, by name, then you, then anyone who can't go.
-  const rank = (a: NonNullable<typeof attendees>[number]) => (a.userId === user?._id ? 1 : a.status === 'declined' ? 2 : 0);
+  const rank = (a: NonNullable<typeof attendees>[number]) =>
+    a.userId === user?._id ? 1 : a.status === 'declined' ? 2 : 0;
   const sortedAttendees = [...(attendees ?? [])].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 
   const summary = secretSanta?.exists ? secretSantaSummary(secretSanta) : null;
@@ -186,11 +188,19 @@ function Event() {
               label="Event options"
               actions={[
                 // Invites are host-only on the server.
-                isHost && !cancelled && { label: 'Invite guests', onSelect: () => navigate({ to: '/events/$id/invite', params: { id } }) },
+                isHost &&
+                  !cancelled && {
+                    label: 'Invite guests',
+                    onSelect: () => navigate({ to: '/events/$id/invite', params: { id } }),
+                  },
                 // Guests only see this while hosts let them share the link.
-                !!inviteLink?.url && !cancelled && { label: 'Copy invite link', onSelect: () => void copyLink(inviteLink.url!) },
+                !!inviteLink?.url &&
+                  !cancelled && { label: 'Copy invite link', onSelect: () => void copyLink(inviteLink.url!) },
                 me?.status === 'declined'
-                  ? { label: 'I can go after all', onSelect: () => event && void run(() => setMyStatus({ eventId: event._id, status: 'going' })) }
+                  ? {
+                      label: 'I can go after all',
+                      onSelect: () => event && void run(() => setMyStatus({ eventId: event._id, status: 'going' })),
+                    }
                   : me && { label: 'Can’t go anymore', onSelect: () => void confirmCantGo(), destructive: true },
                 event?.archived
                   ? { label: 'Unarchive', onSelect: eventActions.unarchive }
@@ -199,7 +209,11 @@ function Event() {
                   (cancelled
                     ? { label: 'Restore event', onSelect: eventActions.restore }
                     : { label: 'Cancel event', onSelect: () => void eventActions.confirmCancel(), destructive: true }),
-                isOwner && { label: 'Delete event', onSelect: () => void eventActions.confirmDelete(), destructive: true },
+                isOwner && {
+                  label: 'Delete event',
+                  onSelect: () => void eventActions.confirmDelete(),
+                  destructive: true,
+                },
               ]}
             />
           </>
@@ -208,7 +222,9 @@ function Event() {
 
       {cancelled && (
         <div className="flex items-center gap-3 rounded-xl bg-fill p-3">
-          <p className="flex-1 text-ink-muted">This event was cancelled. Its invites and link don’t work until a host restores it.</p>
+          <p className="flex-1 text-ink-muted">
+            This event was cancelled. Its invites and link don’t work until a host restores it.
+          </p>
           {isHost && (
             <Button variant="secondary" size="sm" className="text-accent" onClick={eventActions.restore}>
               Restore
@@ -265,7 +281,9 @@ function Event() {
               {isHost && (
                 <ActionsMenu
                   label="Secret Santa options"
-                  actions={[{ label: 'Turn off Secret Santa', onSelect: () => void turnOffSecretSanta(), destructive: true }]}
+                  actions={[
+                    { label: 'Turn off Secret Santa', onSelect: () => void turnOffSecretSanta(), destructive: true },
+                  ]}
                 />
               )}
             </div>
@@ -307,10 +325,13 @@ function Event() {
             const canManageThem = isHost && !isSelf && attendee.role !== 'owner';
             const [firstList, ...moreLists] = listsByOwner.get(attendee.userId ?? '') ?? [];
             // Role only when it's not the usual guest, then their list.
-            const prefix = [attendee.role !== 'guest' && capitalize(attendee.role), attendee.status === 'declined' && 'Can’t go'].filter(
-              Boolean,
-            );
-            const subtitle = [...prefix, firstList ? firstList.title : !isSelf && 'No list yet'].filter(Boolean).join(' · ');
+            const prefix = [
+              attendee.role !== 'guest' && capitalize(attendee.role),
+              attendee.status === 'declined' && 'Can’t go',
+            ].filter(Boolean);
+            const subtitle = [...prefix, firstList ? firstList.title : !isSelf && 'No list yet']
+              .filter(Boolean)
+              .join(' · ');
             const who = (
               <>
                 <Avatar person={attendee} size={40} />
@@ -327,7 +348,11 @@ function Event() {
               <div key={attendee.id} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   {firstList ? (
-                    <Link to="/lists/$id" params={{ id: firstList._id }} className="flex min-w-0 flex-1 items-center gap-2">
+                    <Link
+                      to="/lists/$id"
+                      params={{ id: firstList._id }}
+                      className="flex min-w-0 flex-1 items-center gap-2"
+                    >
                       {who}
                       <span className="text-subhead text-ink-muted">{listSummary(firstList, isSelf)}</span>
                       <ChevronRight className="size-5 text-ink-muted" />
@@ -346,7 +371,11 @@ function Event() {
                           )
                         : !cancelled &&
                           attendee.userId && (
-                            <Button variant="secondary" size="sm" onClick={() => setAskingUserId(attendee.userId ?? null)}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setAskingUserId(attendee.userId ?? null)}
+                            >
                               <MessageCircle className="text-accent" strokeWidth={2.5} />
                               <span className="text-accent">Ask for ideas</span>
                             </Button>
@@ -360,21 +389,40 @@ function Event() {
                         attendee.role === 'host'
                           ? {
                               label: 'Make guest',
-                              onSelect: () => void run(() => setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role: 'guest' })),
+                              onSelect: () =>
+                                void run(() =>
+                                  setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role: 'guest' }),
+                                ),
                             }
                           : {
                               label: 'Make host',
-                              onSelect: () => void run(() => setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role: 'host' })),
+                              onSelect: () =>
+                                void run(() =>
+                                  setAttendeeRole({ eventId: event._id, attendeeId: attendee.id, role: 'host' }),
+                                ),
                             },
-                        isOwner && attendee.role === 'host' && { label: 'Make owner', onSelect: () => void confirmTransfer(attendee.id, attendee.name) },
-                        { label: 'Remove from event', onSelect: () => void confirmRemove(attendee.id, attendee.name), destructive: true },
+                        isOwner &&
+                          attendee.role === 'host' && {
+                            label: 'Make owner',
+                            onSelect: () => void confirmTransfer(attendee.id, attendee.name),
+                          },
+                        {
+                          label: 'Remove from event',
+                          onSelect: () => void confirmRemove(attendee.id, attendee.name),
+                          destructive: true,
+                        },
                       ]}
                     />
                   )}
                 </div>
                 {/* Any further lists they have for this event, tucked under their row. */}
                 {moreLists.map(list => (
-                  <Link key={list._id} to="/lists/$id" params={{ id: list._id }} className="ml-12 flex items-center gap-2">
+                  <Link
+                    key={list._id}
+                    to="/lists/$id"
+                    params={{ id: list._id }}
+                    className="ml-12 flex items-center gap-2"
+                  >
                     <span className="flex-1 text-subhead text-ink-muted">{list.title}</span>
                     <span className="text-subhead text-ink-muted">{listSummary(list, isSelf)}</span>
                     <ChevronRight className="size-5 text-ink-muted" />
@@ -391,7 +439,11 @@ function Event() {
           {invitees.invitees.map(invitee => {
             const label = invitee.name ?? invitee.email ?? '';
             // Hosts see where the invite came from: the group, or else the email it went to.
-            const details = invitee.fromGroupName ? `From ${invitee.fromGroupName}` : invitee.name ? (invitee.email ?? '') : '';
+            const details = invitee.fromGroupName
+              ? `From ${invitee.fromGroupName}`
+              : invitee.name
+                ? (invitee.email ?? '')
+                : '';
             return (
               <div key={invitee.id} className="flex items-center gap-2">
                 <Avatar person={{ name: label, color: invitee.color }} size={40} />
@@ -402,7 +454,13 @@ function Event() {
                 {isHost && (
                   <ActionsMenu
                     label={`Options for ${label}`}
-                    actions={[{ label: 'Revoke invite', onSelect: () => void confirmRevoke(invitee.id, label), destructive: true }]}
+                    actions={[
+                      {
+                        label: 'Revoke invite',
+                        onSelect: () => void confirmRevoke(invitee.id, label),
+                        destructive: true,
+                      },
+                    ]}
                   />
                 )}
               </div>
@@ -453,7 +511,8 @@ function secretSantaSummary(state: SecretSantaState) {
   const drawError = state.isManager ? state.drawError : null;
   if (drawError) return { title: 'Names not drawn yet', detail: drawError };
   const notified = reviewedHost ? 'Nobody is told until you send the names' : 'Everyone gets a notification';
-  if (state.drawAt) return { title: `Drawing names ${format(state.drawAt, 'EEE, MMM d')}`, detail: withBudget(notified) };
+  if (state.drawAt)
+    return { title: `Drawing names ${format(state.drawAt, 'EEE, MMM d')}`, detail: withBudget(notified) };
   // Nothing scheduled: e.g. a Reviewed draw undone before it was sent.
   if (state.isManager) return { title: 'Names not drawn yet', detail: withBudget('Click to draw names') };
   return { title: 'Drawing names soon', detail: withBudget('Everyone gets a notification') };

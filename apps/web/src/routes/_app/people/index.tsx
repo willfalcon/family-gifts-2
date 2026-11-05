@@ -49,7 +49,11 @@ function People() {
           </Button>
         </EmptyState>
       ) : (
-        <div className="flex flex-col gap-8">{groups?.map(group => <GroupMembers key={group._id} group={group} />)}</div>
+        <div className="flex flex-col gap-8">
+          {groups?.map(group => (
+            <GroupMembers key={group._id} group={group} />
+          ))}
+        </div>
       )}
     </Page>
   );
@@ -61,7 +65,11 @@ function GroupMembers({ group }: { group: Doc<'groups'> }) {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-ink-muted">{group.name}</h2>
-        <Link to="/groups/$id" params={{ id: group._id }} className="flex items-center gap-1 text-accent hover:underline">
+        <Link
+          to="/groups/$id"
+          params={{ id: group._id }}
+          className="flex items-center gap-1 text-accent hover:underline"
+        >
           {plural(members?.length ?? 0, 'member')}
           <ChevronRight className="size-4" />
         </Link>

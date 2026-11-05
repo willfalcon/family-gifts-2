@@ -60,7 +60,9 @@ function SignIn() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-4">
           <BackButton fallback="/welcome" />
-          <h1 className="font-display-bold text-4xl tracking-tight text-ink">{isSignIn ? 'Log in' : 'Create account'}</h1>
+          <h1 className="font-display-bold text-4xl tracking-tight text-ink">
+            {isSignIn ? 'Log in' : 'Create account'}
+          </h1>
         </div>
         <p className="px-4 text-[15px] text-muted-foreground">
           {isSignIn ? 'Welcome back.' : 'It’s free. You’ll log in with your email and password.'}
@@ -72,12 +74,23 @@ function SignIn() {
           <div className="flex gap-3">
             <div className="flex-1">
               <Field label="First name" htmlFor="first-name">
-                <Input id="first-name" autoComplete="given-name" required value={firstName} onChange={e => setFirstName(e.target.value)} />
+                <Input
+                  id="first-name"
+                  autoComplete="given-name"
+                  required
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                />
               </Field>
             </div>
             <div className="flex-1">
               <Field label="Last name" htmlFor="last-name">
-                <Input id="last-name" autoComplete="family-name" value={lastName} onChange={e => setLastName(e.target.value)} />
+                <Input
+                  id="last-name"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                />
               </Field>
             </div>
           </div>
@@ -106,7 +119,11 @@ function SignIn() {
             />
           </Field>
           {isSignIn && (
-            <Link to="/forgot-password" search={{ email: email.trim() || undefined }} className="self-end pt-1 text-sm font-semibold text-accent">
+            <Link
+              to="/forgot-password"
+              search={{ email: email.trim() || undefined }}
+              className="self-end pt-1 text-sm font-semibold text-accent"
+            >
               Forgot password?
             </Link>
           )}

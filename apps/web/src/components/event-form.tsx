@@ -124,7 +124,8 @@ export function EventForm({ id }: { id?: string }) {
       if (!eventId) {
         const ok = await confirm({
           title: 'Create the event first?',
-          message: 'An invite link needs the event to exist. It’ll be saved with what you’ve filled in so far, and you can keep editing.',
+          message:
+            'An invite link needs the event to exist. It’ll be saved with what you’ve filled in so far, and you can keep editing.',
           confirmText: 'Create',
         });
         if (!ok) return;
@@ -196,7 +197,10 @@ export function EventForm({ id }: { id?: string }) {
         ]);
         navigate({ to: '/events/$id', params: { id: newId }, replace: true });
         if (results.some(r => r.status === 'rejected')) {
-          void showAlert('Some invites didn’t send', 'Your event was created. You can invite people again from its page.');
+          void showAlert(
+            'Some invites didn’t send',
+            'Your event was created. You can invite people again from its page.',
+          );
         }
       }
     } catch (e) {
@@ -241,7 +245,13 @@ export function EventForm({ id }: { id?: string }) {
         <Section title="Details">
           <FieldRow>
             <label htmlFor="event-date">{multiDay ? 'Starts' : 'Date'}</label>
-            <Input id="event-date" type="date" className="w-auto" value={date} onChange={e => setDate(e.target.value)} />
+            <Input
+              id="event-date"
+              type="date"
+              className="w-auto"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
           </FieldRow>
           <label className="cursor-pointer">
             <FieldRow>
@@ -293,7 +303,12 @@ export function EventForm({ id }: { id?: string }) {
             <label className="cursor-pointer">
               <FieldRow>
                 <span>Secret Santa</span>
-                <Switch aria-label="Secret Santa" checked={secretSantaOn} onCheckedChange={setSecretSantaOn} disabled={drawn} />
+                <Switch
+                  aria-label="Secret Santa"
+                  checked={secretSantaOn}
+                  onCheckedChange={setSecretSantaOn}
+                  disabled={drawn}
+                />
               </FieldRow>
             </label>
             <Footnote>
@@ -312,7 +327,10 @@ export function EventForm({ id }: { id?: string }) {
               <div className="flex flex-col">
                 <p className="text-[13px] font-semibold text-ink-muted">Groups</p>
                 {groups.map(group => (
-                  <label key={group._id} className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2">
+                  <label
+                    key={group._id}
+                    className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2"
+                  >
                     <span className="flex-1">
                       <span className="block">{group.name}</span>
                       <span className="block text-[13px] text-ink-muted">
@@ -322,7 +340,9 @@ export function EventForm({ id }: { id?: string }) {
                     <Switch
                       aria-label={`Invite ${group.name}`}
                       checked={groupIds.includes(group._id)}
-                      onCheckedChange={on => setGroupIds(ids => (on ? [...ids, group._id] : ids.filter(gid => gid !== group._id)))}
+                      onCheckedChange={on =>
+                        setGroupIds(ids => (on ? [...ids, group._id] : ids.filter(gid => gid !== group._id)))
+                      }
                     />
                   </label>
                 ))}
@@ -331,7 +351,10 @@ export function EventForm({ id }: { id?: string }) {
             <div className="flex flex-col">
               <p className="pt-2">People</p>
               {people.map(person => (
-                <div key={guestKey(person)} className="flex items-center justify-between gap-3 border-b border-line py-2 pl-4">
+                <div
+                  key={guestKey(person)}
+                  className="flex items-center justify-between gap-3 border-b border-line py-2 pl-4"
+                >
                   <span className="flex-1">
                     <span className="block">{person.name}</span>
                     {person.kind === 'email' && person.name !== person.email && (

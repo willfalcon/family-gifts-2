@@ -186,7 +186,8 @@ export function shoppingSummary(data: GiftShopping) {
 // Marks a claim Bought (or not), flipping it on the page straight away.
 export function useSetBought() {
   return useMutation(api.claims.setBought).withOptimisticUpdate((store, args) => {
-    const flip = (claims: ShoppingClaim[]) => claims.map(c => (c.itemId === args.itemId ? { ...c, bought: args.bought } : c));
+    const flip = (claims: ShoppingClaim[]) =>
+      claims.map(c => (c.itemId === args.itemId ? { ...c, bought: args.bought } : c));
     for (const { args: queryArgs, value } of store.getAllQueries(api.giftShopping.overview)) {
       if (!value) continue;
       store.setQuery(api.giftShopping.overview, queryArgs, {

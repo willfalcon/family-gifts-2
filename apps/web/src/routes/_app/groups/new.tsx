@@ -73,7 +73,11 @@ function NewGroup() {
           <label className="cursor-pointer">
             <FieldRow>
               <span>Members can invite</span>
-              <Switch aria-label="Members can invite" checked={membersCanInvite} onCheckedChange={setMembersCanInvite} />
+              <Switch
+                aria-label="Members can invite"
+                checked={membersCanInvite}
+                onCheckedChange={setMembersCanInvite}
+              />
             </FieldRow>
           </label>
           <Footnote>
@@ -96,7 +100,11 @@ function NewGroup() {
                       <span className="block">{list.title}</span>
                       <span className="block text-[13px] text-ink-muted">{summary}</span>
                     </span>
-                    <Switch aria-label={list.title} checked={checked} onCheckedChange={value => toggleList(list._id, value)} />
+                    <Switch
+                      aria-label={list.title}
+                      checked={checked}
+                      onCheckedChange={value => toggleList(list._id, value)}
+                    />
                   </FieldRow>
                 </label>
               );

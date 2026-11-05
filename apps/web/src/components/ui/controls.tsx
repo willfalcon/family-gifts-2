@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { Check } from 'lucide-react';
-import { Checkbox as CheckboxPrimitive, Label as LabelPrimitive, RadioGroup as RadioGroupPrimitive, Switch as SwitchPrimitive } from 'radix-ui';
+import {
+  Checkbox as CheckboxPrimitive,
+  Label as LabelPrimitive,
+  RadioGroup as RadioGroupPrimitive,
+  Switch as SwitchPrimitive,
+} from 'radix-ui';
 
 import { cn } from '@/lib/utils';
 

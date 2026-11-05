@@ -55,7 +55,9 @@ const APPEARANCE_OPTIONS = [
   { value: 'dark', label: 'Dark' },
 ] satisfies { value: Appearance; label: string }[];
 
-const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString('en-US', { month: 'long' }));
+const MONTHS = Array.from({ length: 12 }, (_, i) =>
+  new Date(2000, i, 1).toLocaleDateString('en-US', { month: 'long' }),
+);
 
 // Catches Feb 29 in a non-leap year before the server rejects it.
 function isRealDate(year: number, month: number, day: number) {
@@ -76,7 +78,9 @@ function Profile() {
         <p className="display-detail text-center">{user?.name}</p>
       </div>
       {user && profile !== undefined && <NameForm name={user.name} profile={profile} />}
-      {profile !== undefined && groups !== undefined && <ProfileSettings profile={profile} groups={groups} email={user?.email ?? null} />}
+      {profile !== undefined && groups !== undefined && (
+        <ProfileSettings profile={profile} groups={groups} email={user?.email ?? null} />
+      )}
       <Button
         variant="secondary"
         onClick={async () => {
@@ -109,7 +113,11 @@ function NameForm({ name, profile }: { name: string; profile: ReturnType<typeof 
 
   if (!editing) {
     return (
-      <button type="button" className="self-center text-callout text-accent hover:underline" onClick={() => setEditing(true)}>
+      <button
+        type="button"
+        className="self-center text-callout text-accent hover:underline"
+        onClick={() => setEditing(true)}
+      >
         Edit name
       </button>
     );
@@ -132,8 +140,21 @@ function NameForm({ name, profile }: { name: string; profile: ReturnType<typeof 
   return (
     <form onSubmit={save} className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
       <div className="flex gap-3">
-        <Input aria-label="First name" placeholder="First name" autoComplete="given-name" value={first} onChange={e => setFirst(e.target.value)} autoFocus />
-        <Input aria-label="Last name" placeholder="Last name" autoComplete="family-name" value={last} onChange={e => setLast(e.target.value)} />
+        <Input
+          aria-label="First name"
+          placeholder="First name"
+          autoComplete="given-name"
+          value={first}
+          onChange={e => setFirst(e.target.value)}
+          autoFocus
+        />
+        <Input
+          aria-label="Last name"
+          placeholder="Last name"
+          autoComplete="family-name"
+          value={last}
+          onChange={e => setLast(e.target.value)}
+        />
       </div>
       <ErrorText>{error}</ErrorText>
       <div className="flex justify-end gap-2">
@@ -152,7 +173,15 @@ type ProfileDoc = NonNullable<ReturnType<typeof useProfile>>;
 type GroupDoc = NonNullable<ReturnType<typeof useGroups>>[number];
 
 // Every change saves right away, like mobile.
-function ProfileSettings({ profile, groups, email }: { profile: ProfileDoc | null; groups: GroupDoc[]; email: string | null }) {
+function ProfileSettings({
+  profile,
+  groups,
+  email,
+}: {
+  profile: ProfileDoc | null;
+  groups: GroupDoc[];
+  email: string | null;
+}) {
   const updateProfile = useUpdateProfile();
   const [appearance, setAppearance] = useAppearance();
   const birthday = profile?.birthday ?? null;
@@ -196,7 +225,8 @@ function ProfileSettings({ profile, groups, email }: { profile: ProfileDoc | nul
     save({ birthday: { month: birthday.month, day: birthday.day, year } });
   }
 
-  const toggleIn = (ids: Id<'groups'>[], id: Id<'groups'>, on: boolean) => (on ? [...ids, id] : ids.filter(g => g !== id));
+  const toggleIn = (ids: Id<'groups'>[], id: Id<'groups'>, on: boolean) =>
+    on ? [...ids, id] : ids.filter(g => g !== id);
   const thisYear = new Date().getFullYear();
   const daysInMonth = birthday ? new Date(2000, birthday.month, 0).getDate() : 31;
 
@@ -209,7 +239,12 @@ function ProfileSettings({ profile, groups, email }: { profile: ProfileDoc | nul
             <Select
               aria-label="Birthday month"
               value={birthday?.month ?? ''}
-              onChange={e => setBirthdayDate(Number(e.target.value), Math.min(birthday?.day ?? 1, new Date(2000, Number(e.target.value), 0).getDate()))}
+              onChange={e =>
+                setBirthdayDate(
+                  Number(e.target.value),
+                  Math.min(birthday?.day ?? 1, new Date(2000, Number(e.target.value), 0).getDate()),
+                )
+              }
             >
               {!birthday && <option value="">Month</option>}
               {MONTHS.map((m, i) => (
@@ -262,7 +297,10 @@ function ProfileSettings({ profile, groups, email }: { profile: ProfileDoc | nul
             const option = VISIBILITY_OPTIONS[value];
             const description = value === 'allGroups' ? groups.map(g => g.name).join(', ') : option.description;
             return (
-              <label key={value} className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2">
+              <label
+                key={value}
+                className="flex cursor-pointer items-center justify-between gap-3 border-b border-line py-2"
+              >
                 <span className="flex-1">
                   <span className="block">{option.label}</span>
                   {description && <span className="block text-sm text-ink-muted">{description}</span>}

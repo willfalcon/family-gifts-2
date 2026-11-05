@@ -116,7 +116,13 @@ export function PrivateIdeaDialog({
 }
 
 // One of your private ideas for someone. Click to edit; the menu deletes.
-export function PrivateIdeaRow({ idea, onEdit }: { idea: Doc<'privateIdeas'>; onEdit: (idea: Doc<'privateIdeas'>) => void }) {
+export function PrivateIdeaRow({
+  idea,
+  onEdit,
+}: {
+  idea: Doc<'privateIdeas'>;
+  onEdit: (idea: Doc<'privateIdeas'>) => void;
+}) {
   const removeIdea = useMutation(api.privateIdeas.remove);
   async function confirmDelete() {
     if (await confirm({ title: 'Delete this idea?', confirmText: 'Delete', destructive: true })) {
@@ -267,7 +273,9 @@ export function AskForIdeasDialog({
                     onClick={() => setOptionKey(o.key)}
                     className={cn(
                       'rounded-pill border px-3 py-1.5 text-subhead',
-                      selected ? 'border-accent bg-accent font-semibold text-accent-foreground' : 'border-line hover:bg-fill',
+                      selected
+                        ? 'border-accent bg-accent font-semibold text-accent-foreground'
+                        : 'border-line hover:bg-fill',
                     )}
                   >
                     {o.label}

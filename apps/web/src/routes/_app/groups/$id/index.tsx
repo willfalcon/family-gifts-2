@@ -21,7 +21,11 @@ export const Route = createFileRoute('/_app/groups/$id/')({
 // Event dates are "YYYY-MM-DD"; parsed as local dates so they don't shift a day.
 function formatEventDate(date: string) {
   const [year, month, day] = date.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 const eventStatusLabel = {
@@ -165,7 +169,11 @@ function Group() {
             const memberIsManager = member.role === 'manager';
             return (
               <div key={member.id} className="flex items-center gap-3">
-                <Link to="/people/$id" params={{ id: member.userId }} className="flex min-w-0 flex-1 items-center gap-3">
+                <Link
+                  to="/people/$id"
+                  params={{ id: member.userId }}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
                   <Avatar person={member} size={40} />
                   <span className="min-w-0 flex-1 border-b border-line py-1">
                     <span className="block">
@@ -184,7 +192,11 @@ function Group() {
                       memberIsManager
                         ? { label: 'Demote to member', onSelect: () => changeRole(member.id, 'member') }
                         : { label: 'Promote to manager', onSelect: () => changeRole(member.id, 'manager') },
-                      { label: 'Remove from group', onSelect: () => void confirmRemove(member.id, member.name), destructive: true },
+                      {
+                        label: 'Remove from group',
+                        onSelect: () => void confirmRemove(member.id, member.name),
+                        destructive: true,
+                      },
                     ]}
                   />
                 )}
@@ -200,8 +212,8 @@ function Group() {
             </Link>
           )}
           <Footnote>
-            Managers can add or remove people and change these settings. They can’t see claims on anyone’s list, or lists
-            that aren’t shared with the group.
+            Managers can add or remove people and change these settings. They can’t see claims on anyone’s list, or
+            lists that aren’t shared with the group.
           </Footnote>
         </Section>
       )}

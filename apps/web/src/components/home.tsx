@@ -232,7 +232,13 @@ export function ThreadCards() {
   );
 }
 
-export function MakeListButton({ search, className }: { search: ReturnType<typeof makeListSearch>; className?: string }) {
+export function MakeListButton({
+  search,
+  className,
+}: {
+  search: ReturnType<typeof makeListSearch>;
+  className?: string;
+}) {
   return (
     <Button asChild variant="secondary" size="sm" className={className ?? 'self-start'}>
       <Link to="/lists/new" search={search}>
@@ -272,7 +278,10 @@ export function GiftShoppingCard() {
   const summary =
     shoppingFor === 0 && toBuy === 0
       ? 'Nobody to shop for yet'
-      : [shoppingFor > 0 ? `Shopping for ${shoppingFor} ${shoppingFor === 1 ? 'person' : 'people'}` : null, `${toBuy} to buy`]
+      : [
+          shoppingFor > 0 ? `Shopping for ${shoppingFor} ${shoppingFor === 1 ? 'person' : 'people'}` : null,
+          `${toBuy} to buy`,
+        ]
           .filter(Boolean)
           .join(' · ');
   return (
@@ -324,7 +333,11 @@ function ToDoLink({ toDo, children }: { toDo: ToDo; children: ReactNode }) {
   switch (toDo.kind) {
     case 'makeList':
       return (
-        <Link to="/lists/new" search={toDo.eventId ? { eventId: toDo.eventId } : { occasion: 'birthday' }} className={className}>
+        <Link
+          to="/lists/new"
+          search={toDo.eventId ? { eventId: toDo.eventId } : { occasion: 'birthday' }}
+          className={className}
+        >
           {children}
         </Link>
       );
@@ -367,7 +380,9 @@ export function ToDos() {
         confirmText: 'Turn off',
       });
       if (!ok) return;
-      setSecretSantaOff({ eventId: toDo.eventId!, off: true }).catch(e => showError('Couldn’t turn off Secret Santa', e));
+      setSecretSantaOff({ eventId: toDo.eventId!, off: true }).catch(e =>
+        showError('Couldn’t turn off Secret Santa', e),
+      );
       return;
     }
     dismiss({ key: toDo.key }).catch(() => {});
