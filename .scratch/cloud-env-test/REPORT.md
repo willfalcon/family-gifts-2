@@ -6,7 +6,7 @@ Date: 2026-11-05. Branch: `claude/cloud-env-test` (from `main`). No application 
 
 | Check | Result | Cause |
 | --- | --- | --- |
-| `git push` | ❌ 403 | Claude GitHub App not installed / GitHub not linked for this repo |
+| `git push` | ✅ (after fix) | First failed with 403 (GitHub App not installed / not linked); works after GitHub access was fixed |
 | `npm ci` | ✅ 89 s | — |
 | Backend typecheck (`tsc` in `packages/backend`) | ✅ 2 s, 81 convex files | — |
 | Web typecheck (`tsc` in `apps/web`) | ❌ 4 errors | **Code error** (not environmental) |
